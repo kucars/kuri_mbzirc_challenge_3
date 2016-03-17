@@ -35,7 +35,7 @@ More information about how to install ROS can be found at: http://wiki.ros.org/i
 RotorS is a MAV gazebo simulator.
 This packages also contains some example controllers, basic worlds, a joystick interface, and example launch files.
 
-Installation Instructions
+### Installation Instructions
 -------------------------
 
  1. If you don't have ROS workspace yet you can do so by:
