@@ -1,28 +1,23 @@
-# kuri_mbzirc_challenge_3
+# KURI - MBZIRC Challenge 3
+
 Challenge 3 related tasks implementation
 
-In order run the simulation the following Packages are needed: 
+In order run the simulation environment the following Packages are needed: 
 
-A- RotorS rotor_simulator    
-B- mavros     
-C- Firmware     
-D- mbzirc simulation environment    
-E- Challenge 3 specific environment    
+A- ROS
+B- RotorS rotor_simulator    
+C- mavros     
+D- Firmware     
+E- mbzirc simulation environment    
+F- Challenge 3 specific environment    
 
 ===============
-##  A- Rotor simulator
-RotorS is a MAV gazebo simulator.
-It provides some multirotor models such as the [AscTec Hummingbird](http://www.asctec.de/en/uav-uas-drone-products/asctec-hummingbird/), the [AscTec Pelican](http://www.asctec.de/en/uav-uas-drone-products/asctec-pelican/), the [AscTec Firefly](http://www.asctec.de/en/uav-uas-drone-products/asctec-firefly/), but the simulator is not limited for the use with these multicopters.
+##  A- ROS
 
-There are simulated sensors coming with the simulator such as an IMU, a generic odometry sensor, and the [VI-Sensor](http://wiki.ros.org/vi_sensor), which can be mounted on the multirotor.
-
-This packages also contains some example controllers, basic worlds, a joystick interface, and example launch files.
-
+ ROS Indigo desktop full, additional ROS packages, catkin-tools, and wstool are needed to run the simulation, follow the following basic steps for an initial setup:
 
 Installation Instructions
 -------------------------
-
- 1. Install and initialize ROS indigo desktop full, additional ROS packages, catkin-tools, and wstool:
 
  ```
  $ sudo sh -c 'echo "deb http://packages.ros.org/ros/ubuntu `lsb_release -sc` main" > /etc/apt/sources.list.d/ros-latest.list'
@@ -33,7 +28,17 @@ Installation Instructions
  $ rosdep update
  $ source /opt/ros/indigo/setup.bash
  ```
- 2. If you don't have ROS workspace yet you can do so by
+More information about how to install ROS can be found at: http://wiki.ros.org/indigo/Installation
+
+===============
+##  B- Rotor simulator
+RotorS is a MAV gazebo simulator.
+This packages also contains some example controllers, basic worlds, a joystick interface, and example launch files.
+
+Installation Instructions
+-------------------------
+
+ 1. If you don't have ROS workspace yet you can do so by:
 
  ```
  $ mkdir -p ~/catkin_ws/src
@@ -42,7 +47,8 @@ Installation Instructions
  $ wstool init
  ```
  > **Note** for setups with multiple workspaces please refer to the official documentation at http://docs.ros.org/independent/api/rosinstall/html/ by replacing `rosws` by `wstool`.
- 3. rotors_simulator requires extra dependencies, get the simulator and additional dependencies
+ 
+ 2. rotors_simulator requires extra dependencies, get the simulator and additional dependencies
 
  ```
  $ cd ~/catkin_ws/src
@@ -51,11 +57,7 @@ Installation Instructions
  $ git clone https://github.com/ethz-asl/glog_catkin.git
  $ git clone https://github.com/ethz-asl/catkin_simple.git 
  ```
-  > **Note** if you want to use `wstool` you can replace the above commands with
-    ```
-    wstool set --git local_repo_name git@github.com:organization/repo_name.git
-    ```
- 4. Build your workspace with `python_catkin_tools` (therefore you need `python_catkin_tools`)
+ 3. Build your workspace with `python_catkin_tools` (therefore you need `python_catkin_tools`)
 
    ```
    $ cd ~/catkin_ws/
@@ -63,71 +65,12 @@ Installation Instructions
    $ catkin build
    ```
 
- 5. Add sourcing to your `.bashrc` file
+ 4. Add sourcing to your `.bashrc` file
 
    ```
    $ echo "source ~/catkin_ws/devel/setup.bash" >> ~/.bashrc
    $ source ~/.bashrc
    ```
-
-Basic Usage
------------
-
-Launch the simulator with a hex-rotor helicopter model, in our case, the AscTec Firefly.
-
-```
-$ roslaunch rotors_gazebo mav_empty_world.launch mav_name:=firefly
-```
-
-> **Note** The first run of gazebo might take considerably long, as it will download some models from an online database.
-
-The simulator starts by default in paused mode. To start it you can either
- - use the Gazebo GUI and press the play button
- - or you can send the following service call.
-
-   ```
-   $ rosservice call gazebo/unpause_physics
-   ```
-
-There are some basic launch files where you can load the different multicopters with additional sensors. They can all be found in `~/catkin_ws/src/rotors_simulator/rotors_gazebo/launch`.
-
-### Getting the multicopter to fly
-
-To let the multicopter fly you need to generate thrust with the rotors, this is achieved by sending commands to the multicopter, which make the rotors spin.
-There are currently a few ways to send commands to the multicopter, we will show one of them here.
-The rest is documented [here](../../wiki) in our Wiki.
-We will here also show how to write a stabilizing controller and how you can control the multicopter with a joystick.
-
-#### Send direct motor commands
-
-We will for now just send some constant motor velocities to the multicopter.
-
-```
-$ rostopic pub /firefly/command/motors mav_msgs/CommandMotorSpeed '{motor_speed: [100, 100, 100, 100, 100, 100]}'
-```
-
-> **Note** The size of the `motor_speed` array should be equal to the number of motors you have in your model of choice (e.g. 6 in the Firefly model).
-
-You should see (if you unpaused the simulator and you have a multicopter in it), that the rotors start spinning. The thrust generated by these motor velocities is not enough though to let the multicopter take off.
-> You can play with the numbers and will realize that the Firefly will take off with motor speeds of about 545 on each rotor. The multicopter is unstable though, since there is no controller running, if you just set the motor speeds.
-
-
-#### Let the helicopter hover with ground truth odometry
-
-You can let the helicopter hover with ground truth odometry (perfect state estimation), by launching:
-
-```
-$ roslaunch rotors_gazebo firefly_hovering_example.launch mav_name:=firefly
-```
-
-#### Create an attitude controller
-
-**TODO(ff):** `Write something here.`
-
-#### Usage with a joystick
-
-**TODO(ff):** `Write something here.`
-
 
 ====== 
 ## B- mavros 
@@ -140,10 +83,6 @@ Installation Instructions
  ```
 $ sudo apt-get install ros-indigo-mav* 
 ```
-2- get the mavlink package from the software center with the following version: 
-
-Version: ros-indigo-mavlink 2015.10.10-0trusty-20151009-2308-+0000
-
 
 =======
 ## C- Firmware
@@ -193,7 +132,7 @@ Clone the package:
  Basic Usage
 -----------
 
-Launch the three drones 
+Launch the simulation environment with three drones:
 
 ```
 $ roslaunch kuri_mbzirc_challenge_3 task.launch
