@@ -1,16 +1,15 @@
 # kuri_mbzirc_challenge_3
 Challenge 3 related tasks implementation
- # kuri_mbzirc_challenge_3
- Challenge 3 related tasks implementation
- Challenge 3 related tasks implementation
 
 In order run the simulation the following Packages are needed: 
-1- RotorS rotor_simulator 
-2- Firmware 
-3- mbzirc simulation environment 
-4- Challenge 3 specific environment 
+1- RotorS rotor_simulator
+2- mavros 
+3- Firmware 
+4- mbzirc simulation environment 
+5- Challenge 3 specific environment 
 
 ===============
+## Rotor simulator 
 RotorS is a MAV gazebo simulator.
 It provides some multirotor models such as the [AscTec Hummingbird](http://www.asctec.de/en/uav-uas-drone-products/asctec-hummingbird/), the [AscTec Pelican](http://www.asctec.de/en/uav-uas-drone-products/asctec-pelican/), the [AscTec Firefly](http://www.asctec.de/en/uav-uas-drone-products/asctec-firefly/), but the simulator is not limited for the use with these multicopters.
 
@@ -130,8 +129,25 @@ $ roslaunch rotors_gazebo firefly_hovering_example.launch mav_name:=firefly
 
 
 ====== 
-Firmware
- Installation Instructions
+## mavros 
+
+This package provides communication driver for various autopilots with MAVLink communication protocol. 
+
+Installation Instructions
+-------------------------
+1- get the mavros packages 
+ ```
+$ sudo apt-get install ros-indigo-mav* 
+```
+2- get the mavlink package from the software center with the following version: 
+
+Version: ros-indigo-mavlink 2015.10.10-0trusty-20151009-2308-+0000
+
+
+=======
+## Firmware
+
+Installation Instructions
 -------------------------
 This package contains the PX4 Flight Core that simulates the autopilot. Clone the following package: 
  ```
@@ -140,9 +156,9 @@ This package contains the PX4 Flight Core that simulates the autopilot. Clone th
  ```
  
  ========= 
- kuri_mbzirc_sim
- 
- This package simulates the environment of MBZIRC challenges 
+ ## MBZIRC Simulation Environment  
+
+ kuri_mbzirc_sim is a package that simulates the environment of MBZIRC challenges 
  
  Installation Instructions
 -------------------------
@@ -160,8 +176,9 @@ Launch the simulator for main arena
 $ roslaunch kuri_mbzirc_sim mbzirc_arena.launch
 ```
 ========= 
-kuri_mbzirc_challenge_3
-This package launchs three drones in the start position it contains the related tasks for this challenge. 
+## MBZIRC Challenge 3 
+
+kuri_mbzirc_challenge_3 is a package that launchs three drones in the start position it contains the related tasks for this challenge. 
 
 Installation Instructions
 -------------------------
