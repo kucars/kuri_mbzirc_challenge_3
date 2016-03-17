@@ -16,7 +16,7 @@ In order run the simulation environment the following Packages are needed:
 
  ROS Indigo desktop full, additional ROS packages, catkin-tools, and wstool are needed to run the simulation, follow the following basic steps for an initial setup:
 
-Installation Instructions
+### Installation Instructions
 -------------------------
 
  ```
@@ -77,7 +77,7 @@ Installation Instructions
 
 This package provides communication driver for various autopilots with MAVLink communication protocol. 
 
-Installation Instructions
+### Installation Instructions
 -------------------------
 1. Get the mavros packages 
  ```
@@ -87,7 +87,7 @@ $ sudo apt-get install ros-indigo-mav*
 =======
 ## Firmware
 
-Installation Instructions
+### Installation Instructions
 -------------------------
 This package contains the PX4 Flight Core that simulates the autopilot. Clone the following package: 
  ```
@@ -100,7 +100,7 @@ This package contains the PX4 Flight Core that simulates the autopilot. Clone th
 
 kuri_mbzirc_sim is a package that simulates the environment of MBZIRC challenges 
  
-Installation Instructions
+### Installation Instructions
 -------------------------
  This package contains the 3 arenas used for the three challenges. First you need to clone the package: 
   ```
@@ -121,7 +121,7 @@ $ roslaunch kuri_mbzirc_sim mbzirc_arena.launch
 
 kuri_mbzirc_challenge_3 is a package that launchs three drones in the start position it contains the related tasks for this challenge. 
 
-Installation Instructions
+### Installation Instructions
 -------------------------
 Clone the package: 
   ```
