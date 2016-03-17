@@ -2,14 +2,14 @@
 Challenge 3 related tasks implementation
 
 In order run the simulation the following Packages are needed: 
-1- RotorS rotor_simulator
-2- mavros 
-3- Firmware 
-4- mbzirc simulation environment 
-5- Challenge 3 specific environment 
+A- RotorS rotor_simulator
+B- mavros 
+C- Firmware 
+D- mbzirc simulation environment 
+E- Challenge 3 specific environment 
 
 ===============
-## Rotor simulator 
+## A- Rotor simulator 
 RotorS is a MAV gazebo simulator.
 It provides some multirotor models such as the [AscTec Hummingbird](http://www.asctec.de/en/uav-uas-drone-products/asctec-hummingbird/), the [AscTec Pelican](http://www.asctec.de/en/uav-uas-drone-products/asctec-pelican/), the [AscTec Firefly](http://www.asctec.de/en/uav-uas-drone-products/asctec-firefly/), but the simulator is not limited for the use with these multicopters.
 
@@ -129,7 +129,7 @@ $ roslaunch rotors_gazebo firefly_hovering_example.launch mav_name:=firefly
 
 
 ====== 
-## mavros 
+## B- mavros 
 
 This package provides communication driver for various autopilots with MAVLink communication protocol. 
 
@@ -145,7 +145,7 @@ Version: ros-indigo-mavlink 2015.10.10-0trusty-20151009-2308-+0000
 
 
 =======
-## Firmware
+## C- Firmware
 
 Installation Instructions
 -------------------------
@@ -156,7 +156,7 @@ This package contains the PX4 Flight Core that simulates the autopilot. Clone th
  ```
  
  ========= 
- ## MBZIRC Simulation Environment  
+ ## D- MBZIRC Simulation Environment  
 
  kuri_mbzirc_sim is a package that simulates the environment of MBZIRC challenges 
  
@@ -176,7 +176,7 @@ Launch the simulator for main arena
 $ roslaunch kuri_mbzirc_sim mbzirc_arena.launch
 ```
 ========= 
-## MBZIRC Challenge 3 
+## E- MBZIRC Challenge 3 
 
 kuri_mbzirc_challenge_3 is a package that launchs three drones in the start position it contains the related tasks for this challenge. 
 
