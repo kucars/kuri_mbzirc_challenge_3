@@ -156,7 +156,7 @@ This package contains the PX4 Flight Core that simulates the autopilot. Clone th
  $ git clone https://github.com/PX4/Firmware.git
  ```
  
- ========= 
+========= 
 ## D- MBZIRC Simulation Environment  
 
 kuri_mbzirc_sim is a package that simulates the environment of MBZIRC challenges 
