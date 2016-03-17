@@ -2,10 +2,15 @@
 Challenge 3 related tasks implementation
 
 In order run the simulation the following Packages are needed: 
+
 A- RotorS rotor_simulator
+
 B- mavros 
+
 C- Firmware 
+
 D- mbzirc simulation environment 
+
 E- Challenge 3 specific environment 
 
 ===============
