@@ -4,15 +4,15 @@ Challenge 3 related tasks implementation
 
 In order run the simulation environment the following Packages are needed: 
 
-A- ROS
-B- RotorS rotor_simulator    
-C- mavros     
-D- Firmware     
-E- mbzirc simulation environment    
-F- Challenge 3 specific environment    
+- ROS
+- RotorS rotor_simulator    
+- mavros     
+- Firmware     
+- mbzirc simulation environment    
+- Challenge 3 specific environment    
 
 ===============
-##  A- ROS
+## ROS
 
  ROS Indigo desktop full, additional ROS packages, catkin-tools, and wstool are needed to run the simulation, follow the following basic steps for an initial setup:
 
@@ -31,7 +31,7 @@ Installation Instructions
 More information about how to install ROS can be found at: http://wiki.ros.org/indigo/Installation
 
 ===============
-##  B- Rotor simulator
+## Rotor simulator
 RotorS is a MAV gazebo simulator.
 This packages also contains some example controllers, basic worlds, a joystick interface, and example launch files.
 
@@ -73,19 +73,19 @@ Installation Instructions
    ```
 
 ====== 
-## B- mavros 
+## Mavros 
 
 This package provides communication driver for various autopilots with MAVLink communication protocol. 
 
 Installation Instructions
 -------------------------
-1- get the mavros packages 
+1. Get the mavros packages 
  ```
 $ sudo apt-get install ros-indigo-mav* 
 ```
 
 =======
-## C- Firmware
+## Firmware
 
 Installation Instructions
 -------------------------
@@ -96,7 +96,7 @@ This package contains the PX4 Flight Core that simulates the autopilot. Clone th
  ```
  
 ========= 
-## D- MBZIRC Simulation Environment  
+## MBZIRC Simulation Environment  
 
 kuri_mbzirc_sim is a package that simulates the environment of MBZIRC challenges 
  
@@ -117,7 +117,7 @@ $ roslaunch kuri_mbzirc_sim mbzirc_arena.launch
 ```
 ========= 
 
-## E- MBZIRC Challenge 3 
+## MBZIRC Challenge 3 
 
 kuri_mbzirc_challenge_3 is a package that launchs three drones in the start position it contains the related tasks for this challenge. 
 
