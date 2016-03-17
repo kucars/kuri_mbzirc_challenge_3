@@ -32,7 +32,7 @@
       <arg name="fcu_url" value="$(arg fcu_url)" />
     </include>    
   </group>
-  <include file="$(find px4)/launch/ardrone.launch">
+  <include file="$(find rotors_gazebo)/launch/ardrone.launch">
     <arg name="ns" value="uav_1"/>
   </include>
 
@@ -52,7 +52,7 @@
       <arg name="fcu_url" value="$(arg fcu_url)" />
     </include>    
   </group>
-  <include file="$(find px4)/launch/ardrone.launch">
+  <include file="$(find rotors_gazebo)/launch/ardrone.launch">
     <arg name="ns" value="uav_2"/>
     <arg name="mavlink_fcu_url" value="udp://localhost:14575@localhost:14570"/>
   </include>
@@ -73,7 +73,7 @@
       <arg name="fcu_url" value="$(arg fcu_url)" />
     </include>    
   </group>
-  <include file="$(find px4)/launch/ardrone.launch">
+  <include file="$(find rotors_gazebo)/launch/ardrone.launch">
     <arg name="ns" value="uav_3"/>
     <arg name="mavlink_fcu_url" value="udp://localhost:14585@localhost:14580"/>
   </include>
