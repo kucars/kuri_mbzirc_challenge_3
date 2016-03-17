@@ -2,11 +2,12 @@
 Challenge 3 related tasks implementation
 
 In order run the simulation the following Packages are needed: 
-A- RotorS rotor_simulator
-B- mavros 
-C- Firmware 
-D- mbzirc simulation environment 
-E- Challenge 3 specific environment 
+
+A- RotorS rotor_simulator    
+B- mavros     
+C- Firmware     
+D- mbzirc simulation environment    
+E- Challenge 3 specific environment    
 
 ===============
 ## A- Rotor simulator 
@@ -156,12 +157,11 @@ This package contains the PX4 Flight Core that simulates the autopilot. Clone th
  ```
  
  ========= 
- 
- ## D- MBZIRC Simulation Environment  
+## D- MBZIRC Simulation Environment  
 
- kuri_mbzirc_sim is a package that simulates the environment of MBZIRC challenges 
+kuri_mbzirc_sim is a package that simulates the environment of MBZIRC challenges 
  
- Installation Instructions
+Installation Instructions
 -------------------------
  This package contains the 3 arenas used for the three challenges. First you need to clone the package: 
   ```
