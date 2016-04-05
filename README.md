@@ -53,7 +53,7 @@ This packages also contains some example controllers, basic worlds, a joystick i
  ```
  $ cd ~/catkin_ws/src
  $ git clone https://github.com/kuri-kustar/rotors_simulator 
- $ git clone https://github.com/ethz-asl/mav_comm.git
+ $ git clone https://github.com/PX4/mav_comm
  $ git clone https://github.com/ethz-asl/glog_catkin.git
  $ git clone https://github.com/ethz-asl/catkin_simple.git 
  ```
