@@ -93,6 +93,9 @@ This package contains the PX4 Flight Core that simulates the autopilot. Clone th
  ```
  $ cd ~/catkin_ws/src
  $ git clone https://github.com/PX4/Firmware.git
+ $ cd Firmware
+ $ git submodule init
+ $ git submodule update
  $ cd ~/catkin_ws/
  $ catkin_make --cmake-args -DCONFIG=ros_sitl_simple
  ```
