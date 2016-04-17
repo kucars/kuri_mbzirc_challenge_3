@@ -13,10 +13,16 @@
   <buildtool_depend>catkin</buildtool_depend>
 
   <build_depend>roscpp</build_depend>
+  <build_depend>rospy</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>image_transport</build_depend>
+  <build_depend>cv_bridge</build_depend>
   <build_depend>kuri_mbzirc_sim</build_depend>
 
   <run_depend>kuri_mbzirc_sim</run_depend>
   <run_depend>rviz</run_depend>
+  <run_depend>image_transport</run_depend>
+  <run_depend>cv_bridge</run_depend>
 
   <export>
   </export>
