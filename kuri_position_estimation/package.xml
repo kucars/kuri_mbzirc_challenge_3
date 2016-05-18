@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>aerial_manipulation</name>
+  <name>kuri_position_estimation</name>
   <version>0.0.1</version>
   <description>My package description</description>
   <maintainer email="email@email.com">My Name</maintainer>

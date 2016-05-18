@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 <package>
-  <name>arena_exploration</name>
+  <name>kuri_system_coordinator</name>
   <version>0.0.1</version>
   <description>My package description</description>
   <maintainer email="email@email.com">My Name</maintainer>

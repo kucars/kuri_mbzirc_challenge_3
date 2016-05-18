@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(aerial_manipulation)
+project(kuri_position_estimation)
 
 find_package(catkin REQUIRED COMPONENTS
   roscpp
