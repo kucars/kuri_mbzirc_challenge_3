@@ -1,5 +1,7 @@
 # KURI - MBZIRC Challenge 3
 
+[![Join the chat at https://gitter.im/kuri-kustar/kuri_mbzirc_challenge_3](https://badges.gitter.im/kuri-kustar/kuri_mbzirc_challenge_3.svg)](https://gitter.im/kuri-kustar/kuri_mbzirc_challenge_3?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Challenge 3 related tasks implementation
 
 In order run the simulation environment the following Packages are needed: 
