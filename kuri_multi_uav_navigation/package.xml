@@ -2,12 +2,12 @@
 <package>
   <name>kuri_multi_agent_navigation</name>
   <version>0.0.1</version>
-  <description>My package description</description>
-  <maintainer email="email@email.com">My Name</maintainer>
+  <description>This component is respobsible for controlling the uavs in a way that gaurantees safe routing</description>
+  <maintainer email="ahmed.aldhanhani@kustar.ac.ae">Ahmed AlDhanhani</maintainer>
   <license>LGPLv3</license>
   <url type="website">https://github.com/kuri-kustar/kuri_mbzirc_challenge_3/wiki</url>
 
-  <author email="email@email.com">My Name</author>
+  <author email="ahmed.aldhanhani@kustar.ac.ae">Ahmed AlDhanhani</author>
 
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>roscpp</build_depend>
