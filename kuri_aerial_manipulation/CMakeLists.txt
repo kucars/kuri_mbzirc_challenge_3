@@ -1,11 +1,20 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(kuri_aerial_manipulation)
 
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  rospy
-  std_msgs
+find_package(catkin REQUIRED COMPONENTS roscpp cv_bridge rospy   sensor_msgs image_transport  cmake_modules  tf message_filters nav_msgs jsk_recognition_msgs kuri_msgs    message_generation
 )
+
+
+
+catkin_package(
+    CATKIN_DEPENDS
+)
+find_package(Eigen REQUIRED)
+find_package(PCL REQUIRED)
+find_package(OpenCV REQUIRED)
+find_package(kuri_msgs REQUIRED)
+
+
 
 # find_package(Boost REQUIRED COMPONENTS system)
 
@@ -95,12 +104,21 @@ find_package(catkin REQUIRED COMPONENTS
 ## LIBRARIES: libraries you create in this project that dependent projects also need
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
+
 catkin_package(
+    CATKIN_DEPENDS
+)
+find_package(Eigen REQUIRED)
+find_package(PCL REQUIRED)
+find_package(OpenCV REQUIRED)
+find_package(kuri_msgs REQUIRED)
+
+#catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES beginner_tutorials
 #  CATKIN_DEPENDS roscpp rospy std_msgs
 #  DEPENDS system_lib
-)
+#)
 
 ###########
 ## Build ##
@@ -109,9 +127,11 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)
-include_directories(
-  ${catkin_INCLUDE_DIRS}
-)
+include_directories(include ${catkin_INCLUDE_DIRS}
+			    ${OpenCV_INCLUDE_DIRS}
+			    ${Eigen_INCLUDE_DIRS}
+ 			    ${PCL_INCLUDE_DIRS})
+
 
 ## Declare a C++ library
 # add_library(beginner_tutorials
@@ -149,6 +169,10 @@ include_directories(
 #   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
 
+install(DIRECTORY launch urdf config
+  DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+  USE_SOURCE_PERMISSIONS)
+
 ## Mark executables and/or libraries for installation
 # install(TARGETS beginner_tutorials beginner_tutorials_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
@@ -169,16 +193,22 @@ include_directories(
 #   # myfile2
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
+########################
+# color detection node #
+########################
+
+add_executable(object_detection src/uav_img2pointcloud.cpp)
+target_link_libraries(object_detection ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES})
+add_dependencies(object_detection ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
+
+
+
 
 #############
 ## Testing ##
 #############
+if(CATKIN_ENABLE_TESTING)
+  find_package(catkin REQUIRED COMPONENTS rostest roslaunch)
+#  roslaunch_add_file_check(launch/task.launch)
+endif()
 
-## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_beginner_tutorials.cpp)
-# if(TARGET ${PROJECT_NAME}-test)
-#   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
-# endif()
-
-## Add folders to be run by python nosetests
-# catkin_add_nosetests(test)
