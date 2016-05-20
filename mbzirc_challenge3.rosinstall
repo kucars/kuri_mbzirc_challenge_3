@@ -22,3 +22,6 @@
     local-name: kuri_mbzirc_sim
     uri: https://github.com/kuri-kustar/kuri_mbzirc_sim.git
     version: ae3cce0
+- git:
+    local-name: kuri_msgs
+    uri: https://github.com/kuri-kustar/kuri_msgs.git
