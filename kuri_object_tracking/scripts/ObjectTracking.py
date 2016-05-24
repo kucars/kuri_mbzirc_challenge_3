@@ -39,7 +39,7 @@ class image_converter:
     rospy.init_node('mbzirc_challenge3_cv_test', anonymous=True)
     self.image_pub = rospy.Publisher("/uav_3/downward_cam/image_output",Image, queue_size=10)
 
-    self.objects_pub = rospy.Publisher('kuri_msgs/Objects', Objects, queue_size=5,latch=True)
+    self.objects_pub = rospy.Publisher('kuri_msgs/ObjectsMap', ObjectsMap, queue_size=5,latch=True)
     self.currentObject = Object()
     self.currentObject.width = 10 
     self.currentObject.height = 10
@@ -50,6 +50,7 @@ class image_converter:
 
     self.obstacles = Objects()
     #self.obstacles.objects.append(self.currentObject)
+    self.sentObstacles = ObjectsMap()
     
     self.bridge = CvBridge()
     self.image_sub = rospy.Subscriber("/uav_3/downward_cam/camera/image",Image,self.callback)
@@ -138,7 +139,7 @@ class image_converter:
     	newObject.height = h
     	newObject.pose.pose.position.x = x_world
     	newObject.pose.pose.position.y = y_world
-    	newObject.color = label
+    	newObject.color = 'R'
 	self.obstacles.objects.append(newObject)
         objectIndex = objectNum
     cv2.putText(image,label + "#" + ("%d" % objectIndex) + "(" + ("%.2fm" % x_world) + "," + ("%.2fm" % y_world) + ")", (x,y + 50), font, font_scale, (255, 0, 0), thickness)
@@ -205,8 +206,11 @@ class image_converter:
     cv2.imshow("Tracker", small)
     cv2.waitKey(10);
     
-    if len(self.obstacles.objects) >= 5:
-	self.objects_pub.publish(self.obstacles)
+    if len(self.obstacles.objects) - len(self.sentObstacles.objects) >= 5:
+       for ob in self.obstacles.objects:
+	   if ob not in self.sentObstacles.objects:
+	        self.sentObstacles.objects.append(ob)
+       self.objects_pub.publish(self.sentObstacles)
 
     try:
       self.image_pub.publish(self.bridge.cv2_to_imgmsg(image2Analyse, "bgr8"))

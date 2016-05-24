@@ -85,7 +85,7 @@ def callback(data):
     #Get the scores from the YAML file
     def getColorScores():
         # Getting the color scores from a file, I don't use this effectivly yet
-        with open("~/catkin_ws/src/kuri_mbzirc_challenge_3/kuri_task_allocation/config/weight.yaml", 'r') as stream:
+        with open("../config/weight.yaml", 'r') as stream:
             try:
                 scores = yaml.load(stream)
                 # print scores
@@ -196,8 +196,13 @@ def callback(data):
     for obj in data.objects:
         location_obj = numpy.array((obj.pose.pose.position.x, obj.pose.pose.position.y, obj.pose.pose.position.z))
         dist = numpy.linalg.norm(UAV1 - location_obj)
+        
+        WeightOfObject = scores.get(obj.color)
+        #print WeightOfObject
+
         if obj.color != 'Nan':
             WeightOfObject = scores.get(obj.color)
+            print WeightOfObject
         weighteddist = dist / WeightOfObject
         rank1.append((weighteddist, 'UAV1', obj.header.seq, obj))
         rank1.sort()
