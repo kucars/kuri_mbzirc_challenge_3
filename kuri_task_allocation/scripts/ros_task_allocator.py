@@ -85,7 +85,7 @@ def callback(data):
     #Get the scores from the YAML file
     def getColorScores():
         # Getting the color scores from a file, I don't use this effectivly yet
-        with open("weight.yaml", 'r') as stream:
+        with open("~/catkin_ws/src/kuri_mbzirc_challenge_3/kuri_task_allocation/config/weight.yaml", 'r') as stream:
             try:
                 scores = yaml.load(stream)
                 # print scores
