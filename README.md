@@ -13,6 +13,17 @@ In order run the simulation environment the following Packages are needed:
 - mbzirc simulation environment    
 - Challenge 3 specific environment    
 
+# Installing using rosinstall
+```
+cd <catkin_ws>
+$ wstool init src
+$ wstool set -t src kuri_mbzirc_challenge_3 https://github.com/kuri-kustar/kuri_mbzirc_challenge_3.git --git
+$ wstool merge -t src https://raw.githubusercontent.com/kuri-kustar/kuri_mbzirc_challenge_3/master/mbzirc_challenge3.rosinstall
+$ wstool update -t src
+$ rosdep install -y -r --from-paths src --ignore-src --rosdistro $ROS_DISTRO
+$ catkin_make
+```
+# Installing Components Seperately
 ===============
 ## ROS
 

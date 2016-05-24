@@ -28,6 +28,8 @@ from tf.transformations import quaternion_from_euler
 home = expanduser("~")
 nframe = 0
 numberOfObject = 0
+InitialX = 28
+InitialY = 65
 
 class image_converter:
 
@@ -37,14 +39,17 @@ class image_converter:
     rospy.init_node('mbzirc_challenge3_cv_test', anonymous=True)
     self.image_pub = rospy.Publisher("/uav_3/downward_cam/image_output",Image, queue_size=10)
 
-    self.objects_pub = rospy.Publisher('kuri_msgs/Objects', Objects, queue_size=5)
+    self.objects_pub = rospy.Publisher('kuri_msgs/Objects', Objects, queue_size=5,latch=True)
     self.currentObject = Object()
     self.currentObject.width = 10 
     self.currentObject.height = 10
+    self.currentObject.pose.pose.position.x = InitialX
+    self.currentObject.pose.pose.position.y = InitialY;
+    #self.currentObject.pose = PoseWithCovariance(pose=pose)
     self.currentObject.color = 'RED'
 
     self.obstacles = Objects()
-    self.obstacles.objects.append(self.currentObject)
+    #self.obstacles.objects.append(self.currentObject)
     
     self.bridge = CvBridge()
     self.image_sub = rospy.Subscriber("/uav_3/downward_cam/camera/image",Image,self.callback)
@@ -94,28 +99,56 @@ class image_converter:
     im = image.copy()
     size = cv2.getTextSize(label, font, font_scale, thickness)[0]
     x,y,w,h = cv2.boundingRect(contour)
-    meter_pixel = 0.015#(w+h)/0.6; 
-    #M = cv2.moments(contour)
-    #x = int(M['m10']/M['m00'])
-    #y = int(M['m01']/M['m00'])
+    meter_pixel = 0.015 / 2#(w+h)/0.6; 
+    M = cv2.moments(contour)
+    x = int(M['m10']/M['m00'])
+    y = int(M['m01']/M['m00'])
     #print meter_pixel
     height, width = im.shape[:2]
-    obj_x = (x - (width/2.0)) * meter_pixel
+    obj_x = ((width/2.0) - x) * meter_pixel
     obj_x = obj_x + self.currentPoseX
-    obj_y = (y - (height/2.0)) * meter_pixel
+    obj_y = ((height/2.0) - y) * meter_pixel
     obj_y = obj_y + self.currentPoseY
-    cv2.putText(image,label + "(" + ("%.2fm" % obj_x) + "," + ("%.2fm" % (obj_y)) + ")", (x,y), font, font_scale, (0, 0, 255), thickness)
-    x_world = self.currentPoseX + (x - (width/2.0)) * self.currentPoseZ / 800;
-    y_world = self.currentPoseY + (y - (height/2.0)) * self.currentPoseZ / 800;
-    
+    #cv2.putText(image,label + "(" + ("%.2fm" % obj_x) + "," + ("%.2fm" % (obj_y)) + ")", (x,y), font, font_scale, (0, 0, 255), thickness)
+    x_world = self.currentPoseX + (y - (width/2.0)) * self.currentPoseZ / 800;
+    y_world = self.currentPoseY + (x - (height/2.0)) * self.currentPoseZ / 800;
+    if abs(InitialY-self.currentPoseY) < 10 or InitialY-self.currentPoseY < 0: ##ignores start area
+	return image
     #x_world = (x_world + obj_x) / 2
     #y_world = (y_world + obj_y) / 2
-    cv2.putText(image,label + "(" + ("%.2fm" % x_world) + "," + ("%.2fm" % y_world) + ")", (x,y + 50), font, font_scale, (255, 0, 0), thickness)
+    objectNum = 0
+    objectIndex = 0
+    minX = 1000
+    minY = 1000
+    minOb = Object()
+    bExists = False
+    for ob in self.obstacles.objects:
+         objectNum = objectNum + 1
+	 destX = abs(ob.pose.pose.position.x - x_world)
+	 destY = abs(ob.pose.pose.position.y - y_world)
+         if destX < minX and destY < minY and destX < 2 and destY < 2 and ob.color == label:
+		minOb = ob
+                bExists = True
+		objectIndex = objectNum
+                self.obstacles.objects[objectIndex-1].pose.pose.position.x = x_world
+		self.obstacles.objects[objectIndex-1].pose.pose.position.y = y_world
+    if bExists == False:
+    	newObject = Object()
+    	newObject.width = w
+    	newObject.height = h
+    	newObject.pose.pose.position.x = x_world
+    	newObject.pose.pose.position.y = y_world
+    	newObject.color = label
+	self.obstacles.objects.append(newObject)
+        objectIndex = objectNum
+    cv2.putText(image,label + "#" + ("%d" % objectIndex) + "(" + ("%.2fm" % x_world) + "," + ("%.2fm" % y_world) + ")", (x,y + 50), font, font_scale, (255, 0, 0), thickness)
     return image
 
   def detect_obstacles(self, img):
     squares = []
     circles = []
+    if InitialY and (InitialY-self.currentPoseY) < 10: ##ignores start area
+	return img
     nobg = self.remove_background(img, 155)
     gray = cv2.cvtColor(nobg,cv2.COLOR_BGR2GRAY)
     contours, hierarchy = cv2.findContours(gray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -152,23 +185,28 @@ class image_converter:
   def callback(self,data):
     global saveFolder
     global nframe
-    saveFolder = '/home/buti/images/uav3/'
+    global InitialX, InitialY
+    #saveFolder = '/home/buti/images/uav3/'
     try:
       cvImage = self.bridge.imgmsg_to_cv2(data, "bgr8")
     except CvBridgeError, e:
       print e
     nframe = nframe + 1
     image2Analyse = cvImage.copy()    
-    imgfile = saveFolder + ("%05d" % nframe) + '.png'
+    #imgfile = saveFolder + ("%05d" % nframe) + '.png'
     img = self.detect_obstacles(image2Analyse)
-    label = "POS" +  "(" + ("%.2fm" % self.currentPoseX) + "," + ("%.2fm" % self.currentPoseX) + "," + ("%.2fm" % self.currentPoseZ) + ")"
+    label = "POS" +  "(" + ("%.2fm" % self.currentPoseX) + "," + ("%.2fm" % self.currentPoseY) + "," + ("%.2fm" % self.currentPoseZ) + ")"
+    if InitialX == 0 and InitialY == 0:
+	InitialX = self.currentPoseX
+	InitialY = self.currentPoseY
     cv2.putText(img,label, (50,50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-    cv2.imwrite(imgfile, img) 
-    cv2.imshow("Tracker", img)
+    #cv2.imwrite(imgfile, img) 
+    small = cv2.resize(img, (0,0), fx=0.5, fy=0.5) 
+    cv2.imshow("Tracker", small)
     cv2.waitKey(10);
     
-    if numberOfObject >= 5:
-	self.object_pub.publish(self.obstacles)
+    if len(self.obstacles.objects) >= 5:
+	self.objects_pub.publish(self.obstacles)
 
     try:
       self.image_pub.publish(self.bridge.cv2_to_imgmsg(image2Analyse, "bgr8"))
