@@ -135,7 +135,7 @@ def setpoint_demo():
     time.sleep(1)
     
     rospy.loginfo("Climb")
-    setpoint.takeoff(5)
+    setpoint.takeoff(3.0)
     #rospy.loginfo("Moving to Pose 1")
     #setpoint.setPose(-25,-25,10,5)
     #rospy.loginfo("Landing")

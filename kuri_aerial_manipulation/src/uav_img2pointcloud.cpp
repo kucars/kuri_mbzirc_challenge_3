@@ -33,7 +33,7 @@
   #include "kuri_msgs/Object.h"
   #include "kuri_msgs/Objects.h"
 
-    bool landing = true  ;  // true just for testing the landing step 
+    bool landing = false  ;  // true just for testing the landing step 
     int LowerH = 110;
     int LowerS = 150;
     int LowerV = 150;
@@ -197,27 +197,32 @@
 
 	      // just for the detected obstacle  
 	      float B[2][2],bvu[2];
-	      B[0][0] = v*c[0] - a[0]; B[0][1] = v*c[1] - a[1];
-	      B[1][0] = u*c[0] - b[0]; B[1][1] = u*c[1] - b[1];
-	      bvu[0]= a[2]*Ground_Z + a[3] - v*c[2]*Ground_Z - v*c[3];
-	      bvu[1] = b[2]*Ground_Z + b[3] - u*c[2]*Ground_Z - u*c[3];
+	      B[0][0] = u*c[0] - a[0]; B[0][1] = u*c[1] - a[1];
+	      B[1][0] = v*c[0] - b[0]; B[1][1] = v*c[1] - b[1];
+	      bvu[0]= a[2]*Ground_Z + a[3] - u*c[2]*Ground_Z - u*c[3];
+	      bvu[1] = b[2]*Ground_Z + b[3] - v*c[2]*Ground_Z - v*c[3];
 	      float DomB = B[1][1]*B[0][0]-B[0][1]*B[1][0];
-	      double objectPoseX = (B[1][1]*bvu[0]-B[0][1]*bvu[1])/DomB ; 
-	      double objectPoseY = (B[0][0]*bvu[1]-B[1][0]*bvu[0])/DomB ; 
-	      std::cout << "Object"  << objectPoseX  << "\t" <<   objectPoseY << std::endl  << std::flush ; 
+	      float objectPoseX = (B[1][1]*bvu[0]-B[0][1]*bvu[1])/DomB ; 
+	      float objectPoseY = (B[0][0]*bvu[1]-B[1][0]*bvu[0])/DomB ; 
+		//      float temp = objectPoseX ; 
+		//    objectPoseX = -1 * objectPoseY ; 
+		//     objectPoseY = temp ; 
+	      std::cout << "****new msg **** " << std::endl << std::flush ;
+	      std::cout << "u      " << u  << "   v:  " << v  <<std::endl << std::flush ;
+
+	      std::cout << "Object "  << objectPoseX  << "\t" <<   objectPoseY << std::endl  << std::flush ; 
+      	      std::cout << "uav_x  " << odom->pose.pose.position.x  << "  uavy: " << odom->pose.pose.position.y  <<std::endl << std::flush ;
+	      std::cout << "errorx " << odom->pose.pose.position.x - objectPoseX  << " errory " << odom->pose.pose.position.y - objectPoseY  <<std::endl << std::flush ;
+
 	      tf::Quaternion q( odom->pose.pose.orientation.x,odom->pose.pose.orientation.y,odom->pose.pose.orientation.z,odom->pose.pose.orientation.w);
               tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
-	      
-	      
+		      
 	      // *************************** Controller ********************* // 
-	/*      geometry_msgs::PoseStamped pose2 ;
-	      std::cout << "new msg " << std::endl << std::flush ;
-	      std::cout << "errorx" << odom->pose.pose.position.x - objectPoseX  <<std::endl << std::flush ;
-	      std::cout << "errorx" << odom->pose.pose.position.x - objectPoseX  <<std::endl << std::flush ;
-
-	      if ( odom->pose.pose.position.x - objectPoseX  > 0.2 && odom->pose.pose.position.y - objectPoseY > 0.2 ) 
+	     geometry_msgs::PoseStamped pose2 ;
+	      float distance = sqrt (( (odom->pose.pose.position.x - objectPoseX) *(odom->pose.pose.position.x - objectPoseX) ) + ( (odom->pose.pose.position.y - objectPoseY) *(odom->pose.pose.position.y - objectPoseY) ) );  
+	      if (distance > 0.05 ) 
 	      {
-		std::cout << "IF ERROR" << std::endl << std::flush ;
+		std::cout << "IF ERROR then keep Moving" << std::endl << std::flush ;
 
 		//errorx = odom->pose.pose.position.x - objectPoseX ; 
 		//errory = odom->pose.pose.position.y - objectPoseY ; 
@@ -231,18 +236,27 @@
 		  landing = true ; 
   		  std::cout << "LAND FLAG" << std::endl << std::flush ;
 	      }
-	      */
+	   
       // ************************************** landing *************************** // 
 	      geometry_msgs::TwistStamped new_cmd_vel ; 
 	      while (landing == true ) 
 	      {
 		std::cout << "TEST" << std::endl << std::flush ;
-		std::cout << "z pose " << odom->pose.pose.position.z<< std::endl << std::flush ;
+		std::cout << "check the z position " << odom->pose.pose.position.z<< std::endl << std::flush ;
 
 		if (odom->pose.pose.position.z < 0.4 ) 
-		  landing = false ; 
-		else 
 		{
+		  std::cout << "Stopped landing" << std::endl << std::flush ;
+		  landing = false ; 
+		  new_cmd_vel.twist.linear.x = 0 ; 
+		  new_cmd_vel.twist.linear.y = 0 ; 
+		  new_cmd_vel.twist.linear.z = 0.0 ; 
+		  velocity_pub_.publish(new_cmd_vel) ;
+		}
+		  else 
+		{
+		  std::cout << "hover" << std::endl << std::flush ;
+
 		  new_cmd_vel.twist.linear.x = 0 ; 
 		  new_cmd_vel.twist.linear.y = 0 ; 
 		  new_cmd_vel.twist.linear.z = -0.2 ; 
@@ -298,6 +312,7 @@
 	    if (CurrentObj.color == "green") 
 	    cv::inRange(img_hsv,cv::Scalar(LowerHG,LowerSG,LowerVG),cv::Scalar(UpperHG,UpperSG,UpperVG),img_mask);
 	  
+	    std::cout << "COLOR" << CurrentObj.color << std::endl << std::flush ; 
 	    //cv::imshow("mask", img_hsv);
             cv::imshow("view", cv_ptr->image);
 	    cv::Mat locations;   // output, locations of non-zero pixels
@@ -305,8 +320,8 @@
 	
 	    // access pixel coordinates
 	    cv::Point pnt; 
-	    double sumx = 0.0 ;  
-	    double sumy= 0.0 ; 
+	    int sumx = 0.0 ;  
+	    int sumy= 0.0 ; 
 	    for (int i = 0 ; i < locations.total() ; i++) 
 	      {
 		pnt = locations.at<cv::Point>(i); 
@@ -315,10 +330,10 @@
 	      }
 	    u = sumx /locations.total(); 
 	    v = sumy / locations.total() ; 
-
+      	   
 	    //process to pointcloud*/
 	    p2p(img,cam_info,odom);
-	    cv::waitKey(3);
+	    cv::waitKey(10);
   }
  
        void uav_img2pointcloud::objectToPickCallback(const kuri_msgs::ObjectConstPtr& obj) {
