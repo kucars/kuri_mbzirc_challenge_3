@@ -5,10 +5,6 @@
 #Original Author: Abdelrahman Ali AlMahmoud
 #
 #
-#Etisalat and British Telecom Innovation Center (EBTIC)
-#
-#Notes: By using this software, part of it, copying it or modifying it, you agree to give credit to EBTIC and the original author
-
 
 
 import rospy
@@ -37,35 +33,59 @@ def callback(data):
     Type = ['Large', 'Small', 'Accelerating']
 
 
-
-
     #Extract the content I want from the Kuri-message format and insert it into a global array
     def deconstructKuriMsg(kuridata):
 
         for obj in kuridata.objects:
-            obj
-        return
+            location_obj = numpy.array((obj.pose.pose.position.x, obj.pose.pose.position.y, obj.pose.pose.position.z))
+
+            list_a.append(make_targets(obj.header.seq, location_obj, obj.color, obj.width, obj.height))
+
+            #list_b = [obj.width]
 
 
 
 
     #Create the messages to be published
-    def reconstructKuriMsg():
-        msg = SP.PoseStamped(
-            header=SP.Header(
-                frame_id="base_footprint",  # no matter, plugin don't use TF
-                stamp=rospy.Time.now()),  # stamp should update
-        )
+    def reconstructKuriMsg(listofobjects):
+        finaloutput = NavTasks()
+        print listofobjects
+        for obj in listofobjects:
+            drone = obj[1]
+            objfortask = obj[3]
+            output = NavTask()
+            output.object = objfortask
+            output.uav_name=drone
+            finaloutput.tasks.append(output)
+        print "3333333333333"
+        print finaloutput
+        return finaloutput
 
-        return 
 
 
+    def clearedset(seq):
+        seen = set()
+        seen_add = seen.add
 
+        return [x for x in seq if not (x[3].pose.pose.position.x and x[3].pose.pose.position.y in
+                                       seen or seen_add(x[3].pose.pose.position.x and x[3].pose.pose.position.y))]
+
+    def clearedset2(seq):
+        seen = set()
+        finaloutput = NavTasks()
+        seen_add = seen.add
+        for x in seq.tasks:
+            if not x.uav_name in seen:
+                seen_add(x.uav_name)
+                finaloutput.tasks.append(x)
+        return finaloutput
+
+        return [x for x in seq.tasks if not (x.uav_name in seen or seen_add(x.uav_name))]
 
     #Get the scores from the YAML file
     def getColorScores():
         # Getting the color scores from a file, I don't use this effectivly yet
-        with open("weight.yaml", 'r') as stream:
+        with open("../config/weight.yaml", 'r') as stream:
             try:
                 scores = yaml.load(stream)
                 # print scores
@@ -124,9 +144,10 @@ def callback(data):
         color = ""
         # size = "" for now I will do it in type
         type = ""
-
+        width = ""
+        height = ""
         # The class "constructor" - It's actually an initializer
-        def __init__(self, number, location_obj, color, type):
+        def __init__(self, number, location_obj, color, width, height):
             self.number = number
             self.location_obj = location_obj
             self.color = color
@@ -134,10 +155,9 @@ def callback(data):
             self.width = width
             self.height = height
 
-    def make_targets(number, location_obj, color, type):
-        target = Target(number, location_obj, color, type)
+    def make_targets(number, location_obj, color, width, height):
+        target = Target(number, location_obj, color, width, height)
         return target
-
 
         # Getting the locations from the Yaml file
 
@@ -147,7 +167,6 @@ def callback(data):
     xLocations = []  # Will use these to plot
     yLocations = []
     zLocations = []
-
 
     # print 'UAV1 location', UAV1
     # print 'UAV2 location', UAV2
@@ -162,44 +181,54 @@ def callback(data):
     # B = 20 #Blue
 
 
-
-    # Compute distance between UAVs and objects
+    # Compute distance between UAVs and objects, only three UAVS, can justify copy pasting the code
     loop2 = 0
     loopUAV = 0
+    scores = getColorScores()
+    #print scores
 
-    for obj in list_a:
-        dist = numpy.linalg.norm(UAV1 - obj.location_obj)
+
+
+
+
+#### Important :: I can optimise this by having the distances all calculated in one loop. no need to reiterate the list
+
+    for obj in data.objects:
+        location_obj = numpy.array((obj.pose.pose.position.x, obj.pose.pose.position.y, obj.pose.pose.position.z))
+        dist = numpy.linalg.norm(UAV1 - location_obj)
+        
+        WeightOfObject = scores.get(obj.color)
+        #print WeightOfObject
+
         if obj.color != 'Nan':
             WeightOfObject = scores.get(obj.color)
-            # print WeightOfObject
+            print WeightOfObject
         weighteddist = dist / WeightOfObject
-        # print obj.location_obj[0]
-        rank1.append((weighteddist, obj.number, obj.location_obj[0], obj.location_obj[1], obj.location_obj[2],
-                      'UAV1'))  # might want to construct the msg here
+        rank1.append((weighteddist, 'UAV1', obj.header.seq, obj))
         rank1.sort()
         # print "UAV one ranking", rank1
         # print "               "
 
-    for obj in list_a:
-        dist = numpy.linalg.norm(UAV2 - obj.location_obj)
+    for obj in data.objects:
+        location_obj = numpy.array((obj.pose.pose.position.x, obj.pose.pose.position.y, obj.pose.pose.position.z))
+        dist = numpy.linalg.norm(UAV2 - location_obj)
         if obj.color != 'Nan':
             WeightOfObject = scores.get(obj.color)
-        # print WeightOfObject
         weighteddist = dist / WeightOfObject
-        rank2.append((weighteddist, obj.number, 'UAV2'))
+        rank2.append((weighteddist, 'UAV2', obj.header.seq, obj))
         rank2.sort()
-
-
         # print "UAV two ranking", rank2
         # print "               "
 
-    for obj in list_a:
-        dist = numpy.linalg.norm(UAV3 - obj.location_obj)
+
+
+    for obj in data.objects:
+        location_obj = numpy.array((obj.pose.pose.position.x, obj.pose.pose.position.y, obj.pose.pose.position.z))
+        dist = numpy.linalg.norm(UAV3 - location_obj)
         if obj.color != 'Nan':
             WeightOfObject = scores.get(obj.color)
-            # print WeightOfObject
         weighteddist = dist / WeightOfObject
-        rank3.append((weighteddist, obj.number, 'UAV3'))
+        rank3.append((weighteddist, 'UAV3', obj.header.seq, obj))
         rank3.sort()
         # print "UAV three ranking", rank3
         # print "                 "
@@ -212,23 +241,24 @@ def callback(data):
 
     FinalRanking = rank1 + rank2 + rank3
     FinalRanking.sort()
+    #print FinalRanking
+    FinalRanking2 = clearedset(FinalRanking)
+
+
+    NavigationTasks = reconstructKuriMsg(FinalRanking2)
+
+
+    NavigationTasks = clearedset2(NavigationTasks)
+
+   # FinalRanking2 = clearedset(NavigationTasks)
+
+
 
     # Removes all the other entries except for the closes object/UAV pair
-    def clearedset2(seq):
-        seen = set()
-        seen_add = seen.add
-        r = seq[2]
-        return [x for x in seq if not (x[2] in seen or seen_add(x[2]))]
 
 
 
         # This removes duplicate object IDs from the list so that no 2 UAVs go to the same object
-
-    def clearedset(seq):
-        seen = set()
-        seen_add = seen.add
-        r = seq[1]
-        return [x for x in seq if not (x[1] in seen or seen_add(x[1]))]
 
 
 
@@ -249,6 +279,8 @@ def callback(data):
     # print FinalRanking
     # #this prints all of the target rankings for each UAV, could create conflict if 2 UAVs try to pick up the same target
 
+    #This block of code was removed for testing, it computes the distance from the goal
+    '''
     hello = clearedset(FinalRanking)  # printing the final set which has priorities set to UAVs, other UAVs will not see the items
     # print hello
     hello = clearedset2(hello)
@@ -273,20 +305,21 @@ def callback(data):
     # print type(rank4)
     # rank4 = clearedset2(rank4)
     # print rank4
-
+    '''
 
     # which a different UAV got assigned
     # print ast.literal_eval(hello)
 
-    pub = rospy.Publisher('Tasks', kuri_msgs/NavTasks, queue_size=1)
+    pub = rospy.Publisher('kuri_msgs/NavTasks', NavTasks, queue_size=1)
 
     # pub1 = rospy.Publisher('uav1_target_location', Pose, queue_size=1)
     # pub2 = rospy.Publisher('uav2_target_location', Pose, queue_size=1)
     # pub3 = rospy.Publisher('uav3_target_location', Pose, queue_size=1)
 
 
-    pub.publish(str(hello))
-
+    pub.publish(NavigationTasks)
+    print "sent : "
+    print NavigationTasks
     # pub1.publish(str(hello))
     # pub2.publish(str(hello))
     # pub3.publish(str(hello))
@@ -295,7 +328,7 @@ def callback(data):
 def listener():
 
 
-    rospy.Subscriber("tester_task", ObjectsMap, callback)    #I add the kuri-message type here
+    rospy.Subscriber("kuri_msgs/ObjectsMap", ObjectsMap, callback)    #I add the kuri-message type here
 
     # spin() simply keeps python from exiting until this node is stopped
     rospy.spin()

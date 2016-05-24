@@ -125,9 +125,9 @@ class SetpointPosition:
 
 
 def setpoint_demo():
-    rospy.init_node('setpoint_position_demo_1')
+    rospy.init_node('explore_arena_integration_test')
     #mavros.set_namespace()  # initialize mavros module with default namespace
-    mavros.set_namespace('/uav_1/mavros')    
+    mavros.set_namespace('/uav_3/mavros')    
     rate = rospy.Rate(10)
 
     setpoint = SetpointPosition()
@@ -135,9 +135,9 @@ def setpoint_demo():
     time.sleep(1)
     
     rospy.loginfo("Climb")
-    setpoint.takeoff(3.0)
-    #rospy.loginfo("Moving to Pose 1")
-    #setpoint.setPose(-25,-25,10,5)
+    setpoint.takeoff(10)
+    rospy.loginfo("Moving to Pose 1")
+    setpoint.setPose(0,0,15,300)
     #rospy.loginfo("Landing")
     #setpoint.land()
 

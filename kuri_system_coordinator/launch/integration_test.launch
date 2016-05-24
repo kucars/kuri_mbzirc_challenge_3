@@ -22,8 +22,8 @@
       <arg name="enable_logging" value="$(arg enable_logging)" />
       <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
       <arg name="log_file" value="$(arg log_file)"/>
-      <arg name="x" value="0.0"/>
-      <arg name="y" value="0.0"/>
+      <arg name="x" value="65.0"/>
+      <arg name="y" value="-25.0"/>
       <arg name="Y" value="3.14"/> 
       <arg name="name" value="uav_1"/>
     </include>
@@ -36,16 +36,16 @@
     <arg name="ns" value="uav_1"/>
   </include>
 
-  <group ns="uav_2">
+  <group ns="uav_3">
     <include file="$(find rotors_gazebo)/launch/spawn_ardrone.launch">
       <arg name="model" value="$(find rotors_description)/urdf/ardrone_mbzirc_sensors.gazebo" />
       <arg name="enable_logging" value="$(arg enable_logging)" />
       <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
       <arg name="log_file" value="$(arg log_file)"/>
-      <arg name="x" value="65.0"/>
-      <arg name="y" value="-25.0"/>
+      <arg name="x" value="0.0"/>
+      <arg name="y" value="0.0"/>
       <arg name="Y" value="3.14"/> 
-      <arg name="name" value="uav_2"/>
+      <arg name="name" value="uav_3"/>
     </include>
     <arg name="fcu_url" default="udp://localhost:14570@localhost:14575" />
     <include file="$(find mavros)/launch/px4.launch">
@@ -53,40 +53,19 @@
     </include>    
   </group>
   <include file="$(find rotors_gazebo)/launch/ardrone.launch">
-    <arg name="ns" value="uav_2"/>
+    <arg name="ns" value="uav_3"/>
     <arg name="mavlink_fcu_url" value="udp://localhost:14575@localhost:14570"/>
   </include>
 
-  <group ns="uav_3">
-    <include file="$(find rotors_gazebo)/launch/spawn_ardrone.launch">
-      <arg name="model" value="$(find rotors_description)/urdf/ardrone_mbzirc_sensors.gazebo" />
-      <arg name="enable_logging" value="$(arg enable_logging)" />
-      <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
-      <arg name="log_file" value="$(arg log_file)"/>
-      <arg name="x" value="65.0"/>
-      <arg name="y" value="-28.0"/>
-      <arg name="Y" value="3.14"/> 
-      <arg name="name" value="uav_3"/>
-    </include>
-    <arg name="fcu_url" default="udp://localhost:14580@localhost:14585" />
-    <include file="$(find mavros)/launch/px4.launch">
-      <arg name="fcu_url" value="$(arg fcu_url)" />
-    </include>    
-  </group>
-  <include file="$(find rotors_gazebo)/launch/ardrone.launch">
-    <arg name="ns" value="uav_3"/>
-    <arg name="mavlink_fcu_url" value="udp://localhost:14585@localhost:14580"/>
-  </include>
-  
+ 
   <arg name="run_demo" default="true" />
   <group if="$(arg run_demo)" >
-    <node pkg="kuri_mbzirc_challenge_3" type="uav_1.py" name="uav_1_move" />
-    <node pkg="kuri_mbzirc_challenge_3" type="uav_2.py" name="uav_2_move" />
-    <node pkg="kuri_mbzirc_challenge_3" type="uav_3.py" name="uav_3_move" />
+    <node pkg="kuri_system_coordinator" type="explore.py" name="explore_arena" />
+    <!--node pkg="kuri_object_tracking" type="ObjectTracking.py" name="detect_objects" /-->
   </group>
 
   <group unless="$(arg headless)" >
-    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find kuri_mbzirc_challenge_3)/config/challenge_3.rviz"/>
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find kuri_system_coordinator)/config/integration_test.rviz"/>
   </group>
   
 </launch>
