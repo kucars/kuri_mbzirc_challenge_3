@@ -117,12 +117,25 @@ int main(int argc, char ** argv) {
     //Dhanhani start loop here with start as the input changing
     ros::Subscriber start_sub = nh.subscribe("/uav_1/mavros/local_position/pose", 1, startPositionCallback);
     ros::Subscriber end_sub = nh.subscribe("/uav1_target_location", 1, endPositionCallback);
+    ros::Subscriber tasks_sub = nh.subscribe("kuri_msgs/NavTasks", 1, navTasksCallback);
+
     temp_x = 0.0f;
     temp_y = 0.0f;
     while (ros::ok()) {
         ros::Rate loopRate(10);
         if (((target_coord.position.x != end_coord.position.x && target_coord.position.y != end_coord.position.y))) {
             ROS_INFO("target not equal to end");
+        }
+        if(tasks.tasks.size()>0)
+        {
+            ROS_INFO("assigning first task");
+            kuri_msgs::NavTask task1 = tasks.tasks[0];
+            ROS_INFO("assigning first object");
+            kuri_msgs::Object currentObj = task1.object;
+            ROS_INFO("assigning pose");
+            geometry_msgs::PoseWithCovariance pose = currentObj.pose;
+            end_coord = pose.pose;
+            ROS_INFO("end vs target: (%g/%g/%g, %g/%g/%g, %g/%g/%g)", start_coord.position.x, target_coord.position.x, end_coord.position.x, start_coord.position.y, target_coord.position.y, end_coord.position.y, start_coord.position.z, target_coord.position.z, end_coord.position.z);
         }
         if (((target_coord.position.x != end_coord.position.x && target_coord.position.y != end_coord.position.y))&&(start_coord.position.x != end_coord.position.x || start_coord.position.y != end_coord.position.y)) {
             target_coord = end_coord;

@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="sspp" type="distance_heuristic_task3" name="distance_heuristic_task3" output="screen" />
+</launch>

@@ -1,13 +1,29 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(kuri_multi_agent_navigation)
-
+SET ( CMAKE_CXX_FLAGS "-frounding-math" )
 find_package(catkin REQUIRED COMPONENTS
   roscpp
-  rospy
+  pcl_ros
+  sensor_msgs
+  geometry_msgs
+  tf
+  tf_conversions
+  eigen_conversions
+  nav_msgs
+  shape_msgs
   std_msgs
-)
+  rviz_visual_tools
+  kuri_msgs
+  sspp
+  )
 
 # find_package(Boost REQUIRED COMPONENTS system)
+find_package( CGAL QUIET COMPONENTS  )
+find_package(fcl REQUIRED)
+find_package(PCL REQUIRED)
+find_package(sspp REQUIRED)
+find_package(CUDA QUIET)
+find_package(component_test QUIET)
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -169,6 +185,47 @@ include_directories(
 #   # myfile2
 #   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
 # )
+
+include(FindPkgConfig)
+
+#catkin_package(CATKIN_DEPENDS component_test)
+catkin_package(
+#   INCLUDE_DIRS include
+   LIBRARIES
+   CATKIN_DEPENDS roscpp pcl_ros
+)
+
+include_directories(include
+  ${catkin_INCLUDE_DIRS}
+  ${rviz_visual_tools_INCLUDE_DIRS}
+)
+
+#pkg_check_modules(PLAYER REQUIRED playercore playerc++ playerc)
+
+##################
+#    QT STUFF    #
+##################
+set(CMAKE_AUTOMOC ON)
+set(CMAKE_INCLUDE_CURRENT_DIR ON)
+find_package(Qt4 REQUIRED)
+
+# Set include directories
+include_directories(include ${QT_INCLUDES})
+link_directories(${PCL_LIBRARY_DIRS})
+add_definitions(${PCL_DEFINITIONS})
+
+add_executable(navigator src/navigator.cpp)
+
+target_link_libraries(navigator SSPathPlanner
+    -lgmp -lmpfr
+    ${CGAL_LIBRARY}
+    ${CGAL_Core_LIBRARY}
+    Qt4::QtGui
+    Qt4::QtCore
+    ${catkin_LIBRARIES}
+    ${PCL_LIBRARIES}
+    ${rviz_visual_tools_LIBRARIES}
+    )
 
 #############
 ## Testing ##
