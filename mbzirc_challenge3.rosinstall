@@ -25,3 +25,6 @@
 - git:
     local-name: kuri_msgs
     uri: https://github.com/kuri-kustar/kuri_msgs.git
+- git:
+    local-name: sspp
+    uri: https://github.com/kuri-kustar/sspp.git
