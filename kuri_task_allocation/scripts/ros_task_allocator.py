@@ -19,9 +19,9 @@ import geometry_msgs
 from kuri_msgs.msg import *
 from geometry_msgs.msg import Pose
 from mavros import setpoint as SP
+import rospkg
 
 
-GlobalObjectInformationArray = []
 
 
 
@@ -84,8 +84,12 @@ def callback(data):
 
     #Get the scores from the YAML file
     def getColorScores():
+	# get an instance of RosPack with the default search paths
+	rospack = rospkg.RosPack()
+	# get the file path for rospy_tutorials
+	packagePath = rospack.get_path('kuri_task_allocation')
         # Getting the color scores from a file, I don't use this effectivly yet
-        with open("../config/weight.yaml", 'r') as stream:
+        with open(packagePath + "/config/weight.yaml", 'r') as stream:
             try:
                 scores = yaml.load(stream)
                 # print scores

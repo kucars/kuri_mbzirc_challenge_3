@@ -27,13 +27,8 @@
 #include <tf_conversions/tf_eigen.h>
 #include <geometry_msgs/Pose.h>
 #include <eigen_conversions/eigen_msg.h>
-
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseArray.h>
-
-//#include <component_test/occlusion_culling_gpu.h>
-//#include <component_test/occlusion_culling.h>
-//#include "coverage_path_planning_heuristic.h"
 #include "distance_heuristic.h"
 #include "rviz_drawing_tools.h"
 #include "rviz_visual_tools/rviz_visual_tools.h"
@@ -45,42 +40,47 @@
 
 using namespace SSPP;
 
-geometry_msgs::Pose start_coord;
-geometry_msgs::Pose end_coord;
+geometry_msgs::Pose currentPose;
+geometry_msgs::Pose endPose;
 geometry_msgs::Pose target_coord;
 float temp_x;
 float temp_y;
 kuri_msgs::NavTasks tasks;
 
-void startPositionCallback(const geometry_msgs::PoseStamped& msg) {
-    start_coord = msg.pose;
-    //ROS_INFO("Current start position0: (%g, %g, %g)", start_coord.position.x, start_coord.position.y, start_coord.position.z);
+void startPositionCallback(const geometry_msgs::PoseStamped& msg)
+{
+    currentPose = msg.pose;
 }
 
-void endPositionCallback(const geometry_msgs::PoseStamped& msg) {
-    end_coord = msg.pose;
-    //ROS_INFO("Current end position: (%g, %g, %g)", end_coord.position.x, end_coord.position.y, end_coord.position.z);
-}
-
-void navTasksCallback(const kuri_msgs::NavTasks newtasks){
+void navTasksCallback(const kuri_msgs::NavTasks newtasks)
+{
+    std::cout<<"Received a new Task\n";
     tasks = newtasks;
 }
 
-int main(int argc, char ** argv) {
+int main(int argc, char ** argv)
+{
     ROS_INFO("started");
-    ros::init(argc, argv, "path_planning");
+    ros::init(argc, argv, "muti_uav_navigation");
     ros::NodeHandle nh;
-    
+    ros::Subscriber currentPoseSub = nh.subscribe("/uav_1/mavros/local_position/pose", 1, startPositionCallback);
+    ros::Subscriber taskSub        = nh.subscribe("kuri_msgs/NavTasks", 1, navTasksCallback);
+    ros::Publisher  posePub        = nh.advertise<geometry_msgs::PoseStamped>("/uav_1/mavros/setpoint_position/local", 10);
+    rviz_visual_tools::RvizVisualToolsPtr visualTools;
+    visualTools.reset(new rviz_visual_tools::RvizVisualTools("map","/sspp_visualisation"));
+    visualTools->deleteAllMarkers();
+    visualTools->setLifetime(0.2);
+
     QTime timer;
     geometry_msgs::Pose gridStartPose;
     geometry_msgs::Vector3 gridSize;
-    gridStartPose.position.x = 0;
-    gridStartPose.position.y = 0;
+    gridStartPose.position.x = -50;
+    gridStartPose.position.y = -30;
     gridStartPose.position.z = 0;
     // Dhanhani: including start to drop zone the arena is 140 x 60
-    gridSize.x = 50;
-    gridSize.y = 70;
-    gridSize.z = 20;
+    gridSize.x = 120;
+    gridSize.y = 60;
+    gridSize.z = 30;
 
     PathPlanner * pathPlanner;
     //    Pose start(0.0, 0.0, 0, DTOR(0.0));
@@ -88,7 +88,7 @@ int main(int argc, char ** argv) {
 
     double robotH = 0.9, robotW = 0.5, narrowestPath = 0.987; //is not changed
     //Dhanhani: multiplied both of the next variables by 10
-    double distanceToGoal = 10, regGridConRad = 15;
+    double distanceToGoal = 1, regGridConRad = 7;
 
     QPointF robotCenter(-0.3f, 0.0f);
     Robot *robot = new Robot("Robot", robotH, robotW, narrowestPath, robotCenter);
@@ -105,131 +105,127 @@ int main(int argc, char ** argv) {
     pathPlanner->setHeuristicFucntion(&distanceHeuristic);
 
     // Generate Grid Samples and visualise it
-    pathPlanner->generateRegularGrid(gridStartPose, gridSize, 10.0, false);
+    pathPlanner->generateRegularGrid(gridStartPose, gridSize, 5.0, false);
     std::vector<geometry_msgs::Point> searchSpaceNodes = pathPlanner->getSearchSpace();
     std::cout << "\n" << QString("\n---->>> Total Nodes in search Space =%1").arg(searchSpaceNodes.size()).toStdString();
 
     // Connect nodes and visualise it
     pathPlanner->connectNodes();
     std::cout << "\nSpace Generation took:" << timer.elapsed() / double(1000.00) << " secs";
+    std::vector<geometry_msgs::Point> searchSpaceConnections = pathPlanner->getConnections();
+    visualTools->publishPath(searchSpaceConnections, rviz_visual_tools::BLUE, rviz_visual_tools::LARGE,"search_space");
 
-    ROS_INFO("starting the loop");
+    ROS_INFO("\nstarting the loop");
     //Dhanhani start loop here with start as the input changing
-    ros::Subscriber start_sub = nh.subscribe("/uav_1/mavros/local_position/pose", 1, startPositionCallback);
-    ros::Subscriber end_sub = nh.subscribe("/uav1_target_location", 1, endPositionCallback);
-    ros::Subscriber tasks_sub = nh.subscribe("kuri_msgs/NavTasks", 1, navTasksCallback);
+
 
     temp_x = 0.0f;
     temp_y = 0.0f;
-    while (ros::ok()) {
-        ros::Rate loopRate(10);
-        if (((target_coord.position.x != end_coord.position.x && target_coord.position.y != end_coord.position.y))) {
-            ROS_INFO("target not equal to end");
+    std::vector<geometry_msgs::Point> pathSegments;
+    geometry_msgs::PoseArray robotPose, sensorPose;
+    geometry_msgs::Point linePoint;
+    double dist=0,threshold2Dist=0.5;
+    double yaw;
+    //TODO: Ultimately this should be a vector of paths: one per UAV
+    Node * path = NULL;
+    Node * wayPoint = NULL;
+    ros::Rate loopRate(10);
+    while (ros::ok())
+    {
+        // TODO: allow the handling of multiple paths
+        if(path)
+        {
+            Node * path2Display = path;
+            robotPose.poses.clear();
+            pathSegments.clear();
+            while(path2Display !=NULL)
+            {
+                tf::Quaternion qt(path2Display->pose.p.orientation.x,path2Display->pose.p.orientation.y,path2Display->pose.p.orientation.z,path2Display->pose.p.orientation.w);
+                yaw = tf::getYaw(qt);
+                if (path2Display->next !=NULL)
+                {
+                    linePoint.x = path2Display->pose.p.position.x;
+                    linePoint.y = path2Display->pose.p.position.y;
+                    linePoint.z = path2Display->pose.p.position.z;
+                    robotPose.poses.push_back(path2Display->pose.p);
+                    for(int i =0; i<path2Display->senPoses.size();i++)
+                        sensorPose.poses.push_back(path2Display->senPoses[i].p);
+                    pathSegments.push_back(linePoint);
+
+                    linePoint.x = path2Display->next->pose.p.position.x;
+                    linePoint.y = path2Display->next->pose.p.position.y;
+                    linePoint.z = path2Display->next->pose.p.position.z;
+                    robotPose.poses.push_back(path2Display->next->pose.p);
+                    for(int i =0; i<path2Display->next->senPoses.size();i++)
+                        sensorPose.poses.push_back(path2Display->next->senPoses[i].p);
+                    pathSegments.push_back(linePoint);
+
+                    dist=dist+ Dist(path2Display->next->pose.p,path2Display->pose.p);
+                }
+                path2Display = path2Display->next;
+            }
+            // Redraw
+            visualTools->resetMarkerCounts();
+            for(int i=0;i<robotPose.poses.size();i++)
+            {
+                visualTools->publishArrow(robotPose.poses[i],rviz_visual_tools::YELLOW, rviz_visual_tools::LARGE,0.3);
+            }
+            visualTools->publishSpheres(searchSpaceNodes,rviz_visual_tools::PURPLE,0.1,"search_space_nodes");
+            visualTools->publishPath(searchSpaceConnections, rviz_visual_tools::BLUE, rviz_visual_tools::LARGE,"search_space");
+            if(pathSegments.size()>0)
+                visualTools->publishPath(pathSegments, rviz_visual_tools::RED, rviz_visual_tools::LARGE,"generated_path");
         }
         if(tasks.tasks.size()>0)
         {
-            ROS_INFO("assigning first task");
-            kuri_msgs::NavTask task1 = tasks.tasks[0];
-            ROS_INFO("assigning first object");
-            kuri_msgs::Object currentObj = task1.object;
-            ROS_INFO("assigning pose");
-            geometry_msgs::PoseWithCovariance pose = currentObj.pose;
-            end_coord = pose.pose;
-            ROS_INFO("end vs target: (%g/%g/%g, %g/%g/%g, %g/%g/%g)", start_coord.position.x, target_coord.position.x, end_coord.position.x, start_coord.position.y, target_coord.position.y, end_coord.position.y, start_coord.position.z, target_coord.position.z, end_coord.position.z);
-        }
-        if (((target_coord.position.x != end_coord.position.x && target_coord.position.y != end_coord.position.y))&&(start_coord.position.x != end_coord.position.x || start_coord.position.y != end_coord.position.y)) {
-            target_coord = end_coord;
-            ROS_INFO("updated target");
-
-            //Dhanhani: update the starting point from the uav location
-            //         
+            ROS_INFO("Path Planning for a new task");
+            // Remove one task and serve it
+            kuri_msgs::NavTask task = tasks.tasks.at(0);
+            tasks.tasks.pop_back();
+            kuri_msgs::Object currentObj = task.object;
+            endPose = currentObj.pose.pose;
+            ROS_INFO("New Destination(x,y,z): (%g,%g,%g) Current Location(x,y,z): (%g,%g,%g)",endPose.position.x,endPose.position.y,endPose.position.z,currentPose.position.x,currentPose.position.y,currentPose.position.z );
             // Find path and visualise it
             timer.restart();
-            Pose end(end_coord.position.x, end_coord.position.y, end_coord.position.z, DTOR(0.0));
+            //To avoid crawling on the ground, always start at 10m altitude
+            Pose start(currentPose.position.x, currentPose.position.y, 10.0, DTOR(0.0));
+            //To allow visual servoying assisted landing, always hover at predefined z: 10m
+            Pose end(endPose.position.x, endPose.position.y, 10, DTOR(0.0));
             distanceHeuristic.setEndPose(end.p);
-            Pose start(start_coord.position.x, start_coord.position.y, start_coord.position.z, DTOR(0.0));
-            ROS_INFO("starting search");
+            ROS_INFO("Starting search");
             Node * retval = pathPlanner->startSearch(start);
-            ROS_INFO("ended search");
             std::cout << "\nPath Finding took:" << (timer.elapsed() / double(1000.00)) << " secs";
-
             //path print and visualization
-            if (retval) {
+            if (retval)
+            {
                 pathPlanner->printNodeList();
-            } else {
+            }
+            else
+            {
                 std::cout << "\nNo Path Found";
+                continue;
             }
-
-            Node * path = pathPlanner->path;
-            geometry_msgs::Point linePoint;
-            std::vector<geometry_msgs::Point> pathSegments;
-            //geometry_msgs::PoseArray robotPose, sensorPose;
-            double dist = 0;
-            double yaw;
-
-            //Dhanhani: Publisher code
-            ros::Publisher map_pub = nh.advertise<geometry_msgs::Pose>("map", 1);
-            //end
-            ROS_INFO("while path is not null:");
-            bool final_target = false;
-            while (path != NULL) {
-                tf::Quaternion qt(path->pose.p.orientation.x, path->pose.p.orientation.y, path->pose.p.orientation.z, path->pose.p.orientation.w);
-                yaw = tf::getYaw(qt);
-                // if (path->next != NULL) {
-                //                        linePoint.x = path->pose.p.position.x;
-                //                        linePoint.y = path->pose.p.position.y;
-                //                        linePoint.z = path->pose.p.position.z;
-                //   ROS_INFO("publishing");
-                ros::spinOnce();
-                //robotPose.poses.push_back(path->pose.p);
-                //sensorPose.poses.push_back(path->senPose.p);
-                //pathSegments.push_back(linePoint);
-
-                //linePoint.x = path->next->pose.p.position.x;
-                //linePoint.y = path->next->pose.p.position.y;
-                //linePoint.z = path->next->pose.p.position.z;
-                //robotPose.poses.push_back(path->next->pose.p);
-                //sensorPose.poses.push_back(path->next->senPose.p);
-                //pathSegments.push_back(linePoint);
-
-                //dist = dist + Dist(path->next->pose.p, path->pose.p);
-                //}
-                if (!final_target&&(abs(path->pose.p.position.x - start_coord.position.x) > 1.0f || abs(path->pose.p.position.y - start_coord.position.y) > 1.0f)) {
-                    map_pub.publish(path->pose.p);
-                    if (temp_x != start_coord.position.x || start_coord.position.y != temp_y) {
-                        temp_x = start_coord.position.x;
-                        temp_y = start_coord.position.y;
-                        double secs = ros::Time::now().toSec();
-                        //ROS_INFO("Current start position: (%g, %g, %g)", start_coord.position.x, start_coord.position.y, start_coord.position.z);
-                        ROS_INFO("Current start/target position(%f): (%g/%g, %g/%g, %g/%g)", secs, start_coord.position.x, path->pose.p.position.x, start_coord.position.y, path->pose.p.position.y, start_coord.position.z, path->pose.p.position.z);
-                    }
-                    // ROS_INFO("Current target position2: (%g, %g, %g)", path->pose.p.position.x, path->pose.p.position.y, path->pose.p.position.z);
-                    // ROS_INFO("Current end position2: (%g, %g, %g)", end_coord.position.x, end_coord.position.y, end_coord.position.z);
-                } else if (path->next != NULL) {
-                    ROS_INFO("Current start position2: (%g, %g, %g)", start_coord.position.x, start_coord.position.y, start_coord.position.z);
-                    ROS_INFO("Current target position2: (%g, %g, %g)", path->pose.p.position.x, path->pose.p.position.y, path->pose.p.position.z);
-                    ROS_INFO("Current end position2: (%g, %g, %g)", end_coord.position.x, end_coord.position.y, end_coord.position.z);
-                    ROS_INFO("iterated to next path\niterated to next path\niterated to next path\niterated to next path\niterated to next path\n");
-                    path = path->next;
-                    map_pub.publish(path->pose.p);
-                    ROS_INFO("Next target position2: (%g, %g, %g)", path->pose.p.position.x, path->pose.p.position.y, path->pose.p.position.z);
-                } else {
-                    final_target = true;
-                    double secs = ros::Time::now().toSec();
-                    ROS_INFO("No next path, last iteration(%f): (%g/%g/%g, %g/%g/%g, %g/%g/%g)", secs, start_coord.position.x, path->pose.p.position.x, end_coord.position.x, start_coord.position.y, path->pose.p.position.y, end_coord.position.y, start_coord.position.z, path->pose.p.position.z, end_coord.position.z);
-                    map_pub.publish(end_coord);
-                }
-                if((abs(end_coord.position.x - start_coord.position.x) < 1.0f && abs(end_coord.position.y - start_coord.position.y) < 1.0f)){
-                    path = NULL;
-                }
+            path     = pathPlanner->path;
+            // Assign the first waypoint to the first node on the path
+            wayPoint = path;
+        }
+        if(wayPoint)
+        {
+            if(Dist(wayPoint->pose.p,currentPose) < threshold2Dist)
+            {
+                wayPoint = wayPoint->next;
+                path     = wayPoint;
+                 ROS_INFO("Sending a New WayPoint(x,y,z):(%g,%g,%g)",wayPoint->pose.p.position.x,wayPoint->pose.p.position.y,wayPoint->pose.p.position.z);
             }
-            ROS_INFO("path is null;");
-            std::cout << "\nDistance calculated from the path: " << dist << "m\n";
-
+            if(wayPoint)
+            {
+                geometry_msgs::PoseStamped uavWayPoint ;
+                uavWayPoint.pose = wayPoint->pose.p;
+                posePub.publish(uavWayPoint) ;
+            }
         }
         ros::spinOnce();
         loopRate.sleep();
-    }            //while ros is ok end here
+    }
     delete robot;
     delete pathPlanner;
     return 0;

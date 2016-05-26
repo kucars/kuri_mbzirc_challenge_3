@@ -58,6 +58,7 @@ class image_converter:
     self.currentPoseX = -1
     self.currentPoseY = -1
     self.currentPoseZ = -1
+    self.objectsSent  = False
     self.sub = rospy.Subscriber(mavros.get_topic('local_position', 'pose'), SP.PoseStamped, self.updatePosition)
 
   def angle_cos(self, p0, p1, p2):
@@ -206,7 +207,8 @@ class image_converter:
     cv2.imshow("Tracker", small)
     cv2.waitKey(10);
     
-    if len(self.obstacles.objects) - len(self.sentObstacles.objects) >= 5:
+    if len(self.obstacles.objects) - len(self.sentObstacles.objects) >= 5 and not self.objectsSent:
+       self.objectsSent = True
        for ob in self.obstacles.objects:
 	   if ob not in self.sentObstacles.objects:
 	        self.sentObstacles.objects.append(ob)
