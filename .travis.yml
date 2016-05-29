@@ -41,7 +41,6 @@ install:
   - mkdir -p ~/ros/kuri_catkin_ws/
   - cd ~/ros/kuri_catkin_ws/
   - wstool init src
-  - wstool set -t src kuri_mbzirc_challenge_3 https://github.com/kuri-kustar/kuri_mbzirc_challenge_3.git --git
   - wstool merge -t src https://raw.githubusercontent.com/kuri-kustar/kuri_mbzirc_challenge_3/master/mbzirc_challenge3.rosinstall
   - rosdep install -y -r --from-paths src --ignore-src --rosdistro $ROS_DISTRO
 # Use this to prepare your build for testing e.g. copy database configurations, environment variables, etc.
