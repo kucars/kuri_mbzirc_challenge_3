@@ -28,3 +28,6 @@
 - git:
     local-name: sspp
     uri: https://github.com/kuri-kustar/sspp.git
+- git:
+    local-name: kuri_mbzirc_challenge_3
+    uri: https://github.com/kuri-kustar/kuri_mbzirc_challenge_3.git
