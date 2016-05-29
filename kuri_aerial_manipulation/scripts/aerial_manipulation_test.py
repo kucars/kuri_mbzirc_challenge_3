@@ -26,39 +26,21 @@ from geometry_msgs.msg import Pose
 from tf.transformations import quaternion_from_euler
 from math import *
 
-print "Navigator Test"
+print "Aerial Manipulation Test"
 
-def send_task():
-    pub = rospy.Publisher('kuri_msgs/NavTasks', NavTasks, queue_size=1,latch=True)
-    rospy.init_node('uav1_task_allocater', anonymous=True)
+def sendObject():
+    pub = rospy.Publisher('kuri_msgs/Object', Object, queue_size=1,latch=True)
+    rospy.init_node('aerial_manipulation_send_object', anonymous=True)
     rate = rospy.Rate(10) # 10hz
 
     obj = Object()
-    objs = Objects()
     obj.width  = 100
     obj.height = 200
     obj.pose.pose.position = gm.Point(0,0,10.0)
-    objs.objects.append(obj)
+    obj.color  = 'blue'
 
-    navtasks = NavTasks()
-    navtask  = NavTask()
-    path     = nav_msgs.Path()
-
-    pose = gm.PoseStamped()
-    pose.header.stamp = rospy.Time.now()
-    pose.header.frame_id = 'map'
-    pose.pose.position = gm.Point(0,0,0)
-    pose.pose.orientation = gm.Quaternion(*quaternion_from_euler(0, 0, 0))
-    path.poses.append(pose)
-
-    navtask.path     = path
-    navtask.uav_id   = 1
-    navtask.uav_name = 'UAV1'
-    navtask.object = obj
-
-    navtasks.tasks.append(navtask)
-    pub.publish(navtasks)
-    print "Task Published"
+    pub.publish(obj)
+    print "Object Published"
     while not rospy.is_shutdown():
         #yaw_degrees = 0  # North
         #yaw = radians(yaw_degrees)
@@ -72,6 +54,6 @@ def send_task():
 
 if __name__ == '__main__':
     try:
-        send_task()
+        sendObject()
     except rospy.ROSInterruptException:
         pass

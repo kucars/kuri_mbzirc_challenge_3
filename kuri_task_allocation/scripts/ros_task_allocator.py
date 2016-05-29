@@ -314,7 +314,7 @@ def callback(data):
     # which a different UAV got assigned
     # print ast.literal_eval(hello)
 
-    pub = rospy.Publisher('kuri_msgs/NavTasks', NavTasks, queue_size=1)
+    pub = rospy.Publisher('kuri_msgs/NavTasks', NavTasks, queue_size=1, latch=True)
 
     # pub1 = rospy.Publisher('uav1_target_location', Pose, queue_size=1)
     # pub2 = rospy.Publisher('uav2_target_location', Pose, queue_size=1)

@@ -43,8 +43,6 @@ using namespace SSPP;
 geometry_msgs::Pose currentPose;
 geometry_msgs::Pose endPose;
 geometry_msgs::Pose target_coord;
-float temp_x;
-float temp_y;
 kuri_msgs::NavTasks tasks;
 
 void startPositionCallback(const geometry_msgs::PoseStamped& msg)
@@ -81,14 +79,11 @@ int main(int argc, char ** argv)
     gridSize.x = 120;
     gridSize.y = 60;
     gridSize.z = 30;
-
     PathPlanner * pathPlanner;
-    //    Pose start(0.0, 0.0, 0, DTOR(0.0));
-    Pose end(19.0, 7.0, 2, DTOR(0.0));
 
-    double robotH = 0.9, robotW = 0.5, narrowestPath = 0.987; //is not changed
-    //Dhanhani: multiplied both of the next variables by 10
-    double distanceToGoal = 1, regGridConRad = 7;
+    double robotH = 0.9, robotW = 0.5, narrowestPath = 0.987;
+    double distanceToGoal = 1.5, regGridConRad = 3;
+    double gridRes = 2;
 
     QPointF robotCenter(-0.3f, 0.0f);
     Robot *robot = new Robot("Robot", robotH, robotW, narrowestPath, robotCenter);
@@ -97,15 +92,14 @@ int main(int argc, char ** argv)
     int progressDisplayFrequency = 1;
     pathPlanner = new PathPlanner(nh, robot, regGridConRad, progressDisplayFrequency);
     // This causes the planner to pause for the desired amount of time and display the search tree, useful for debugging
-    pathPlanner->setDebugDelay(0.1);
+    pathPlanner->setDebugDelay(0.0);
     ROS_INFO("planner object created");
     DistanceHeuristic distanceHeuristic(nh, false);
-    distanceHeuristic.setEndPose(end.p);
     distanceHeuristic.setTolerance2Goal(distanceToGoal);
     pathPlanner->setHeuristicFucntion(&distanceHeuristic);
 
     // Generate Grid Samples and visualise it
-    pathPlanner->generateRegularGrid(gridStartPose, gridSize, 5.0, false);
+    pathPlanner->generateRegularGrid(gridStartPose, gridSize, gridRes, false);
     std::vector<geometry_msgs::Point> searchSpaceNodes = pathPlanner->getSearchSpace();
     std::cout << "\n" << QString("\n---->>> Total Nodes in search Space =%1").arg(searchSpaceNodes.size()).toStdString();
 
@@ -116,11 +110,7 @@ int main(int argc, char ** argv)
     visualTools->publishPath(searchSpaceConnections, rviz_visual_tools::BLUE, rviz_visual_tools::LARGE,"search_space");
 
     ROS_INFO("\nstarting the loop");
-    //Dhanhani start loop here with start as the input changing
 
-
-    temp_x = 0.0f;
-    temp_y = 0.0f;
     std::vector<geometry_msgs::Point> pathSegments;
     geometry_msgs::PoseArray robotPose, sensorPose;
     geometry_msgs::Point linePoint;
@@ -207,14 +197,21 @@ int main(int argc, char ** argv)
             path     = pathPlanner->path;
             // Assign the first waypoint to the first node on the path
             wayPoint = path;
+            ROS_INFO("First waypoint Assigned");
         }
         if(wayPoint)
         {
             if(Dist(wayPoint->pose.p,currentPose) < threshold2Dist)
             {
+
                 wayPoint = wayPoint->next;
                 path     = wayPoint;
-                 ROS_INFO("Sending a New WayPoint(x,y,z):(%g,%g,%g)",wayPoint->pose.p.position.x,wayPoint->pose.p.position.y,wayPoint->pose.p.position.z);
+                if(wayPoint)
+                {
+                    ROS_INFO("Sending a New WayPoint(x,y,z):(%g,%g,%g)",wayPoint->pose.p.position.x,wayPoint->pose.p.position.y,wayPoint->pose.p.position.z);
+                }
+                else
+                    ROS_INFO("Destination Reached");
             }
             if(wayPoint)
             {

@@ -112,7 +112,7 @@
 	  uav_odom_sub_ = new message_filters::Subscriber<nav_msgs::Odometry>(nh_,"/uav_1/mavros/local_position/odom",10);
 	  //object_to_pick = new message_filters::Subscriber<kuri_msgs::Object>(nh_,"/ObjectToPick",10);
 
-	  object_to_pick = nh_.subscribe("/ObjectToPick", 10, &uav_img2pointcloud::objectToPickCallback,this );
+	  object_to_pick = nh_.subscribe("kuri_msgs/Object", 10, &uav_img2pointcloud::objectToPickCallback,this );
 
 	  sync = new message_filters::Synchronizer<MySyncPolicy>(MySyncPolicy(3), *img_sub_, *camera_info_sub_, *uav_odom_sub_);
 	  sync->registerCallback(boost::bind(&uav_img2pointcloud::imageCallback,this,_1,_2,_3));
@@ -304,16 +304,17 @@
     	    cv::Mat img_mask,img_hsv,combined_Image; 
 	    cv::cvtColor(cv_ptr->image,img_hsv,CV_BGR2HSV);
 
-	    
 	    if (CurrentObj.color  == "blue" )
 	    cv::inRange(img_hsv,cv::Scalar(LowerHB,LowerSB,LowerVB),cv::Scalar(UpperHB,UpperSB,UpperVB),img_mask);
-	    if (CurrentObj.color == "red") 
+	    else if (CurrentObj.color == "red") 
 	    cv::inRange(img_hsv,cv::Scalar(LowerHR,LowerSR,LowerVR),cv::Scalar(UpperHR,UpperSR,UpperVR),img_mask);
-	    if (CurrentObj.color == "green") 
+	    else if (CurrentObj.color == "green") 
 	    cv::inRange(img_hsv,cv::Scalar(LowerHG,LowerSG,LowerVG),cv::Scalar(UpperHG,UpperSG,UpperVG),img_mask);
-	  
-	    std::cout << "COLOR" << CurrentObj.color << std::endl << std::flush ; 
-	    //cv::imshow("mask", img_hsv);
+	    else
+	      return;
+	    
+	    ROS_INFO("Now here");
+	    cv::imshow("mask", img_hsv);
             cv::imshow("view", cv_ptr->image);
 	    cv::Mat locations;   // output, locations of non-zero pixels
 	    cv::findNonZero(img_mask, locations);
@@ -333,12 +334,12 @@
       	   
 	    //process to pointcloud*/
 	    p2p(img,cam_info,odom);
-	    cv::waitKey(10);
+	    //cv::waitKey(10);
   }
  
        void uav_img2pointcloud::objectToPickCallback(const kuri_msgs::ObjectConstPtr& obj) {
        
-	 
+	 ROS_INFO("Recieved an Object to pick");
 	//************************ Object from msgs ********************************* // 
     CurrentObj.pose.pose.position.x	= obj->pose.pose.position.x ; 
     CurrentObj.pose.pose.position.y 	= obj->pose.pose.position.y ; 
@@ -354,6 +355,7 @@
     CurrentObj.height 			= obj->height ; 
     CurrentObj.color 			= obj->color ;    
 	// ************************************************************************** // 
+    	    std::cout << "Object COLOR: " << CurrentObj.color << std::endl << std::flush ; 
 	 
       }
 

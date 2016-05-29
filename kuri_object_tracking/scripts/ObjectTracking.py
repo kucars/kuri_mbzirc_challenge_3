@@ -165,10 +165,10 @@ class image_converter:
 	if len(cnt) < 3 or len(cnt) > 6:
 	        area = cv2.contourArea(cnt)
 	        x,y,w,h = cv2.boundingRect(cnt)
-	        radius = w / 2
+	        radius = w/2.0
 	        #print abs(1 - (1.0 * w /  h)), w, h
 	        #print abs(1 - (area / (math.pi * radius * radius)))
-		if h > 0 and w > 0:	        
+		if h > 0 and w > 0 and radius > 0:	        
 		    if abs(1 - (1.0 * w /  h)) < 0.5 and abs(1 - (area / (math.pi * radius * radius))) < 0.5:
 		        circles.append(cnt)
 			self.draw_label(img, "CIRCLE", cnt)
@@ -206,9 +206,10 @@ class image_converter:
     small = cv2.resize(img, (0,0), fx=0.5, fy=0.5) 
     cv2.imshow("Tracker", small)
     cv2.waitKey(10);
-    
+    # Just send it once for the demo
     if len(self.obstacles.objects) - len(self.sentObstacles.objects) >= 5 and not self.objectsSent:
        self.objectsSent = True
+       print "Sending Objects"
        for ob in self.obstacles.objects:
 	   if ob not in self.sentObstacles.objects:
 	        self.sentObstacles.objects.append(ob)
