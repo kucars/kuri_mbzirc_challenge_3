@@ -49,4 +49,4 @@ before_script:
 - source /opt/ros/$ROS_DISTRO/setup.bash
 # All commands must exit with code 0 on success. Anything else is considered failure.
 script:
-- catkin_make --cmake-args -DCONFIG=ros_sitl_simple -j2
+- catkin_make --cmake-args -DCONFIG=ros_sitl_simple
