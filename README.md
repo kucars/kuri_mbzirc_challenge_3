@@ -1,6 +1,6 @@
 # KURI - MBZIRC Challenge 3
 
-[![Join the chat at https://gitter.im/kuri-kustar/kuri_mbzirc_challenge_3](https://badges.gitter.im/kuri-kustar/kuri_mbzirc_challenge_3.svg)](https://gitter.im/kuri-kustar/kuri_mbzirc_challenge_3?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Build Status](https://travis-ci.org/kuri-kustar/kuri_mbzirc_challenge_3.svg?branch=master)](https://travis-ci.org/kuri-kustar/kuri_mbzirc_challenge_3) [![Join the chat at https://gitter.im/kuri-kustar/kuri_mbzirc_challenge_3](https://badges.gitter.im/kuri-kustar/kuri_mbzirc_challenge_3.svg)](https://gitter.im/kuri-kustar/kuri_mbzirc_challenge_3?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Challenge 3 related tasks implementation
 
