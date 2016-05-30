@@ -33,6 +33,7 @@ before_install:
   - wget http://packages.ros.org/ros.key -O - | sudo apt-key add -
   - sudo apt-get update -qq
   - sudo apt-get install -qq -y python-rosdep python-wstool python-catkin-tools
+  - sudo apt-get install -y libcgal-dev
   - sudo rosdep init
   - rosdep update
 # Use this to install any prerequisites or dependencies necessary to run your build
