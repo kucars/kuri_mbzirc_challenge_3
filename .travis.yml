@@ -21,7 +21,7 @@ env:
     - GLOBAL_VAR="global_var"
   matrix:
     - ROS_DISTRO="indigo" ROS_REPOSITORY_PATH=http://packages.ros.org/ros/ubuntu
-    - ROS_DISTRO="jade"   ROS_REPOSITORY_PATH=http://packages.ros.org/ros/ubuntu
+    #- ROS_DISTRO="jade"   ROS_REPOSITORY_PATH=http://packages.ros.org/ros/ubuntu
 # Install prerequisites and/or dependencies required by the system
 before_install: 
   - cmake --version
