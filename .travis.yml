@@ -54,5 +54,6 @@ script:
 - source devel/setup.bash
 - rospack profile
 - catkin_make --cmake-args -DCONFIG=ros_sitl_simple
-- catkin_make run_tests_kuri_mbzirc_challenge_3
-- catkin_test_results build/test_results/kuri_mbzirc_challenge_3 --verbose
+- rospack profile
+- xvfb-run -a --server-args="-screen 0 800x600x24" catkin_make --catkin-make-args run_tests
+- catkin_test_results build/test_results/kuri_mbzirc_challenge_3 --verbose --all
