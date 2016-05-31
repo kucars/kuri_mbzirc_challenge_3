@@ -33,6 +33,7 @@
   #include "kuri_msgs/Object.h"
   #include "kuri_msgs/Objects.h"
 
+    bool firstFlag = true ; 
     bool landing = false  ;  // true just for testing the landing step 
     int LowerH = 110;
     int LowerS = 150;
@@ -224,6 +225,7 @@
 	      {
 		std::cout << "IF ERROR then keep Moving" << std::endl << std::flush ;
 
+		
 		//errorx = odom->pose.pose.position.x - objectPoseX ; 
 		//errory = odom->pose.pose.position.y - objectPoseY ; 
 		pose2.pose.position.x = objectPoseX;
@@ -239,7 +241,7 @@
 	   
       // ************************************** landing *************************** // 
 	      geometry_msgs::TwistStamped new_cmd_vel ; 
-	      while (landing == true ) 
+	      if (landing == true ) 
 	      {
 		std::cout << "TEST" << std::endl << std::flush ;
 		std::cout << "check the z position " << odom->pose.pose.position.z<< std::endl << std::flush ;
@@ -247,7 +249,7 @@
 		if (odom->pose.pose.position.z < 0.4 ) 
 		{
 		  std::cout << "Stopped landing" << std::endl << std::flush ;
-		  landing = false ; 
+		 // landing = false ; 
 		  new_cmd_vel.twist.linear.x = 0 ; 
 		  new_cmd_vel.twist.linear.y = 0 ; 
 		  new_cmd_vel.twist.linear.z = 0.0 ; 
@@ -259,7 +261,7 @@
 
 		  new_cmd_vel.twist.linear.x = 0 ; 
 		  new_cmd_vel.twist.linear.y = 0 ; 
-		  new_cmd_vel.twist.linear.z = -0.2 ; 
+		  new_cmd_vel.twist.linear.z = -0.5 ; 
 		  velocity_pub_.publish(new_cmd_vel) ; 
 
 		}
@@ -289,6 +291,18 @@
 					 const sensor_msgs::CameraInfoConstPtr& cam_info,
 					 const nav_msgs::OdometryConstPtr& odom )
   {
+    
+    
+    	 if (firstFlag == true)
+	 {
+	   firstFlag = false ; 
+	   geometry_msgs::PoseStamped pose2 ; 
+	   pose2.pose.position.x = odom->pose.pose.position.x;
+	   pose2.pose.position.y = odom->pose.pose.position.y;
+	   pose2.pose.position.z = 5.0;
+	   orien_pub_.publish(pose2) ; 
+	 }
+       
 	    cv_bridge::CvImagePtr cv_ptr;
 	    try
 	    {
@@ -314,31 +328,46 @@
 	      return;
 	    
 	    ROS_INFO("Now here");
-	    cv::imshow("mask", img_hsv);
-            cv::imshow("view", cv_ptr->image);
+	    // cv::imshow("mask", img_hsv);
+            // cv::imshow("view", cv_ptr->image);
 	    cv::Mat locations;   // output, locations of non-zero pixels
 	    cv::findNonZero(img_mask, locations);
-	
+	    ROS_INFO("Now here");
+
 	    // access pixel coordinates
 	    cv::Point pnt; 
 	    int sumx = 0.0 ;  
 	    int sumy= 0.0 ; 
-	    for (int i = 0 ; i < locations.total() ; i++) 
+	    int i ; 
+	    for (i = 0 ; i < locations.total() ; i++) 
 	      {
 		pnt = locations.at<cv::Point>(i); 
 		sumx = sumx + pnt.x ; 
 		sumy= sumy + pnt.y ; 
 	      }
-	    u = sumx /locations.total(); 
+	    if( locations.total() > 0 ) 
+	    {
+	      ROS_INFO("Found Object ");
+	    u = sumx / locations.total(); 
 	    v = sumy / locations.total() ; 
-      	   
+	    
+	    }
+	    else 
+	    {
+     	      ROS_INFO("No Object ");
+
+	    }
+	    
+	    ROS_INFO("Before Processing ");
+
 	    //process to pointcloud*/
 	    p2p(img,cam_info,odom);
-	    //cv::waitKey(10);
+	    cv::waitKey(10);
   }
  
        void uav_img2pointcloud::objectToPickCallback(const kuri_msgs::ObjectConstPtr& obj) {
-       
+	 
+
 	 ROS_INFO("Recieved an Object to pick");
 	//************************ Object from msgs ********************************* // 
     CurrentObj.pose.pose.position.x	= obj->pose.pose.position.x ; 
@@ -364,6 +393,8 @@
   int main(int argc, char **argv)
   {
       ros::init(argc, argv, "image_to_pointcloud");
+      std::cout << " STARTED THE QIGHT CODE" << std::endl << std::flush ;
+
       uav_img2pointcloud u_i2p;
       u_i2p.init();
 
