@@ -19,7 +19,8 @@
   <build_depend>cv_bridge</build_depend>
   <build_depend>kuri_mbzirc_sim</build_depend>
   <build_depend>roslint</build_depend>
-
+  <build_depend>mavros</build_depend>
+ 
   <run_depend>kuri_mbzirc_sim</run_depend>
   <run_depend>rviz</run_depend>
   <run_depend>image_transport</run_depend>
