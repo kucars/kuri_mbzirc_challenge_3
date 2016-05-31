@@ -2,8 +2,8 @@
 <launch>
   <arg name="paused" default="false"/>
   <arg name="debug" default="false"/>
-  <arg name="gui" default="true" />
-  <arg name="headless" default="false"/>
+  <arg name="gui" default="false" />
+  <arg name="headless" default="true"/>
   <arg name="enable_logging" default="false"/>
   <arg name="enable_ground_truth" default="true"/>
   <arg name="ns" default="Change_Me"/>
@@ -14,26 +14,6 @@
     <arg name="debug" default="$(arg debug)"/>
     <arg name="gui" value="$(arg gui)" />
     <arg name="headless" default="$(arg headless)"/>
-  </include>
-
-  <group ns="uav_1">
-    <include file="$(find rotors_gazebo)/launch/spawn_ardrone.launch">
-      <arg name="model" value="$(find rotors_description)/urdf/ardrone_mbzirc_sensors.gazebo" />
-      <arg name="enable_logging" value="$(arg enable_logging)" />
-      <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
-      <arg name="log_file" value="$(arg log_file)"/>
-      <arg name="x" value="65.0"/>
-      <arg name="y" value="-25.0"/>
-      <arg name="Y" value="3.14"/> 
-      <arg name="name" value="uav_1"/>
-    </include>
-    <arg name="fcu_url" default="udp://localhost:14560@localhost:14565" />
-    <include file="$(find mavros)/launch/px4.launch">
-      <arg name="fcu_url" value="$(arg fcu_url)" />
-    </include>    
-  </group>
-  <include file="$(find rotors_gazebo)/launch/ardrone.launch">
-    <arg name="ns" value="uav_1"/>
   </include>
 
   <group ns="uav_3">
@@ -62,13 +42,16 @@
   <group if="$(arg run_demo)" >
     <node pkg="kuri_system_coordinator" type="explore.py" name="explore_arena" />
     <node pkg="kuri_object_tracking" type="ObjectTracking.py" name="detect_objects" />
-    <!--node pkg="kuri_task_allocation" type="ros_task_allocator.py" name="task_allocation" />
-    <node pkg="kuri_multi_agent_navigation" type="navigator" name="navigator"/>    
-    <node pkg="kuri_aerial_manipulation" type="object_detection" name="object_detection"/-->    
   </group>
 
-  <group unless="$(arg headless)" >
-    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find kuri_system_coordinator)/config/integration_test.rviz"/>
-  </group>
+  <!-- monitor and check uav pose hz -->
+  <param name="uav_pose_test/topic" value="/uav_3/mavros/local_position/pose" />
+  <param name="uav_pose_test/hz" value="140.0" />
+  <param name="uav_pose_test/hzerror" value="100" />
+  <param name="uav_pose_test/test_duration" value="10.0" />
+  <test test-name="uav_pose_test" pkg="rostest" type="hztest"  name="uav_pose_test" retry="0" />
+
+  <test test-name="objects_detection" pkg="kuri_mbzirc_challenge_3" type="test_objects_detection.py"  name="objects_detection" retry="0" time-limit="180" />
   
 </launch>
+

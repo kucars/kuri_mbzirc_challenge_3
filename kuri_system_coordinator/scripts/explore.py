@@ -65,21 +65,23 @@ class SetpointPosition:
                 frame_id="base_footprint",  # no matter, plugin don't use TF
                 stamp=rospy.Time.now()),    # stamp should update
         )
+	try:
+	  while not rospy.is_shutdown():
+	      msg.pose.position.x = self.x
+	      msg.pose.position.y = self.y
+	      msg.pose.position.z = self.z
 
-        while not rospy.is_shutdown():
-            msg.pose.position.x = self.x
-            msg.pose.position.y = self.y
-            msg.pose.position.z = self.z
+	      # For demo purposes we will lock yaw/heading to north.
+	      yaw_degrees = 0  # North
+	      yaw = radians(yaw_degrees)
+	      quaternion = quaternion_from_euler(0, 0, yaw)
+	      msg.pose.orientation = SP.Quaternion(*quaternion)
 
-            # For demo purposes we will lock yaw/heading to north.
-            yaw_degrees = 0  # North
-            yaw = radians(yaw_degrees)
-            quaternion = quaternion_from_euler(0, 0, yaw)
-            msg.pose.orientation = SP.Quaternion(*quaternion)
-
-            self.pub.publish(msg)
-            rate.sleep()
-
+	      self.pub.publish(msg)
+	      rate.sleep()
+	except:
+	  print "Exception"
+	  
     def setPose(self, x, y, z, delay=0, wait=True):
         self.done = False
         self.x = x

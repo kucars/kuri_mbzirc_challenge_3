@@ -32,7 +32,13 @@ target_link_libraries(color_detection ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES})
 #############
 ## Testing ##
 #############
+
 if(CATKIN_ENABLE_TESTING)
-  find_package(catkin REQUIRED COMPONENTS rostest roslaunch)
-#  roslaunch_add_file_check(launch/task.launch)
+  find_package(rostest REQUIRED)
+  find_package(roslaunch REQUIRED)
+  find_package(roslint REQUIRED)
+  #roslint_cpp()
+  roslint_python()
+  roslint_add_test()
+  add_rostest(test/integration.test)
 endif()
