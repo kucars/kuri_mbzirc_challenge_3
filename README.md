@@ -21,7 +21,7 @@ $ wstool set -t src kuri_mbzirc_challenge_3 https://github.com/kuri-kustar/kuri_
 $ wstool merge -t src https://raw.githubusercontent.com/kuri-kustar/kuri_mbzirc_challenge_3/master/mbzirc_challenge3.rosinstall
 $ wstool update -t src
 $ rosdep install -y -r --from-paths src --ignore-src --rosdistro $ROS_DISTRO
-$ catkin_make
+$ catkin_make --cmake-args -DCONFIG=ros_sitl_simple
 ```
 # Installing Components Seperately
 ===============
