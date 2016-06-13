@@ -202,7 +202,7 @@ class image_converter:
     cv2.putText(img,label, (50,50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
     #cv2.imwrite(imgfile, img) 
     small = cv2.resize(img, (0,0), fx=0.5, fy=0.5) 
-    cv2.imshow("Tracker", small)
+    #cv2.imshow("Tracker", small)
     cv2.waitKey(10);
     # Just send it once for the demo
     if len(self.obstacles.objects) - len(self.sentObstacles.objects) >= 5 and not self.objectsSent:
