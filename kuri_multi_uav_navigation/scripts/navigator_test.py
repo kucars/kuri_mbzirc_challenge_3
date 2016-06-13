@@ -29,7 +29,7 @@ from math import *
 print "Navigator Test"
 
 def send_task():
-    pub = rospy.Publisher('kuri_msgs/Tasks', NavTasks, queue_size=1,latch=True)
+    pub = rospy.Publisher('kuri_msgs/Tasks', Tasks, queue_size=1,latch=True)
     rospy.init_node('uav1_task_allocater', anonymous=True)
     rate = rospy.Rate(10) # 10hz
 
