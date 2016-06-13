@@ -35,6 +35,7 @@
 //#include <mavros/mavros.h>
 #include "geometry_msgs/PoseStamped.h"
 
+#include <kuri_msgs/Tasks.h>
 #include <kuri_msgs/NavTask.h>
 #include <kuri_msgs/NavTasks.h>
 
@@ -43,14 +44,14 @@ using namespace SSPP;
 geometry_msgs::Pose currentPose;
 geometry_msgs::Pose endPose;
 geometry_msgs::Pose target_coord;
-kuri_msgs::NavTasks tasks;
+kuri_msgs::Tasks tasks;
 
 void startPositionCallback(const geometry_msgs::PoseStamped& msg)
 {
     currentPose = msg.pose;
 }
 
-void navTasksCallback(const kuri_msgs::NavTasks newtasks)
+void navTasksCallback(const kuri_msgs::Tasks newtasks)
 {
     std::cout<<"Received a new Task\n";
     tasks = newtasks;
@@ -62,7 +63,7 @@ int main(int argc, char ** argv)
     ros::init(argc, argv, "muti_uav_navigation");
     ros::NodeHandle nh;
     ros::Subscriber currentPoseSub = nh.subscribe("/uav_1/mavros/local_position/pose", 1, startPositionCallback);
-    ros::Subscriber taskSub        = nh.subscribe("kuri_msgs/NavTasks", 1, navTasksCallback);
+    ros::Subscriber taskSub        = nh.subscribe("kuri_msgs/Tasks", 1, navTasksCallback);
     ros::Publisher  posePub        = nh.advertise<geometry_msgs::PoseStamped>("/uav_1/mavros/setpoint_position/local", 10);
     rviz_visual_tools::RvizVisualToolsPtr visualTools;
     visualTools.reset(new rviz_visual_tools::RvizVisualTools("map","/sspp_visualisation"));
@@ -169,7 +170,7 @@ int main(int argc, char ** argv)
         {
             ROS_INFO("Path Planning for a new task");
             // Remove one task and serve it
-            kuri_msgs::NavTask task = tasks.tasks.at(0);
+            kuri_msgs::Task task = tasks.tasks.at(0);
             tasks.tasks.pop_back();
             kuri_msgs::Object currentObj = task.object;
             endPose = currentObj.pose.pose;
