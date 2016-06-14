@@ -227,6 +227,17 @@ target_link_libraries(navigator SSPathPlanner
     ${rviz_visual_tools_LIBRARIES}
     )
 
+add_executable(path_planner src/pathplanner.cpp)
+target_link_libraries(path_planner SSPathPlanner
+    -lgmp -lmpfr
+    ${CGAL_LIBRARY}
+    ${CGAL_Core_LIBRARY}
+    Qt4::QtGui
+    Qt4::QtCore
+    ${catkin_LIBRARIES}
+    ${PCL_LIBRARIES}
+    ${rviz_visual_tools_LIBRARIES}
+    )
 #############
 ## Testing ##
 #############
