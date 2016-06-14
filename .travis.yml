@@ -36,6 +36,8 @@ before_install:
   - sudo apt-get install -y libcgal-dev
   - sudo rosdep init
   - rosdep update
+  # attempting to solve the error introduced by opencv2 : libdc1394 error: Failed to initialize libdc1394
+  - sudo ln /dev/null /dev/raw1394
 # Use this to install any prerequisites or dependencies necessary to run your build
 install: 
   # Create workspace
