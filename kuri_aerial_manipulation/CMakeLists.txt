@@ -1,13 +1,13 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(kuri_aerial_manipulation)
 
-find_package(catkin REQUIRED COMPONENTS roscpp cv_bridge rospy   sensor_msgs image_transport  cmake_modules  tf message_filters nav_msgs jsk_recognition_msgs kuri_msgs    message_generation
+find_package(catkin REQUIRED COMPONENTS roscpp cv_bridge rospy   sensor_msgs image_transport  cmake_modules  tf message_filters nav_msgs jsk_recognition_msgs kuri_msgs    message_generation actionlib_msgs
 )
 
 
 
 catkin_package(
-    CATKIN_DEPENDS
+    CATKIN_DEPENDS actionlib_msgs
 )
 find_package(Eigen REQUIRED)
 find_package(PCL REQUIRED)
@@ -197,7 +197,7 @@ install(DIRECTORY launch urdf config
 # color detection node #
 ########################
 
-add_executable(object_detection src/uav_img2pointcloud.cpp)
+add_executable(object_detection src/object_manipulation_task.cpp)
 target_link_libraries(object_detection ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES})
 add_dependencies(object_detection ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
 
