@@ -60,9 +60,9 @@
  
   <arg name="run_demo" default="true" />
   <group if="$(arg run_demo)" >
-    <node pkg="kuri_system_coordinator" type="explore.py" name="explore_arena" />
+    <!--node pkg="kuri_system_coordinator" type="explore.py" name="explore_arena" />
     <node pkg="kuri_object_tracking" type="ObjectTracking.py" name="detect_objects" />
-    <!--node pkg="kuri_task_allocation" type="ros_task_allocator.py" name="task_allocation" />
+    <node pkg="kuri_task_allocation" type="ros_task_allocator.py" name="task_allocation" />
     <node pkg="kuri_multi_agent_navigation" type="navigator" name="navigator"/>    
     <node pkg="kuri_aerial_manipulation" type="object_detection" name="object_detection"/-->    
   </group>

@@ -2,7 +2,7 @@
  *   Copyright (C) 2006 - 2016 by                                          *
  *      Tarek Taha, KURI  <tataha@tarektaha.com>                           *
  *      Randa Almadhoun   <randa.almadhoun@kustar.ac.ae>                   *
- *      Ahmed AlDhanhani  <ahmed.aldhanhani@kustar.ac.ae>                                                                   *
+ *      Ahmed AlDhanhani  <ahmed.aldhanhani@kustar.ac.ae>                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
