@@ -138,7 +138,9 @@ public:
 	
 	//subscribe to the data topic of interest
 	//sub = nh_.subscribe("/random_number", 1, &AerialManipulationAction::analysisCB, this);
+	std::cout << " Start the action server " << std::endl << std::flush ; 
 	actionServer.start();
+	ROS_INFO("Action name %s" , actionName.c_str()) ; 
     }
 
     //process to pointcloud
@@ -156,12 +158,12 @@ public:
                      const nav_msgs::OdometryConstPtr& odom
                     )
     {
-
        // make sure that the action hasn't been canceled
         if (!actionServer.isActive())
             return;
 
-	
+        std::cout << "Server Active" << std::endl << std::flush ; 
+
 	  cv_bridge::CvImagePtr cv_ptr;
 	try
 	{
@@ -421,7 +423,7 @@ void AerialManipulationAction::p2p(const sensor_msgs::ImageConstPtr& img,
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "path_planning");
+    ros::init(argc, argv, "aerialAction");
     AerialManipulationAction planGeneration(ros::this_node::getName());
     ros::spin();
     return 0;
