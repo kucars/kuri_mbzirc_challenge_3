@@ -148,11 +148,14 @@ class image_converter:
     nframe = nframe + 1
     image2Analyse = cvImage.copy()    
     imgfile = saveFolder + ("%05d" % nframe) + '.png'
-    img = self.detect_obstacles(image2Analyse)
+    #img = self.detect_obstacles(image2Analyse)
+    img = cvImage.copy()    
     label = "POS" +  "(" + ("%.2fm" % self.currentPoseX) + "," + ("%.2fm" % self.currentPoseX) + "," + ("%.2fm" % self.currentPoseZ) + ")"
     cv2.putText(img,label, (50,50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-    cv2.imwrite(imgfile, img) 
-
+    cv2.imwrite(imgfile, image2Analyse) 
+    small = cv2.resize(img, (0,0), fx=0.5, fy=0.5) 
+    cv2.imshow("Tracker", small)
+    cv2.waitKey(10);
     try:
       self.image_pub.publish(self.bridge.cv2_to_imgmsg(image2Analyse, "bgr8"))
     except CvBridgeError, e:

@@ -37,7 +37,6 @@ class image_converter:
     rospy.init_node('mbzirc_challenge3_cv_test', anonymous=True)
     self.image_pub = rospy.Publisher("/uav_3/downward_cam/image_output",Image, queue_size=10)
 
-    self.objects_pub = rospy.Publisher('kuri_msgs/ObjectsMap', ObjectsMap, queue_size=5,latch=True)
     self.currentObject = Object()
     self.currentObject.width = 10 
     self.currentObject.height = 10
@@ -57,7 +56,6 @@ class image_converter:
     self.currentPoseY = -1
     self.currentPoseZ = -1
     self.objectsSent  = False
-    self.sub = rospy.Subscriber(mavros.get_topic('local_position', 'pose'), SP.PoseStamped, self.updatePosition)
 
   def angle_cos(self, p0, p1, p2):
     d1, d2 = (p0-p1).astype('float'), (p2-p1).astype('float')
@@ -126,7 +124,7 @@ class image_converter:
          objectNum = objectNum + 1
 	 destX = abs(ob.pose.pose.position.x - x_world)
 	 destY = abs(ob.pose.pose.position.y - y_world)
-         if destX < minX and destY < minY and destX < 2 and destY < 2 and ob.color == label:
+         if destX < minX and destY < minY and destX < 3 and destY < 3 and ob.color == label:
 		minOb = ob
                 bExists = True
 		objectIndex = objectNum
@@ -205,13 +203,13 @@ class image_converter:
     #cv2.imshow("Tracker", small)
     cv2.waitKey(10);
     # Just send it once for the demo
-    if len(self.obstacles.objects) - len(self.sentObstacles.objects) >= 5 and not self.objectsSent:
-       self.objectsSent = True
-       print "Sending Objects"
-       for ob in self.obstacles.objects:
-	   if ob not in self.sentObstacles.objects:
-	        self.sentObstacles.objects.append(ob)
-       self.objects_pub.publish(self.sentObstacles)
+    #if len(self.obstacles.objects) - len(self.sentObstacles.objects) >= 5 and not self.objectsSent:
+    #   self.objectsSent = True
+    #   print "Sending Objects"
+    #   for ob in self.obstacles.objects:
+    #	   if ob not in self.sentObstacles.objects:
+    #	        self.sentObstacles.objects.append(ob)
+    #   self.objects_pub.publish(self.sentObstacles)
 
     try:
       self.image_pub.publish(self.bridge.cv2_to_imgmsg(image2Analyse, "bgr8"))

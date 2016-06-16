@@ -41,7 +41,7 @@ if __name__ == "__main__":
     i = 0
 
     # Dumb particles filter parameters
-    num = 300
+    num = 200
     sigmaCenterX = 20
     sigmaCenterY = 20
     sigmaSizeX = 5
