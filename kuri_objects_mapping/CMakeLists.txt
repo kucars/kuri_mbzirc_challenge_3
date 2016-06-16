@@ -60,8 +60,8 @@ find_package(catkin REQUIRED COMPONENTS
 #   Action1.action
 #   Action2.action
 # )
-add_action_files(DIRECTORY action FILES Explore.action)
-generate_messages(DEPENDENCIES actionlib_msgs)
+#add_action_files(DIRECTORY action FILES Explore.action)
+#generate_messages(DEPENDENCIES actionlib_msgs)
 ## Generate added messages and services with any dependencies listed here
 # generate_messages(
 #   DEPENDENCIES
