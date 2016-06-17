@@ -40,7 +40,8 @@
 #include <kuri_msgs/GeneratePathsAction.h>
 #include <std_msgs/Float32.h>
 #include <actionlib/server/simple_action_server.h>
-
+#include "Navigator.h"
+#include "nav_msgs/Path.h"
 
 using namespace SSPP;
 
@@ -53,11 +54,11 @@ public:
         actionName(name)
     {
         //register the goal and feeback callbacks
+        ROS_INFO("Registering callbacks for action %s", actionName.c_str());
         actionServer.registerGoalCallback(boost::bind(&PathPlanningAction::goalCB, this));
         actionServer.registerPreemptCallback(boost::bind(&PathPlanningAction::preemptCB, this));
         ros::Subscriber currentPoseSub = nh.subscribe("/uav_1/mavros/local_position/pose", 1, &PathPlanningAction::startPositionCallback, this);
-        //subscribe to the data topic of interest
-        sub = nh.subscribe("/random_number", 1, &PathPlanningAction::analysisCB, this);
+                ROS_INFO("Starting server for action %s", actionName.c_str());
         actionServer.start();
     }
 
@@ -74,7 +75,18 @@ public:
     {
         progressCount = 0;
         // accept the new goal
+                        ROS_INFO("Accepting Goal for action %s", actionName.c_str());
         goal = actionServer.acceptNewGoal()->tasks;
+                ROS_INFO("started navigation");
+		nav_msgs::Path path = navigator.navigate(goal);
+		kuri_msgs::NavTask nav_task;
+		nav_task.path = path;
+		kuri_msgs::NavTasks nav_tasks;
+		nav_tasks.nav_tasks.push_back(nav_task);
+		result.nav_tasks = nav_tasks;
+		ROS_INFO("%s: Succeeded", actionName.c_str());
+                //// set the action state to succeeded
+                actionServer.setSucceeded(result);
     }
 
     void preemptCB()
@@ -84,34 +96,6 @@ public:
         actionServer.setPreempted();
     }
 
-    void analysisCB(const std_msgs::Float32::ConstPtr& msg)
-    {
-        // make sure that the action hasn't been canceled
-        if (!actionServer.isActive())
-            return;
-
-        progressCount++;
-        feedback.planning_progress = progressCount;
-        actionServer.publishFeedback(feedback);
-
-        if(progressCount > 50)
-        {
-            result.nav_tasks = navTasks;
-
-            if( 1 < 5.0)
-            {
-                ROS_INFO("%s: Aborted", actionName.c_str());
-                //set the action state to aborted
-                actionServer.setAborted(result);
-            }
-            else
-            {
-                ROS_INFO("%s: Succeeded", actionName.c_str());
-                // set the action state to succeeded
-                actionServer.setSucceeded(result);
-            }
-        }
-    }
 
 protected:
 
@@ -125,6 +109,7 @@ protected:
     kuri_msgs::NavTasks navTasks;
     ros::Subscriber sub;
     geometry_msgs::Pose currentPose;
+    Navigator navigator;
 };
 
 int main(int argc, char** argv)

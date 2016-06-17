@@ -214,7 +214,12 @@ include_directories(include ${QT_INCLUDES})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
-add_executable(navigator src/navigator.cpp)
+#add_executable(navigator src/navigator.cpp)
+add_library(navigator include/Navigator.h src/navigator.cpp)
+add_executable(GeneratePathsAction src/GeneratePathsAction.cpp)
+set_target_properties(navigator PROPERTIES LINKER_LANGUAGE CXX)
+
+target_link_libraries(GeneratePathsAction navigator)
 
 target_link_libraries(navigator SSPathPlanner
     -lgmp -lmpfr
@@ -228,16 +233,17 @@ target_link_libraries(navigator SSPathPlanner
     )
 
 add_executable(path_planner src/pathplanner.cpp)
-target_link_libraries(path_planner SSPathPlanner
-    -lgmp -lmpfr
-    ${CGAL_LIBRARY}
-    ${CGAL_Core_LIBRARY}
-    Qt4::QtGui
-    Qt4::QtCore
-    ${catkin_LIBRARIES}
-    ${PCL_LIBRARIES}
-    ${rviz_visual_tools_LIBRARIES}
-    )
+#target_link_libraries(path_planner SSPathPlanner
+#    -lgmp -lmpfr
+#    ${CGAL_LIBRARY}
+#    ${CGAL_Core_LIBRARY}
+#    Qt4::QtGui
+#    Qt4::QtCore
+#    ${catkin_LIBRARIES}
+#    ${PCL_LIBRARIES}
+#    ${rviz_visual_tools_LIBRARIES}
+#    )
+target_link_libraries(path_planner navigator)
 
 add_executable(path_follower src/pathfollower.cpp)
 target_link_libraries(path_follower SSPathPlanner
