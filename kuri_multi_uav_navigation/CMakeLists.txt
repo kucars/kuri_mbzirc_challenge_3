@@ -216,10 +216,8 @@ add_definitions(${PCL_DEFINITIONS})
 
 #add_executable(navigator src/navigator.cpp)
 add_library(navigator include/Navigator.h src/navigator.cpp)
-add_executable(GeneratePathsAction src/GeneratePathsAction.cpp)
 set_target_properties(navigator PROPERTIES LINKER_LANGUAGE CXX)
 
-target_link_libraries(GeneratePathsAction navigator)
 
 target_link_libraries(navigator SSPathPlanner
     -lgmp -lmpfr
