@@ -84,7 +84,7 @@
     <node pkg="kuri_mbzirc_challenge_3" type="uav_1.py" name="uav_1_move" />
     <node pkg="kuri_mbzirc_challenge_3" type="uav_2.py" name="uav_2_move" />
 -->
-    <node pkg="kuri_mbzirc_challenge_3" type="uav_3.py" name="uav_3_move" />
+    <node pkg="kuri_object_tracking" type="uav_3.py" name="uav_3_move" />
   </group>
 
   <group unless="$(arg headless)" >

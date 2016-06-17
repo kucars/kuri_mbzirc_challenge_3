@@ -65,9 +65,17 @@
 
 #include "kuri_msgs/PickObjectAction.h"
 
-
 bool firstFlag = true ;
 bool landing = false  ;  // true just for testing the landing step
+
+kuri_msgs::Object CurrentObj ;
+
+double u , v , X, Y ;
+namespace enc = sensor_msgs::image_encodings;
+double roll, pitch, yaw;
+// cuda
+float  process_in_cuda(double *_a, double *_b, double *_c, cv::Mat *dev_img, pcl::PointCloud<pcl::PointXYZRGB> *PC);
+
 int LowerH = 110;
 int LowerS = 150;
 int LowerV = 150;
@@ -95,14 +103,6 @@ int LowerVG = 100;
 int UpperHG = 60;
 int UpperSG = 255;
 int UpperVG = 255;
-kuri_msgs::Object CurrentObj ;
-
-double u , v , X, Y ;
-namespace enc = sensor_msgs::image_encodings;
-double roll, pitch, yaw;
-// cuda
-float  process_in_cuda(double *_a, double *_b, double *_c, cv::Mat *dev_img, pcl::PointCloud<pcl::PointXYZRGB> *PC);
-
 
 class AerialManipulationAction
 {
@@ -138,7 +138,9 @@ public:
 	
 	//subscribe to the data topic of interest
 	//sub = nh_.subscribe("/random_number", 1, &AerialManipulationAction::analysisCB, this);
+	std::cout << " Start the action server " << std::endl << std::flush ; 
 	actionServer.start();
+	ROS_INFO("Action name %s" , actionName.c_str()) ; 
     }
 
     //process to pointcloud
@@ -149,19 +151,41 @@ public:
     ~AerialManipulationAction(void)
     {
     }
-    
+   /*  void paramsCallback(kuri_aerial_manipulation::ColorsParamConfig &config, uint32_t level)
+	{
+     	 LowerHB << config.LowerHB ; 
+         LowerSB << config.LowerSB ; 
+	 LowerVB << config.LowerVB ; 
+	 UpperHB << config.UpperHB ;
+	 UpperSB << config.UpperSB ; 
+	 UpperVB << config.UpperVB ;
+
+     	 LowerHR << config.LowerHR ; 
+         LowerSR << config.LowerSR ; 
+	 LowerVR << config.LowerVR ; 
+	 UpperHR << config.UpperHR ;
+	 UpperSR << config.UpperSR ; 
+	 UpperVR << config.UpperVR ;
+
+     	 LowerHG << config.LowerHG ; 
+         LowerSG << config.LowerSG ; 
+	 LowerVG << config.LowerVG ; 
+	 UpperHG << config.UpperHG ;
+	 UpperSG << config.UpperSG ; 
+	 UpperVG << config.UpperVG ;
+	}*/
     //call back, for processing
     void imageCallback(const sensor_msgs::ImageConstPtr& img,
                      const sensor_msgs::CameraInfoConstPtr& cam_info,
                      const nav_msgs::OdometryConstPtr& odom
                     )
     {
-
        // make sure that the action hasn't been canceled
         if (!actionServer.isActive())
             return;
 
-	
+        std::cout << "Server Active" << std::endl << std::flush ; 
+
 	  cv_bridge::CvImagePtr cv_ptr;
 	try
 	{
@@ -264,6 +288,10 @@ protected:
     message_filters::Subscriber<nav_msgs::Odometry> *uav_odom_sub_;
     message_filters::Synchronizer<MySyncPolicy> *sync;
     tf::Transform BaseToCamera;
+    //int LowerH , LowerS , LowerV, UpperH, UpperS , UpperV ; 
+    //int LowerHB, LowerSB,LowerVB, UpperHB, UpperSB , UpperVB ;
+    //int LowerHR ,LowerSR , LowerVR , UpperHR , UpperSR , UpperVR ;
+    //int LowerHG ,LowerSG , LowerVG , UpperHG , UpperSG , UpperVG ;
 
 #define Ground_Z 0.0
   //test
@@ -383,7 +411,7 @@ void AerialManipulationAction::p2p(const sensor_msgs::ImageConstPtr& img,
     std::cout << "TEST" << std::endl << std::flush ;
     std::cout << "check the z position " << odom->pose.pose.position.z << std::endl << std::flush ;
 
-    if (odom->pose.pose.position.z < 0.4)
+    if (odom->pose.pose.position.z < 0.5)
     {
       std::cout << "Stopped landing" << std::endl << std::flush ;
       // landing = false ;
@@ -421,7 +449,7 @@ void AerialManipulationAction::p2p(const sensor_msgs::ImageConstPtr& img,
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "path_planning");
+    ros::init(argc, argv, "aerialAction");
     AerialManipulationAction planGeneration(ros::this_node::getName());
     ros::spin();
     return 0;
