@@ -34,8 +34,8 @@ velocityX = 0.0
 velocityY = 0.0 
 velocityZ = 0.0 
 # Position of the objetc "Currently looking for a way to make it dynamic or subscribe for it" 
-objx = -2.961629
-objy = 3.037924
+objx = -3.522479
+objy = -5.273187
 
 class ObjectsLanded(unittest.TestCase):
     def __init__(self, *args):

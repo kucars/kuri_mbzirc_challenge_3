@@ -381,39 +381,27 @@ void AerialManipulationAction::p2p(const sensor_msgs::ImageConstPtr& img,
   tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
 
   // *************************** Controller ********************* //
-  geometry_msgs::PoseStamped pose2 ;
   float distance = sqrt(((odom->pose.pose.position.x - objectPoseX) * (odom->pose.pose.position.x - objectPoseX)) + ((odom->pose.pose.position.y - objectPoseY) * (odom->pose.pose.position.y - objectPoseY)));
-  if (distance > 0.05)
-  {
-    std::cout << "IF ERROR then keep Moving" << std::endl << std::flush ;
-
-
-    //errorx = odom->pose.pose.position.x - objectPossuccesseX ;
-    //errory = odom->pose.pose.position.y - objectPoseY ;
-    pose2.pose.position.x = objectPoseX;
-    pose2.pose.position.y = objectPoseY;
-    pose2.pose.position.z = odom->pose.pose.position.z;
-    orien_pub_.publish(pose2) ;
-    
-    feedback.picking_progress = distance;
-    actionServer.publishFeedback(feedback);
-  }
-  else
-  {
-    landing = true ;
-    std::cout << "LAND FLAG" << std::endl << std::flush ;
-  }
-
-  // ************************************** landing *************************** //
+  float vector3x = objectPoseX - odom->pose.pose.position.x ;
+  float vector3y = objectPoseY - odom->pose.pose.position.y ;
+  float vector3z = odom->pose.pose.position.z ;
+  
+  // Test 1 
+  float vector3Mag1 = sqrt ((vector3x*vector3x) + (vector3y*vector3y) ) ;
+  float unitVector3x = vector3x/vector3Mag1 ; 
+  float unitVector3y = vector3y/vector3Mag1 ; 
+  
+  // Test 2
+  float vector3Mag2 = sqrt ((vector3x*vector3x) + (vector3y*vector3y) + (vector3z*vector3z)) ;
+  float T_unitVector3x = vector3x/vector3Mag2 ;
+  float T_unitVector3y = vector3y/vector3Mag2 ; 
+  float T_unitVector3z = vector3z/vector3Mag2 ; 
+  // Test 2
   geometry_msgs::TwistStamped new_cmd_vel ;
-  if (landing == true)
-  {
-    std::cout << "TEST" << std::endl << std::flush ;
-    std::cout << "check the z position " << odom->pose.pose.position.z << std::endl << std::flush ;
-
-    if (odom->pose.pose.position.z < 0.5)
-    {
-      std::cout << "Stopped landing" << std::endl << std::flush ;
+  std::cout << "Pose in Z" << odom->pose.pose.position.z  << std::endl << std::flush ;
+  if ( distance < 0.1 && odom->pose.pose.position.z  < 0.4 )
+     {
+      std::cout << "Landed" << std::endl << std::flush ;
       // landing = false ;
       new_cmd_vel.twist.linear.x = 0 ;
       new_cmd_vel.twist.linear.y = 0 ;
@@ -422,19 +410,19 @@ void AerialManipulationAction::p2p(const sensor_msgs::ImageConstPtr& img,
       result.success = true ; 
       actionServer.setSucceeded(result);
 
-    }
-    else
-    {
-      std::cout << "hover" << std::endl << std::flush ;
 
-      new_cmd_vel.twist.linear.x = 0 ;
-      new_cmd_vel.twist.linear.y = 0 ;
-      new_cmd_vel.twist.linear.z = -0.5 ;
+     }
+     else 
+     {
+      std::cout << "It shoud move" << std::endl << std::flush ;
+      new_cmd_vel.twist.linear.x = T_unitVector3x * 0.5 ;
+      new_cmd_vel.twist.linear.y = T_unitVector3y * 0.5;
+      new_cmd_vel.twist.linear.z = T_unitVector3z * -0.2 ;
       velocity_pub_.publish(new_cmd_vel) ;
-    }
+       
+     }
 
 
-  }
 
 #endif
 
