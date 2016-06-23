@@ -52,12 +52,15 @@ nav_msgs::Path Navigator::navigate(const kuri_msgs::Tasks newtasks)
     QTime timer;
     geometry_msgs::Pose gridStartPose;
     geometry_msgs::Vector3 gridSize;
-    gridStartPose.position.x = -50;
-    gridStartPose.position.y = -30;
+//    gridStartPose.position.x = -50;
+//    gridStartPose.position.y = -30;
+    gridStartPose.position.x = 0;
+    gridStartPose.position.y = 0;
+
     gridStartPose.position.z = 0;
     // Dhanhani: including start to drop zone the arena is 140 x 60
-    gridSize.x = 120;
-    gridSize.y = 60;
+    gridSize.x = 12;
+    gridSize.y = 6;
     gridSize.z = 30;
     PathPlanner * pathPlanner;
 
@@ -88,6 +91,9 @@ nav_msgs::Path Navigator::navigate(const kuri_msgs::Tasks newtasks)
     std::cout << "\nSpace Generation took:" << timer.elapsed() / double(1000.00) << " secs";
     std::vector<geometry_msgs::Point> searchSpaceConnections = pathPlanner->getConnections();
     visualTools->publishPath(searchSpaceConnections, rviz_visual_tools::BLUE, rviz_visual_tools::LARGE, "search_space");
+
+    pathPlanner->disconnectNodes();
+    std::cout<<"\n Nodes are now disconnected";
 
     ROS_INFO("\nstarting the loop");
 
