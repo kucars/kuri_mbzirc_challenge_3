@@ -197,8 +197,8 @@ install(DIRECTORY launch urdf config
 # color detection node #
 ########################
 
-add_executable(object_detection src/object_manipulation_task.cpp)
-#add_executable(object_detection src/ActionServerInterface.cpp src/AerialManipulationControl.cpp include/AerialManipulationControl.h)
+#add_executable(object_detection src/object_manipulation_task.cpp)
+add_executable(object_detection src/ActionServerInterface.cpp src/AerialManipulationControl.cpp include/AerialManipulationControl.h)
 target_link_libraries(object_detection ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES})
 add_dependencies(object_detection ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
 

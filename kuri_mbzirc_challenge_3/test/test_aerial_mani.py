@@ -34,8 +34,8 @@ velocityX = 0.0
 velocityY = 0.0 
 velocityZ = 0.0 
 # Position of the objetc "Currently looking for a way to make it dynamic or subscribe for it" 
-objx = -3.522479
-objy = -5.273187
+objx = 2.114884
+objy = 1.958894
 
 class ObjectsLanded(unittest.TestCase):
     def __init__(self, *args):
@@ -60,7 +60,7 @@ class ObjectsLanded(unittest.TestCase):
 	  rospy.loginfo("Waiting for Landing")
           rospy.sleep(1)
 		
-	
+	rospy.loginfo("hello_str")
         assert(self.objectLanded)
 
 
