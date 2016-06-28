@@ -29,7 +29,10 @@ numberOfObject = 0
 InitialX = 28
 InitialY = 65
 
-class image_converter:
+from ObjectDetector import object_detector
+from ObjectTracker import object_tracker
+
+class object_tracking:
 
   
   def __init__(self):
@@ -37,18 +40,13 @@ class image_converter:
     rospy.init_node('mbzirc_challenge3_cv_test', anonymous=True)
     self.image_pub = rospy.Publisher("/uav_3/downward_cam/image_output",Image, queue_size=10)
 
-    self.currentObject = Object()
-    self.currentObject.width = 10 
-    self.currentObject.height = 10
-    self.currentObject.pose.pose.position.x = InitialX
-    self.currentObject.pose.pose.position.y = InitialY;
-    #self.currentObject.pose = PoseWithCovariance(pose=pose)
-    self.currentObject.color = 'RED'
-
     self.obstacles = Objects()
-    #self.obstacles.objects.append(self.currentObject)
-    self.sentObstacles = ObjectsMap()
+    self.map = ObjectsMap()
+        
+    self.detector = object_detector()
     
+    self.edgeThresholdSize = 40
+    self.object_number = 1
     self.bridge = CvBridge()
     self.image_sub = rospy.Subscriber("/uav_3/downward_cam/camera/image",Image,self.callback)
     mavros.set_namespace('/uav_3/mavros')
@@ -56,130 +54,47 @@ class image_converter:
     self.currentPoseY = -1
     self.currentPoseZ = -1
     self.objectsSent  = False
+    self.tracked_objects = []
 
-  def angle_cos(self, p0, p1, p2):
-    d1, d2 = (p0-p1).astype('float'), (p2-p1).astype('float')
-    return abs( np.dot(d1, d2) / np.sqrt( np.dot(d1, d1)*np.dot(d2, d2) ) )
-
-  def get_holes(self, image, thresh):
-    gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-
-    im_bw = cv2.threshold(gray, thresh, 255, cv2.THRESH_BINARY)[1]
-    im_bw_inv = cv2.bitwise_not(im_bw)
-
-    contour, _ = cv2.findContours(im_bw_inv, cv2.RETR_CCOMP, cv2.CHAIN_APPROX_SIMPLE)
-    for cnt in contour:
-        cv2.drawContours(im_bw_inv, [cnt], 0, 255, -1)
-
-    nt = cv2.bitwise_not(im_bw)
-    im_bw_inv = cv2.bitwise_or(im_bw_inv, nt)
-    return im_bw_inv
-
-
-  def remove_background(self, image, thresh, scale_factor=1.0, kernel_range=range(1, 15), border=1):
-    border = border or kernel_range[-1]
-
-    holes = self.get_holes(image, thresh)
-    small = cv2.resize(holes, None, fx=scale_factor, fy=scale_factor)
-    bordered = cv2.copyMakeBorder(small, border, border, border, border, cv2.BORDER_CONSTANT)
-
-    for i in kernel_range:
-        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (2*i+1, 2*i+1))
-        bordered = cv2.morphologyEx(bordered, cv2.MORPH_CLOSE, kernel)
-
-    unbordered = bordered[border: -border, border: -border]
-    mask = cv2.resize(unbordered, (image.shape[1], image.shape[0]))
-    fg = cv2.bitwise_and(image, image, mask=mask)
-    return fg
-
-  def draw_label(self, image, label, contour, font=cv2.FONT_HERSHEY_SIMPLEX,
-               font_scale=.8, thickness=2):
+  def draw_label(self, image, label, contour):
     im = image.copy()
-    size = cv2.getTextSize(label, font, font_scale, thickness)[0]
+    size = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, .8, 2)[0]
     x,y,w,h = cv2.boundingRect(contour)
-    meter_pixel = 0.015 / 2#(w+h)/0.6; 
-    M = cv2.moments(contour)
-    x = int(M['m10']/M['m00'])
-    y = int(M['m01']/M['m00'])
-    #print meter_pixel
-    height, width = im.shape[:2]
-    obj_x = ((width/2.0) - x) * meter_pixel
-    obj_x = obj_x + self.currentPoseX
-    obj_y = ((height/2.0) - y) * meter_pixel
-    obj_y = obj_y + self.currentPoseY
-    #cv2.putText(image,label + "(" + ("%.2fm" % obj_x) + "," + ("%.2fm" % (obj_y)) + ")", (x,y), font, font_scale, (0, 0, 255), thickness)
-    x_world = self.currentPoseX + (y - (width/2.0)) * self.currentPoseZ / 800;
-    y_world = self.currentPoseY + (x - (height/2.0)) * self.currentPoseZ / 800;
-    if abs(InitialY-self.currentPoseY) < 10 or InitialY-self.currentPoseY < 0: ##ignores start area
-	return image
-    #x_world = (x_world + obj_x) / 2
-    #y_world = (y_world + obj_y) / 2
-    objectNum = 0
-    objectIndex = 0
-    minX = 1000
-    minY = 1000
-    minOb = Object()
-    bExists = False
-    for ob in self.obstacles.objects:
-         objectNum = objectNum + 1
-	 destX = abs(ob.pose.pose.position.x - x_world)
-	 destY = abs(ob.pose.pose.position.y - y_world)
-         if destX < minX and destY < minY and destX < 3 and destY < 3 and ob.color == label:
-		minOb = ob
-                bExists = True
-		objectIndex = objectNum
-                self.obstacles.objects[objectIndex-1].pose.pose.position.x = x_world
-		self.obstacles.objects[objectIndex-1].pose.pose.position.y = y_world
-    if bExists == False:
-    	newObject = Object()
-    	newObject.width = w
-    	newObject.height = h
-    	newObject.pose.pose.position.x = x_world
-    	newObject.pose.pose.position.y = y_world
-    	newObject.color = 'R'
-	self.obstacles.objects.append(newObject)
-        objectIndex = objectNum
-    cv2.putText(image,label + "#" + ("%d" % objectIndex) + "(" + ("%.2fm" % x_world) + "," + ("%.2fm" % y_world) + ")", (x,y + 50), font, font_scale, (255, 0, 0), thickness)
+    cv2.putText(image,label + "#" + ("%d" % objectIndex) + "(" + ("%.2fm" % x) + "," + ("%.2fm" % y) + ")", (x,y + 50), cv2.FONT_HERSHEY_SIMPLEX, .8, (255, 0, 0), 2)
     return image
 
-  def detect_obstacles(self, img):
-    squares = []
-    circles = []
-    if InitialY and (InitialY-self.currentPoseY) < 10: ##ignores start area
-	return img
-    nobg = self.remove_background(img, 155)
-    gray = cv2.cvtColor(nobg,cv2.COLOR_BGR2GRAY)
-    contours, hierarchy = cv2.findContours(gray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    for cnt in contours:
-	cnt_len = cv2.arcLength(cnt, True)
-        cnt = cv2.approxPolyDP(cnt, 0.02*cnt_len, True)
-	if len(cnt) >= 4 and len(cnt) <= 6 and cv2.contourArea(cnt) > 50 and cv2.isContourConvex(cnt):
-		#_cnt = cnt.reshape(-1, 2)
-                #max_cos = np.max([self.angle_cos( _cnt[i], _cnt[(i+1) % 4], _cnt[(i+2) % 4] ) for i in xrange(4)])
-                squares.append(cnt)
-                self.draw_label(img, "RECT", cnt)
-	if len(cnt) < 3 or len(cnt) > 6:
-	        area = cv2.contourArea(cnt)
-	        x,y,w,h = cv2.boundingRect(cnt)
-	        radius = w/2.0
-	        #print abs(1 - (1.0 * w /  h)), w, h
-	        #print abs(1 - (area / (math.pi * radius * radius)))
-		if h > 0 and w > 0 and radius > 0:	        
-		    if abs(1 - (1.0 * w /  h)) < 0.5 and abs(1 - (area / (math.pi * radius * radius))) < 0.5:
-		        circles.append(cnt)
-			self.draw_label(img, "CIRCLE", cnt)
-    if len(squares) > 0:     
-	cv2.drawContours( img, squares, -1, (0, 255, 0), 3 )	
-    if len(circles) > 0:
-     	cv2.drawContours( img, circles, -1, (0, 0, 255), 3 )	
-    return img
-
   def updatePosition(self, topic):
+    self.pose = topic.pose
     self.currentPoseX = topic.pose.position.x 
     self.currentPoseY = topic.pose.position.y
     self.currentPoseZ = topic.pose.position.z
-        
-
+      
+  def overlap(self, a, b):  # returns None if rectangles don't intersect
+    dx = min(a[0] + a[2], b[2][0]) - max(a[0], b[0][0])
+    dy = min(a[1] + a[3], b[1][1]) - max(a[1], b[0][1])
+    if (dx>=0) and (dy>=0):
+        return 1#dx*dy
+    return 0
+    
+  def nearEdge(self, a):
+      if a[0] < self.edgeThresholdSize or a[1] < self.edgeThresholdSize or a[0] > (self.width - self.edgeThresholdSize) or a[1] > (self.height - self.edgeThresholdSize):
+          return True
+      return False
+      
+  def nearEdge2(self, a):
+      if a[0] < self.edgeThresholdSize*2 or a[1] < self.edgeThresholdSize*2 or a[0] > (self.width - self.edgeThresholdSize*2) or a[1] > (self.height - self.edgeThresholdSize*2):
+          return True
+      return False
+      
+  def addObject(self, pose, velocity, width, height, color):
+      newObject = Object()
+      newObject.pose = pose
+      newObject.velocity = velocity
+      newObject.width = width
+      newObject.height = height
+      newObject.color = color
+      self.obstacles.append(newObject)
+      
   def callback(self,data):
     global saveFolder
     global nframe
@@ -190,9 +105,36 @@ class image_converter:
     except CvBridgeError, e:
       print e
     nframe = nframe + 1
+    print 'Processing'
     image2Analyse = cvImage.copy()    
-    #imgfile = saveFolder + ("%05d" % nframe) + '.png'
-    img = self.detect_obstacles(image2Analyse)
+    img = image2Analyse
+    self.height, self.width = img.shape[:2]
+    
+    for tracker in self.tracked_objects:
+        poly = tracker.track_object(img)
+        result = poly.corners()
+        if self.nearEdge([result[0][0], result[0][1]]) == False:
+            cv2.rectangle(img, (result[0][0], result[0][1]), (result[2][0], result[2][1]), (255,0,0), 2)
+            cv2.putText(img,"#" + ("%d" % tracker.id), (result[0][0],result[0][1] + 50), cv2.FONT_HERSHEY_SIMPLEX, .8, (255, 0, 0), 2)
+        else:
+            self.tracked_objects.remove(tracker)
+    
+    
+    obstacles = self.detector.detect_obstacles(img)
+    #colors = self.detector.detect_colors(img, obstacles)
+    
+    for ob in obstacles:
+        overlap = 0
+        for tracker in self.tracked_objects:
+            overlap = overlap + self.overlap(ob, tracker.polygon.corners())
+        if overlap == 0:
+            if self.nearEdge2(ob) != True:
+                new_tracker = object_tracker(ob[0], ob[1], ob[2], ob[3], self.object_number)
+                self.tracked_objects.append(new_tracker)
+                self.addObject(self.pose, 0, ob[2], ob[3], 'RED')
+                self.object_number = self.object_number + 1
+    
+    
     label = "POS" +  "(" + ("%.2fm" % self.currentPoseX) + "," + ("%.2fm" % self.currentPoseY) + "," + ("%.2fm" % self.currentPoseZ) + ")"
     if InitialX == 0 and InitialY == 0:
 	InitialX = self.currentPoseX
@@ -200,16 +142,8 @@ class image_converter:
     cv2.putText(img,label, (50,50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
     #cv2.imwrite(imgfile, img) 
     small = cv2.resize(img, (0,0), fx=0.5, fy=0.5) 
-    #cv2.imshow("Tracker", small)
+    cv2.imshow("Tracker", small)
     cv2.waitKey(10);
-    # Just send it once for the demo
-    #if len(self.obstacles.objects) - len(self.sentObstacles.objects) >= 5 and not self.objectsSent:
-    #   self.objectsSent = True
-    #   print "Sending Objects"
-    #   for ob in self.obstacles.objects:
-    #	   if ob not in self.sentObstacles.objects:
-    #	        self.sentObstacles.objects.append(ob)
-    #   self.objects_pub.publish(self.sentObstacles)
 
     try:
       self.image_pub.publish(self.bridge.cv2_to_imgmsg(image2Analyse, "bgr8"))
@@ -218,7 +152,7 @@ class image_converter:
      
     
 def main(args):
-  ic = image_converter()
+  ic = object_tracking()
   try:
     rospy.spin()
   except KeyboardInterrupt:
