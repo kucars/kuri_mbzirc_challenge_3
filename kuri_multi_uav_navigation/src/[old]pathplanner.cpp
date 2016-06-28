@@ -194,7 +194,7 @@ int main(int argc, char ** argv)
     }
 
 
-    ROS_INFO("Starting search for second path");
+    ROS_INFO("Starting search for third path");
     start = Pose(12, 3, 15, DTOR(0.0));
     end   = Pose(0,  3, 15, DTOR(0.0));
     distanceHeuristic.setEndPose(end.p);
