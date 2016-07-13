@@ -55,6 +55,10 @@ class object_tracking:
     self.currentPoseZ = -1
     self.objectsSent  = False
     self.tracked_objects = []
+    
+    rospy.init_node('explore_client')
+    client = actionlib.SimpleActionClient('Explore', ExploreAction)
+    client.wait_for_server()
 
   def draw_label(self, image, label, contour):
     im = image.copy()
@@ -94,6 +98,11 @@ class object_tracking:
       newObject.height = height
       newObject.color = color
       self.obstacles.append(newObject)
+      
+
+      goal = ExploreGoal()
+      client.send_goal(goal)
+      client.wait_for_result(rospy.Duration.from_sec(5.0))
       
   def callback(self,data):
     global saveFolder
