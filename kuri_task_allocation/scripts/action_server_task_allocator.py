@@ -2,10 +2,9 @@
 
 
 
-# Original Author: Abdelrahman Ali AlMahmoud
 #
 #
-
+import math
 import actionlib
 import rospy
 from std_msgs.msg import String
@@ -69,9 +68,12 @@ class actionAllocator(object):
                     # list_b = [obj.width]
 
             # Create the messages to be published
+
+
+
             def reconstructKuriMsg(listofobjects):
                 finaloutput = Tasks()
-                print listofobjects
+                #print listofobjects
                 for obj in listofobjects:
                     drone = obj[1]
                     objfortask = obj[3]
@@ -83,7 +85,7 @@ class actionAllocator(object):
                     output.task_type = ""
 
                     finaloutput.tasks.append(output)
-                print finaloutput
+                #print finaloutput
                 return finaloutput
 
             def clearedset(seq):
@@ -131,6 +133,30 @@ class actionAllocator(object):
                     except yaml.YAMLError as exc:
                         print(exc)
                 return items
+
+
+
+            def getMovingObjectChance(objec, objDist):
+                UAVspeed = 22.2222
+                objSpeed = 1.38889
+                CamersScanRadius = 40
+                timetoObject = objDist/UAVspeed
+
+                #Use this to compute the object speed but for now I will assume the worse case scenario
+                a = math.sqrt(obj.velocity.linear.x*obj.velocity.linear.x+obj.velocity.linear.y*obj.velocity.linear.y+
+                              obj.velocity.linear.z*obj.velocity.linear.z)
+
+                PossibleObjDist = objSpeed*timetoObject
+
+                print "Object can move for ", PossibleObjDist
+
+                PossibleObjDist = PossibleObjDist+objDist
+
+                if PossibleObjDist < CamersScanRadius:
+                    return PossibleObjDist
+                else:
+                    return 100000
+
 
             # It would be nice to compute the total weight of the entire objects here and use it in the computation later on
             # So I would count how many R, G, B objects I have + large ones and add them up basically. This would help in scoring
@@ -185,6 +211,9 @@ class actionAllocator(object):
             xLocations = []  # Will use these to plot
             yLocations = []
             zLocations = []
+            Locations = []
+            colours = []
+            area = []
 
             # print 'UAV1 location', UAV1
             # print 'UAV2 location', UAV2
@@ -210,29 +239,66 @@ class actionAllocator(object):
 
 
             #### Important :: I can optimise this by having the distances all calculated in one loop. no need to reiterate the list
-
+            Idontknow = 0
             for obj in data.objects:
+                print Idontknow
+                Idontknow +=1
                 location_obj = numpy.array(
                     (obj.pose.pose.position.x, obj.pose.pose.position.y, obj.pose.pose.position.z))
-                dist = numpy.linalg.norm(UAV1 - location_obj)
+                Locations.append(location_obj)
+
+                colours.append(obj.color)
+
+                area.append(10)
+
+
+                if obj.velocity.linear.x != 0 or obj.velocity.linear.y != 0 or obj.velocity.linear.z != 0:
+                    print "In dynamic object loop, dist = ", dist
+                    dist = numpy.linalg.norm(UAV1 - location_obj)
+                    possibleObjectLocation = getMovingObjectChance(obj, dist)
+                    dist = possibleObjectLocation+dist
+                    print "distance after moving = ", dist
+
+
+                else:
+                    dist = numpy.linalg.norm(UAV1 - location_obj)
+                    print "in static loop, dist = ", dist
 
                 WeightOfObject = scores.get(obj.color)
                 # print WeightOfObject
 
                 if obj.color != 'Nan':
                     WeightOfObject = scores.get(obj.color)
-                    print WeightOfObject
-                print dist
+
+
                 weighteddist = dist / WeightOfObject
+                print "weighted distance of the object = ", weighteddist
                 rank1.append((weighteddist, 'UAV1', obj.header.seq, obj))
                 rank1.sort()
                 # print "UAV one ranking", rank1
                 # print "               "
 
+
+
             for obj in data.objects:
                 location_obj = numpy.array(
                     (obj.pose.pose.position.x, obj.pose.pose.position.y, obj.pose.pose.position.z))
-                dist = numpy.linalg.norm(UAV2 - location_obj)
+
+
+                if obj.velocity.linear.x != 0 or obj.velocity.linear.y != 0 or obj.velocity.linear.z != 0:
+                    print "In dynamic object loop, dist = ", dist
+                    dist = numpy.linalg.norm(UAV2 - location_obj)
+                    possibleObjectLocation = getMovingObjectChance(obj, dist)
+                    dist = possibleObjectLocation+dist
+                    print "distance after moving = ", dist
+
+
+                else:
+                    dist = numpy.linalg.norm(UAV2 - location_obj)
+                    print "in static loop, dist = ", dist
+
+
+
                 if obj.color != 'Nan':
                     WeightOfObject = scores.get(obj.color)
                 weighteddist = dist / WeightOfObject
@@ -241,10 +307,27 @@ class actionAllocator(object):
                 # print "UAV two ranking", rank2
                 # print "               "
 
+
+
             for obj in data.objects:
                 location_obj = numpy.array(
                     (obj.pose.pose.position.x, obj.pose.pose.position.y, obj.pose.pose.position.z))
-                dist = numpy.linalg.norm(UAV3 - location_obj)
+
+                if obj.velocity.linear.x != 0 or obj.velocity.linear.y != 0 or obj.velocity.linear.z != 0:
+                    print "In dynamic object loop, dist = ", dist
+                    dist = numpy.linalg.norm(UAV3 - location_obj)
+                    possibleObjectLocation = getMovingObjectChance(obj, dist)
+                    dist = possibleObjectLocation
+                    print "distance after moving = ", dist
+
+
+                else:
+                    dist = numpy.linalg.norm(UAV3 - location_obj)
+                    print "in static loop, dist = ", dist
+
+
+
+
                 if obj.color != 'Nan':
                     WeightOfObject = scores.get(obj.color)
                 weighteddist = dist / WeightOfObject
@@ -264,9 +347,11 @@ class actionAllocator(object):
             # print FinalRanking
             FinalRanking2 = clearedset(FinalRanking)
 
+
             NavigationTasks = reconstructKuriMsg(FinalRanking2)
 
             NavigationTasks = clearedset2(NavigationTasks)
+
 
             # FinalRanking2 = clearedset(NavigationTasks)
 
@@ -330,13 +415,141 @@ class actionAllocator(object):
             # pub3 = rospy.Publisher('uav3_target_location', Pose, queue_size=1)
 
 
-            #pub.publish(NavigationTasks)
-            return NavigationTasks
-            print "Returned : "
+
+            #x.append(UAV1[0])  # adding UAV one location to the array to be plotted
+            #y.append(UAV1[1])
+
+            Locations.append(UAV1)
+
+            #x.append(UAV2[0])
+            #y.append(UAV2[1])
+
+            Locations.append(UAV2)
+
+            #x.append(UAV3[0])
+            #y.append(UAV3[1])
+
+            Locations.append(UAV3)
+
+
+            x = []
+            y = []
+            #z = []
+
+            for obj in Locations:
+                x.append(obj[0])
+                y.append(obj[1])
+             #   z.append(obj[2])
+
+
+
+
+            #colors = [1] * 20
+
+            colours.append("y")  # now the 21th item is UAV1
+
+            colours.append('c')  # now the 22th item is UAV2
+
+            colours.append('k')  # now the 23rd item is UAV3
+
+
+            area.append(70)  # setting the size of the drone
+
+            area.append(70)
+
+            area.append(70)
+
+            def onpick(event):
+                ind = event.ind
+                print 'onpick3 scatter:', ind, numpy.take(x, ind), numpy.take(y, ind)
+
+            plt.close("all")
+            fig = plt.figure()
+            #fig.canvas.mpl_connect('pick_event', onpick)
+            UAVx = [x[-3], x[-2], x[-1]]
+            UAVy = [y[-3], y[-2], y[-1]]
+
+            #plt.plot(x[1], x[0], '-o')
+            #plt.plot([x[0], x[1], x[2]], [y[0], y[1], y[2]], '-o')
+
+
+
+            ax2 = fig.add_subplot(111)
+
             print NavigationTasks
+
+            #Ultra lazy mode, fix this later..
+            #Basically just graphing the UAV going to one of these points. Check which UAV has the task and plot a line
+            #First task
+            if NavigationTasks.tasks[0].uav_name == "UAV1":
+                 xx = [UAVx[0], NavigationTasks.tasks[0].object.pose.pose.position.x]
+                 yy = [UAVy[0], NavigationTasks.tasks[0].object.pose.pose.position.y]
+                 ax2.plot(xx, yy, '-y')
+
+            if NavigationTasks.tasks[0].uav_name == "UAV2":
+                 xx = [UAVx[1], NavigationTasks.tasks[0].object.pose.pose.position.x]
+                 yy = [UAVy[1], NavigationTasks.tasks[0].object.pose.pose.position.y]
+                 ax2.plot(xx, yy, '-c')
+
+            if NavigationTasks.tasks[0].uav_name == "UAV3":
+                 xx = [UAVx[2], NavigationTasks.tasks[0].object.pose.pose.position.x]
+                 yy = [UAVy[2], NavigationTasks.tasks[0].object.pose.pose.position.y]
+                 ax2.plot(xx, yy, '-k')
+
+
+            #Second Task
+            if NavigationTasks.tasks[1].uav_name == "UAV1":
+                xx = [UAVx[0], NavigationTasks.tasks[1].object.pose.pose.position.x]
+                yy = [UAVy[0], NavigationTasks.tasks[1].object.pose.pose.position.y]
+                ax2.plot(xx, yy, '-y')
+
+            if NavigationTasks.tasks[1].uav_name == "UAV2":
+                xx = [UAVx[1], NavigationTasks.tasks[1].object.pose.pose.position.x]
+                yy = [UAVy[1], NavigationTasks.tasks[1].object.pose.pose.position.y]
+                ax2.plot(xx, yy, '-c')
+
+            if NavigationTasks.tasks[1].uav_name == "UAV3":
+                xx = [UAVx[2], NavigationTasks.tasks[1].object.pose.pose.position.x]
+                yy = [UAVy[2], NavigationTasks.tasks[1].object.pose.pose.position.y]
+                ax2.plot(xx, yy, '-k')
+
+
+            #Third task
+            if NavigationTasks.tasks[2].uav_name == "UAV1":
+                xx = [UAVx[0], NavigationTasks.tasks[2].object.pose.pose.position.x]
+                yy = [UAVy[0], NavigationTasks.tasks[2].object.pose.pose.position.y]
+                ax2.plot(xx, yy, '-y')
+
+            if NavigationTasks.tasks[2].uav_name == "UAV2":
+                xx = [UAVx[1], NavigationTasks.tasks[2].object.pose.pose.position.x]
+                yy = [UAVy[1], NavigationTasks.tasks[2].object.pose.pose.position.y]
+                ax2.plot(xx, yy, '-c')
+
+            if NavigationTasks.tasks[2].uav_name == "UAV3":
+                xx = [UAVx[2], NavigationTasks.tasks[2].object.pose.pose.position.x]
+                yy = [UAVy[2], NavigationTasks.tasks[2].object.pose.pose.position.y]
+                ax2.plot(xx, yy, '-k')
+
+
+            ax1 = fig.add_subplot(111)
+            col = ax1.scatter(x, y, area, colours, picker=True)
+
+            #fig.canvas.mpl_connect('pick_event', onpick)
+
+            fig.show()
+
+            #pub.publish(NavigationTasks)
+            print "################################# Returned ###################################"
+            print NavigationTasks
+            print "################################# Ended    ###################################"
+
+            return NavigationTasks
+            #print NavigationTasks
             # pub1.publish(str(hello))
             # pub2.publish(str(hello))
             # pub3.publish(str(hello))
+
+
 
 
 

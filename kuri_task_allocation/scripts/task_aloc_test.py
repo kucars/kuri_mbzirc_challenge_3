@@ -1,12 +1,15 @@
 #! /usr/bin/env python
 import roslib
 import rospy
+import rostest
 import actionlib
 from kuri_msgs.msg import *
 import nav_msgs.msg as nav_msgs
 import geometry_msgs.msg as gm
 import tf.transformations
 from tf.transformations import quaternion_from_euler
+
+testName = 'test_objects_allocation'
 
 if __name__ == '__main__':
     rospy.init_node('client')
