@@ -71,8 +71,8 @@ add_definitions(${PCL_DEFINITIONS})
 #    ${rviz_visual_tools_LIBRARIES}
 #    )
 
-add_executable(path_planner src/pathplanner.cpp)
-target_link_libraries(path_planner  SSPathPlanner
+add_executable(pathplanner_action_server src/pathplanner_action_server.cpp src/pathgenerator.cpp include/pathgenerator.h)
+target_link_libraries(pathplanner_action_server SSPathPlanner
     -lgmp -lmpfr
     ${CGAL_LIBRARY}
     ${CGAL_Core_LIBRARY}
@@ -95,3 +95,5 @@ target_link_libraries(path_follower SSPathPlanner
     ${PCL_LIBRARIES}
     ${rviz_visual_tools_LIBRARIES}
     )
+
+

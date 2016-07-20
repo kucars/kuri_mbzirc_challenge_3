@@ -31,6 +31,8 @@ from mavros.utils import *
 from mavros import setpoint as SP
 from tf.transformations import quaternion_from_euler
 
+from ExploreActionServer import ExploreServer
+
 class SetpointPosition:
     """
     This class sends position targets to FCU's position controller
@@ -47,6 +49,8 @@ class SetpointPosition:
         # subscriber for mavros/local_position/local
         self.sub = rospy.Subscriber(mavros.get_topic('local_position', 'pose'),
                                     SP.PoseStamped, self.reached)
+
+        self.actionServer = ExploreServer()
 
         try:
             thread.start_new_thread(self.navigate, ())
@@ -124,9 +128,9 @@ class SetpointPosition:
 
 
 def setpoint_demo():
-    rospy.init_node('setpoint_position_demo_2')
+    rospy.init_node('setpoint_position_demo_3')
     #mavros.set_namespace()  # initialize mavros module with default namespace
-    mavros.set_namespace('/uav_2/mavros')    
+    mavros.set_namespace('/uav_3/mavros')    
     rate = rospy.Rate(10)
 
     setpoint = SetpointPosition()
@@ -134,11 +138,11 @@ def setpoint_demo():
     time.sleep(1)
     
     rospy.loginfo("Climb")
-    setpoint.takeoff(13)
+    setpoint.takeoff(15)
     rospy.loginfo("Moving to Pose 1")
-    setpoint.setPose(25,-25,13,5)    
-    rospy.loginfo("Landing")
-    setpoint.land()
+    setpoint.setPose(0,0,15,5)
+    #rospy.loginfo("Landing")
+    #setpoint.land()
 
     rospy.loginfo("Bye!")
 

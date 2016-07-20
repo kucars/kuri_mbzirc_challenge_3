@@ -1,0 +1,4 @@
+<?xml version="1.0"?>
+<launch>
+    <node pkg="kuri_multi_agent_navigation" type="pathplanner_action_server" name="pathplanner_action_server" output="screen" />
+</launch>

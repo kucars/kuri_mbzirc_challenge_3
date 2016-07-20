@@ -45,24 +45,24 @@
 
 using namespace SSPP;
 
-class PathPlanningAction
+class Navigation_action_server
 {
 public:
 
-    PathPlanningAction(std::string name) :
+    Navigation_action_server(std::string name) :
         actionServer(nh, name, false),
         actionName(name)
     {
         //register the goal and feeback callbacks
         ROS_INFO("Registering callbacks for action %s", actionName.c_str());
-        actionServer.registerGoalCallback(boost::bind(&PathPlanningAction::goalCB, this));
-        actionServer.registerPreemptCallback(boost::bind(&PathPlanningAction::preemptCB, this));
-        ros::Subscriber currentPoseSub = nh.subscribe("/uav_1/mavros/local_position/pose", 1, &PathPlanningAction::startPositionCallback, this);
+        actionServer.registerGoalCallback(boost::bind(&Navigation_action_server::goalCB, this));
+        actionServer.registerPreemptCallback(boost::bind(&Navigation_action_server::preemptCB, this));
+        ros::Subscriber currentPoseSub = nh.subscribe("/uav_1/mavros/local_position/pose", 1, &Navigation_action_server::startPositionCallback, this);
                 ROS_INFO("Starting server for action %s", actionName.c_str());
         actionServer.start();
     }
 
-    ~PathPlanningAction(void)
+    ~Navigation_action_server(void)
     {
     }
 
@@ -114,8 +114,8 @@ protected:
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "path_planning");
-    PathPlanningAction planGeneration(ros::this_node::getName());
+    ros::init(argc, argv, "navigation_action_server");
+    Navigation_action_server navigation_action_server(ros::this_node::getName());
     ros::spin();
     return 0;
 }

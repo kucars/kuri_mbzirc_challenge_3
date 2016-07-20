@@ -75,4 +75,14 @@ class object_detector:
                       x = int(M['m10']/M['m00'])
                       y = int(M['m01']/M['m00'])
                       obstacles.append([x, y, rect[2] * 1.5, rect[3] * 1.5])
-    return obstacles        
+    return obstacles
+
+
+  def detect_colors(self, img, obstacles):
+    colors = []
+    
+    for ob in obstacles:
+         im = img[r[1]:r[1]+r[3], r[0]:r[0]+r[2]]
+         cv2.imshow("Objects", ob)
+        
+    return colors

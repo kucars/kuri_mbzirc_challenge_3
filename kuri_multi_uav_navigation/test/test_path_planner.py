@@ -47,24 +47,42 @@ class PathPlanGenerated(unittest.TestCase):
     #def tearDown():
     
     def test_path_planning(self):
-		client = actionlib.SimpleActionClient('/path_planning', GeneratePathsAction)
+                client = actionlib.SimpleActionClient('/pathplanner_action_server', GeneratePathsAction)
 		rospy.loginfo("Waiting for server")
 		client.wait_for_server()
 		rospy.loginfo("setting goal")
+                assert("setting goal");
 		goal = GeneratePathsGoal()
-		obj = Object()
+                obj1 = Object()
 		objs = Objects()
-		obj.width  = 100
-		obj.height = 200
-		obj.pose.pose.position = gm.Point(5,5,10.0)
-		objs.objects.append(obj)
-		task  = Task()
-		task.uav_id   = 1
-		task.uav_name = 'UAV1'
-		task.object = obj
-		
+                obj1.width  = 100
+                obj1.height = 200
+                obj1.pose.pose.position = gm.Point(5,5,10.0)
+                objs.objects.append(obj1)
+                task1  = Task()
+                task1.uav_id   = 1
+                task1.uav_name = 'UAV1'
+                task1.object = obj1
+                obj2 = Object()
+                obj2.width  = 100
+                obj2.height = 200
+                obj2.pose.pose.position = gm.Point(3,3,10.0)
+                task2  = Task()
+                task2.uav_id   = 2
+                task2.uav_name = 'UAV2'
+                task2.object = obj2
+                obj3 = Object()
+                obj3.width  = 100
+                obj3.height = 200
+                obj3.pose.pose.position = gm.Point(2,2,10.0)
+                task3  = Task()
+                task3.uav_id   = 3
+                task3.uav_name = 'UAV3'
+                task3.object = obj3
 		tks = Tasks()
-		tks.tasks.append(task)
+                tks.tasks.append(task1)
+                tks.tasks.append(task2)
+                tks.tasks.append(task3)
 		goal.tasks = tks
 		rospy.loginfo("sending goal")
 		client.send_goal(goal)
