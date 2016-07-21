@@ -26,36 +26,58 @@
 #OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-import roslib
 import rospy
+import thread
+import threading
+import time
+import mavros
 import actionlib
-from kuri_msgs.msg import *
-from std_msgs.msg import Int32
-import nav_msgs.msg as nav_msgs
-import geometry_msgs.msg as gm
-import tf.transformations
+from math import *
+from mavros.utils import *
+from mavros import setpoint as SP
 from tf.transformations import quaternion_from_euler
+from nav_msgs.msg import *
+from kuri_msgs.msg import *
+from mapping_action_server import MappingServer
 
-def callback(obj):
-    #print "Recieved Feedback: Tracker has "
-    print obj
-    #print " Tracked Objects"
-    
+class ObjectsMapping:
+
+    def __init__(self):
+        self.objects = []
+        self.objects_map = ObjectsMap()
+        self.actionServer = MappingServer()
+
+        client = actionlib.SimpleActionClient('TrackingAction', TrackingAction)
+        print "Waiting for tracker server"
+        client.wait_for_server()        
+        goal = TrackingGoal()
+        goal.uav_id = 3
+        client.send_goal(goal)
+        print "Waiting for result"
+        client.wait_for_result() 
+        print "Result:",client.get_result()        
+        
+        self.sub = rospy.Subscriber("TrackingAction/feedback",Objects, self.callback)
+
+    def callback(self, objects):
+        print 'Recieving Tracked Objects'
+        for obj in objects.feedback.tracked_objects.objects:
+            ## TODO: Check and process objects
+            self.objects.append(obj)
+        self.objects_map.objects = self.objects;
+        self.objects_map.map = OccupancyGrid()
+        
+        if self.actionServer.hasGoal:
+            self.actionServer.update(self.objects_map)
+        else:
+            self.actionServer.objects_map = self.objects_map
+        
+def objects_mapping():
+    rospy.init_node('objects_mapping')
+    mapping = ObjectsMapping()
 
 if __name__ == '__main__':
-    rospy.init_node('Client')
-    print "Starting Mapping Client Test"
-    client = actionlib.SimpleActionClient('MappingAction', MappingAction)
-    client.wait_for_server()
-    sub = rospy.Subscriber("MappingAction/feedback",Int32, callback)
-    print "Waiting for server"
-    goal = MappingGoal()
-    goal.uav_id = 3
-    client.send_goal(goal)
-    print "Waiting for result"
-    client.wait_for_result() 
-    print "Result:",client.get_result()
     try:
-        rospy.spin()
-    except KeyboardInterrupt:
-        print "Shutting down"
+        objects_mapping()
+    except rospy.ROSInterruptException:
+        pass

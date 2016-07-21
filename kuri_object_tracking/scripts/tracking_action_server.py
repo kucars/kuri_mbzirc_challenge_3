@@ -30,32 +30,46 @@ import roslib
 import rospy
 import actionlib
 from kuri_msgs.msg import *
-from std_msgs.msg import Int32
-import nav_msgs.msg as nav_msgs
-import geometry_msgs.msg as gm
-import tf.transformations
-from tf.transformations import quaternion_from_euler
 
-def callback(obj):
-    #print "Recieved Feedback: Tracker has "
-    print obj
-    #print " Tracked Objects"
-    
 
-if __name__ == '__main__':
-    rospy.init_node('Client')
-    print "Starting Mapping Client Test"
-    client = actionlib.SimpleActionClient('MappingAction', MappingAction)
-    client.wait_for_server()
-    sub = rospy.Subscriber("MappingAction/feedback",Int32, callback)
-    print "Waiting for server"
-    goal = MappingGoal()
-    goal.uav_id = 3
-    client.send_goal(goal)
-    print "Waiting for result"
-    client.wait_for_result() 
-    print "Result:",client.get_result()
-    try:
-        rospy.spin()
-    except KeyboardInterrupt:
-        print "Shutting down"
+class TrackingServer:
+
+   def __init__(self):
+     print 'Starting TrackingServer'
+     self.server = actionlib.SimpleActionServer('TrackingAction', TrackingAction, self.execute, False)
+     self.objects = Objects()
+     self.total_objects = 0
+     self._feedback = TrackingFeedback()
+     self._result   = TrackingResult()
+     self.server.start()
+     self.hasGoal = False
+
+   def execute(self, goal):
+     print 'Tracking with UAV'
+     success = True
+     self.hasGoal = True
+     # start executing the action
+     if self.server.is_preempt_requested():
+         rospy.loginfo('TrackingAction: Preempted')
+         self.server.set_preempted()
+         success = False
+         return
+     self._feedback.tracked_objects = Objects()
+     self._feedback.tracked_objects = self.objects #self.total_objects
+     # publish the feedback
+     self.server.publish_feedback(self._feedback)
+      
+     if success:
+         
+         self._result.total_objects_tracked = self.total_objects
+         rospy.loginfo('TrackingAction: Succeeded')
+         self.server.set_succeeded(self._result)
+     else:
+         rospy.loginfo('TrackingAction: Failed')
+     
+   def update(self, objects, total):
+       self.objects = objects
+       self.total_objects = total
+       self._feedback.tracked_objects = objects
+       self.server.publish_feedback(self._feedback)
+       rospy.loginfo('TrackingAction: Sending Objects Feedback')
