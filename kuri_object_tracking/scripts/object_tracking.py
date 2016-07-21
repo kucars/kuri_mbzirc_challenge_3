@@ -65,9 +65,8 @@ from tracking_action_server import TrackingServer
 class object_tracking:
 
   
-  def __init__(self):
+  def __init__(self, actionServer):
     #cv2.namedWindow("Tracker", cv2.CV_WINDOW_AUTOSIZE)
-    rospy.init_node('mbzirc_challenge3_object_tracking', anonymous=True)
     self.image_pub = rospy.Publisher("/uav_3/downward_cam/image_output",Image, queue_size=10)
 
     self.obstacles = Objects()
@@ -86,9 +85,7 @@ class object_tracking:
     self.sub = rospy.Subscriber(mavros.get_topic('local_position', 'pose'), SP.PoseStamped, self.updatePosition)
     self.objectsSent  = False
     self.tracked_objects = []
-   
-    self.actionServer = TrackingServer()
-    
+    self.actionServer = actionServer
 
   def draw_label(self, image, label, contour):
     im = image.copy()
@@ -201,14 +198,4 @@ class object_tracking:
     except CvBridgeError, e:
       print e
      
-    
-def main(args):
-  ic = object_tracking()
-  try:
-    rospy.spin()
-  except KeyboardInterrupt:
-    print "Shutting down"
-
-if __name__ == '__main__':
-    main(sys.argv)
  

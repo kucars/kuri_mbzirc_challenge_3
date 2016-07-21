@@ -30,7 +30,7 @@ import roslib
 import rospy
 import actionlib
 from kuri_msgs.msg import *
-
+from objects_mapping import *
 
 
 class MappingServer:
@@ -38,11 +38,11 @@ class MappingServer:
    def __init__(self):
      print 'Starting MappingServer'
      self.server = actionlib.SimpleActionServer('MappingAction', MappingAction, self.execute, False)
-     self.objects_map = ObjectsMap()
      self._feedback = MappingFeedback()
      self._result   = MappingResult()
-     self.server.start()
      self.hasGoal = False
+     self.mapping = None
+     self.server.start()
 
    def execute(self, goal):
      print 'Mapping with UAV'
@@ -54,14 +54,16 @@ class MappingServer:
          self.server.set_preempted()
          success = False
          return
-     print self.objects_map
-     self._feedback.total_mapped_objects = len(self.objects_map.objects)
+     if self.mapping == None:
+	 self.mapping = ObjectsMapping()
+     print self.mapping.objects_map
+     self._feedback.total_mapped_objects = len(self.mapping.objects_map.objects)
      # publish the feedback
      self.server.publish_feedback(self._feedback)
       
      if success:
          self._result.objects_map = ObjectsMap()
-         self._result.objects_map = self.objects_map
+         self._result.objects_map = self.mapping.objects_map
          rospy.loginfo('MappingAction: Succeeded')
          self.server.set_succeeded(self._result)
      else:
@@ -72,3 +74,13 @@ class MappingServer:
        self._feedback.total_mapped_objects = len(self.objects_map.objects)
        self.server.publish_feedback(self._feedback)
        rospy.loginfo('MappingAction: Sending Objects Feedback')
+
+def objects_mapping():
+    rospy.init_node('objects_mapping')
+    mapping = MappingServer()
+
+if __name__ == '__main__':
+    try:
+        objects_mapping()
+    except rospy.ROSInterruptException:
+        pass

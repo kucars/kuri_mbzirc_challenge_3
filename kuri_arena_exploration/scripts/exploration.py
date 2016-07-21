@@ -165,7 +165,7 @@ class Exploration:
             self.done_evt.set()
 
 
-    def explore():
+    def explore(self):
         print 'explore started '
         if self.isExploring == False:
             self.isExploring = True

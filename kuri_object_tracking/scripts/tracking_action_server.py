@@ -30,7 +30,7 @@ import roslib
 import rospy
 import actionlib
 from kuri_msgs.msg import *
-
+from object_tracking import *
 
 class TrackingServer:
 
@@ -41,8 +41,10 @@ class TrackingServer:
      self.total_objects = 0
      self._feedback = TrackingFeedback()
      self._result   = TrackingResult()
-     self.server.start()
+     self.tracking = None
      self.hasGoal = False
+     self.server.start()
+
 
    def execute(self, goal):
      print 'Tracking with UAV'
@@ -54,14 +56,16 @@ class TrackingServer:
          self.server.set_preempted()
          success = False
          return
+     if self.tracking == None:
+	 self.tracking = object_tracking(self)
      self._feedback.tracked_objects = Objects()
-     self._feedback.tracked_objects = self.objects #self.total_objects
+     self._feedback.tracked_objects = self.tracking.obstacles #self.total_objects
      # publish the feedback
      self.server.publish_feedback(self._feedback)
       
      if success:
          
-         self._result.total_objects_tracked = self.total_objects
+         self._result.total_objects_tracked = self.tracking.object_number#self.total_objects
          rospy.loginfo('TrackingAction: Succeeded')
          self.server.set_succeeded(self._result)
      else:
@@ -73,3 +77,14 @@ class TrackingServer:
        self._feedback.tracked_objects = objects
        self.server.publish_feedback(self._feedback)
        rospy.loginfo('TrackingAction: Sending Objects Feedback')
+
+def main(args):
+  rospy.init_node('mbzirc_challenge3_object_tracking', anonymous=True)
+  action = TrackingServer()
+  try:
+    rospy.spin()
+  except KeyboardInterrupt:
+    print "Shutting down"
+
+if __name__ == '__main__':
+    main(sys.argv)

@@ -45,7 +45,6 @@ class ObjectsMapping:
     def __init__(self):
         self.objects = []
         self.objects_map = ObjectsMap()
-        self.actionServer = MappingServer()
 
         client = actionlib.SimpleActionClient('TrackingAction', TrackingAction)
         print "Waiting for tracker server"
@@ -60,24 +59,15 @@ class ObjectsMapping:
         self.sub = rospy.Subscriber("TrackingAction/feedback",Objects, self.callback)
 
     def callback(self, objects):
-        print 'Recieving Tracked Objects'
+        print 'Recieving Tracked Objects', objects
         for obj in objects.feedback.tracked_objects.objects:
             ## TODO: Check and process objects
             self.objects.append(obj)
         self.objects_map.objects = self.objects;
         self.objects_map.map = OccupancyGrid()
         
-        if self.actionServer.hasGoal:
-            self.actionServer.update(self.objects_map)
-        else:
-            self.actionServer.objects_map = self.objects_map
+#        if self.actionServer.hasGoal:
+#            self.actionServer.update(self.objects_map)
+#        else:
+#            self.actionServer.objects_map = self.objects_map
         
-def objects_mapping():
-    rospy.init_node('objects_mapping')
-    mapping = ObjectsMapping()
-
-if __name__ == '__main__':
-    try:
-        objects_mapping()
-    except rospy.ROSInterruptException:
-        pass

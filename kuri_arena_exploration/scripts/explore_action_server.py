@@ -41,9 +41,9 @@ class ExploreServer:
      self.objects_map = ObjectsMap()
      self._feedback = ExploreFeedback()
      self._result   = ExploreResult()
-     self.server.start()
      self.hasGoal = False
-     self.exploration = Exploration()
+     self.exploration = None
+     self.server.start()
 
    def execute(self, goal):
      print 'Exploring with UAV ', goal.uav_id
@@ -55,8 +55,9 @@ class ExploreServer:
          self.server.set_preempted()
          success = False
          return
-     if self.exploration.isExploring == False:
-         thread.start_new_thread(self.exploration.explore, ())
+     if self.exploration == None:
+	 self.exploration = Exploration()
+     self.exploration.explore()
      self.exploration.client.wait_for_server()        
      goal = MappingGoal()
      goal.uav_id = 3
