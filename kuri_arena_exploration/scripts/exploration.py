@@ -22,10 +22,10 @@
 #FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
 #DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
 #SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-#CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 #OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
+#CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
 import rospy
 import thread
 import threading
@@ -39,7 +39,7 @@ from tf.transformations import quaternion_from_euler
 from kuri_msgs.msg import *
 from explore_action_server import ExploreServer
 
-class SetpointPosition:
+class Exploration:
     """
     This class sends position targets to FCU's position controller
     """
@@ -47,7 +47,7 @@ class SetpointPosition:
         # TODO(simon): Clean this up.
         self.done = False
         self.done_evt = threading.Event()
-        
+        self.isExploring = False
         self.progress = 0.0
         self.x = 0.0
         self.y = 0.0
@@ -61,11 +61,12 @@ class SetpointPosition:
         self.sub = rospy.Subscriber(mavros.get_topic('local_position', 'pose'),
                                     SP.PoseStamped, self.reached)
 
-        self.actionServer = ExploreServer()
+        #self.actionServer = ExploreServer()
         self.objects_map = ObjectsMap()
 
-
-        client = self.actionServer.client
+        self.client = actionlib.SimpleActionClient('MappingAction', MappingAction)
+        client = self.client
+        #client = self.actionServer.client
         
         print "Waiting for mapping server"
         client.wait_for_server()        
@@ -164,32 +165,28 @@ class SetpointPosition:
             self.done_evt.set()
 
 
-def setpoint_demo():
-    rospy.init_node('setpoint_position_demo_3')
-    #mavros.set_namespace()  # initialize mavros module with default namespace
-    mavros.set_namespace('/uav_3/mavros')    
-    rate = rospy.Rate(10)
+    def explore():
+        print 'explore started '
+        if self.isExploring == False:
+            self.isExploring = True
+            while self.done == False: 
+                rate = rospy.Rate(10)
+            
+                setpoint = SetpointPosition()
+                
+                time.sleep(1)
+                
+                rospy.loginfo("Climb")
+                setpoint.progress += 0.1
+                setpoint.takeoff(15)
+                setpoint.progress += 0.1
+                rospy.loginfo("Moving to Pose 1")
+                setpoint.progress += 0.1
+                setpoint.setPose(0,0,15,5)
+                setpoint.progress += 0.1    
+                #rospy.loginfo("Landing")
+                #setpoint.land()
+            
+                rospy.loginfo("Bye!")
+            self.isExploring = False
 
-    setpoint = SetpointPosition()
-    
-    time.sleep(1)
-    
-    rospy.loginfo("Climb")
-    setpoint.progress += 0.1
-    setpoint.takeoff(15)
-    setpoint.progress += 0.1
-    rospy.loginfo("Moving to Pose 1")
-    setpoint.progress += 0.1
-    setpoint.setPose(0,0,15,5)
-    setpoint.progress += 0.1    
-    #rospy.loginfo("Landing")
-    #setpoint.land()
-
-    rospy.loginfo("Bye!")
-
-
-if __name__ == '__main__':
-    try:
-        setpoint_demo()
-    except rospy.ROSInterruptException:
-        pass

@@ -29,6 +29,7 @@
 import roslib
 import rospy
 import actionlib
+from exploration import *
 from kuri_msgs.msg import *
 
 
@@ -42,7 +43,7 @@ class ExploreServer:
      self._result   = ExploreResult()
      self.server.start()
      self.hasGoal = False
-     self.client = actionlib.SimpleActionClient('MappingAction', MappingAction)
+     self.exploration = Exploration()
 
    def execute(self, goal):
      print 'Exploring with UAV ', goal.uav_id
@@ -54,14 +55,16 @@ class ExploreServer:
          self.server.set_preempted()
          success = False
          return
-     self.client.wait_for_server()        
+     if self.exploration.isExploring == False:
+         thread.start_new_thread(self.exploration.explore, ())
+     self.exploration.client.wait_for_server()        
      goal = MappingGoal()
      goal.uav_id = 3
-     self.client.send_goal(goal)
+     self.exploration.client.send_goal(goal)
      print "Waiting for result"
-     self.client.wait_for_result() 
+     self.exploration.wait_for_result() 
      print "Result:"
-     self.objects_map = self.client.get_result().objects_map
+     self.objects_map = self.exploration.client.get_result().objects_map
      print self.objects_map        
      
      self._feedback.area_percent_complete = 10.0
@@ -81,3 +84,18 @@ class ExploreServer:
        self._feedback.area_percent_complete = progress#len(self.objects_map.objects)
        self.server.publish_feedback(self._feedback)
        rospy.loginfo('ExploreAction: Sending Objects Feedback')
+
+    
+def main(args):
+  rospy.init_node('exploration')
+  #mavros.set_namespace()  # initialize mavros module with default namespace
+  mavros.set_namespace('/uav_3/mavros')   
+  actionserver = ExploreServer()
+  try:
+    rospy.spin()
+  except KeyboardInterrupt:
+    print "Shutting down"
+
+if __name__ == '__main__':
+    main(sys.argv)
+ 
