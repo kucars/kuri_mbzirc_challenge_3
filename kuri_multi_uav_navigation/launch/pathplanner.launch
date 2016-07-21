@@ -1,4 +1,13 @@
 <?xml version="1.0"?>
 <launch>
     <node pkg="kuri_multi_agent_navigation" type="pathplanner_action_server" name="pathplanner_action_server" output="screen" />
+    <group ns="uav_1">
+    <node pkg="kuri_multi_agent_navigation" type="navigation_action_server" name="navigation_action_server" output="screen" />
+    </group>
+    <group ns="uav_2">
+    <node pkg="kuri_multi_agent_navigation" type="navigation_action_server" name="navigation_action_server" output="screen" />
+    </group>
+    <group ns="uav_3">
+    <node pkg="kuri_multi_agent_navigation" type="navigation_action_server" name="navigation_action_server" output="screen" />
+    </group>
 </launch>

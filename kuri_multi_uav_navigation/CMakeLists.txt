@@ -83,9 +83,8 @@ target_link_libraries(pathplanner_action_server SSPathPlanner
     ${rviz_visual_tools_LIBRARIES}
     )
 
-
-add_executable(path_follower src/pathfollower.cpp)
-target_link_libraries(path_follower SSPathPlanner
+add_executable(navigation_action_server src/navigation_action_server.cpp src/navigator.cpp include/navigator.h)
+target_link_libraries(navigation_action_server SSPathPlanner
     -lgmp -lmpfr
     ${CGAL_LIBRARY}
     ${CGAL_Core_LIBRARY}
@@ -95,5 +94,17 @@ target_link_libraries(path_follower SSPathPlanner
     ${PCL_LIBRARIES}
     ${rviz_visual_tools_LIBRARIES}
     )
+
+#add_executable(path_follower src/pathfollower.cpp)
+#target_link_libraries(path_follower SSPathPlanner
+#    -lgmp -lmpfr
+#    ${CGAL_LIBRARY}
+#    ${CGAL_Core_LIBRARY}
+#    Qt4::QtGui
+#    Qt4::QtCore
+#    ${catkin_LIBRARIES}
+#    ${PCL_LIBRARIES}
+#    ${rviz_visual_tools_LIBRARIES}
+#    )
 
 

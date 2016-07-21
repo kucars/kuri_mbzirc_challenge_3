@@ -54,17 +54,36 @@ namespace SSPP
 class Navigator
 {
 public:
-geometry_msgs::Pose currentPose;
+    ros::NodeHandle nh;
+    ros::Publisher  posePub;
+    ros::Subscriber currentPoseSub;
+    std::string actionName;
+    float progressCount;
+    kuri_msgs::NavTask goal;
+    kuri_msgs::NavTasks navTasks;
+    ros::Subscriber sub;
+    geometry_msgs::Pose currentPose;
+
+    std::vector<geometry_msgs::Point> pathSegments;
+    geometry_msgs::PoseArray robotPose;
+    geometry_msgs::Point linePoint;
+    double dist,threshold2Dist;
+    rviz_visual_tools::RvizVisualToolsPtr visualTools;
+
 	geometry_msgs::Pose endPose;
 	geometry_msgs::Pose target_coord;
 	kuri_msgs::Tasks tasks;
-	ros::NodeHandle nh;
     void startPositionCallback(const geometry_msgs::PoseStamped& msg);
     void navTasksCallback(const kuri_msgs::Tasks newtasks);
-    Node  *makeChildrenNodes(Node *parent) ;
-	nav_msgs::Path navigate(const kuri_msgs::Tasks newtasks);
-Navigator(void);
+    //nav_msgs::Path navigate(const kuri_msgs::Tasks newtasks);
+    Navigator(int uav_id);
+    void navigate(actionlib::SimpleActionServer<kuri_msgs::FollowPathAction> *actionServer,
+                  kuri_msgs::FollowPathFeedback feedback,
+                  kuri_msgs::FollowPathResult   result,
+                  nav_msgs::Path path,
+                  nav_msgs::Path pathTrail);
 //~Navigator(void);
+
 };
 
 }

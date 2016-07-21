@@ -30,6 +30,7 @@ from math import *
 from mavros.utils import *
 from mavros import setpoint as SP
 from tf.transformations import quaternion_from_euler
+from geometry_msgs.msg import Pose
 
 class SetpointPosition:
     """
@@ -39,7 +40,7 @@ class SetpointPosition:
         self.x = 0.0
         self.y = 0.0
         self.z = 0.0
-        self.currentPoseX = 0 
+        self.currentPoseX = 0
         self.currentPoseY = 0
         self.currentPoseZ = 0
         # publisher for mavros/setpoint_position/local
@@ -47,6 +48,7 @@ class SetpointPosition:
         # subscriber for mavros/local_position/local
         self.sub = rospy.Subscriber(mavros.get_topic('local_position', 'pose'),
                                     SP.PoseStamped, self.reached)
+        self.waypointsub = rospy.Subscriber("/uav_3/waypoint", SP.PoseStamped, self.updateposition, queue_size=1)
 
         try:
             thread.start_new_thread(self.navigate, ())
@@ -56,8 +58,10 @@ class SetpointPosition:
         # TODO(simon): Clean this up.
         self.done = False
         self.done_evt = threading.Event()
-
+    def updateposition(self,p):
+        self.setPose(p.pose.position.x,p.pose.position.y,p.pose.position.z,0,False)
     def navigate(self):
+        rospy.loginfo("Navigate")
         rate = rospy.Rate(10)   # 10hz
 
         msg = SP.PoseStamped(
@@ -91,31 +95,32 @@ class SetpointPosition:
             while not self.done and not rospy.is_shutdown():
                 rate.sleep()
         time.sleep(delay)
-        
+
     def takeoff(self, z, delay=0, wait=True):
         diff = z - self.currentPoseZ
         while not abs(diff)<0.2:
             diff = z - self.currentPoseZ
+            print diff
             if diff>0:
                 self.setPose(self.currentPoseX,self.currentPoseY,self.currentPoseZ + 1 ,2)
             else:
                 self.setPose(self.currentPoseX,self.currentPoseY,self.currentPoseZ - 1 ,2)
-    
+
     def land(self, delay=0, wait=True):
         altitude = self.currentPoseZ
-        while altitude > 0:
+        while altitude > 0.2:
             altitude = self.currentPoseZ
             self.setPose(self.currentPoseX,self.currentPoseY,self.currentPoseZ - 1 ,2)
-    
+
     def reached(self, topic):
         def is_near(msg, x, y):
             rospy.logdebug("Position %s: local: %d, target: %d, abs diff: %d",
                            msg, x, y, abs(x - y))
             return abs(x - y) < 0.2
-        self.currentPoseX = topic.pose.position.x 
+        self.currentPoseX = topic.pose.position.x
         self.currentPoseY = topic.pose.position.y
         self.currentPoseZ = topic.pose.position.z
-        
+
         if is_near('X', topic.pose.position.x, self.x) and \
            is_near('Y', topic.pose.position.y, self.y) and \
            is_near('Z', topic.pose.position.z, self.z):
@@ -126,19 +131,20 @@ class SetpointPosition:
 def setpoint_demo():
     rospy.init_node('setpoint_position_demo_3')
     #mavros.set_namespace()  # initialize mavros module with default namespace
-    mavros.set_namespace('/uav_3/mavros')    
+    mavros.set_namespace('/uav_3/mavros')
     rate = rospy.Rate(10)
 
     setpoint = SetpointPosition()
-    
+
     time.sleep(1)
-    
+
     rospy.loginfo("Climb")
-    setpoint.takeoff(15)
-    rospy.loginfo("Moving to Pose 1")
-    setpoint.setPose(25,25,15,5)
-    rospy.loginfo("Landing")
-    setpoint.land()
+    setpoint.takeoff(10.0)
+    setpoint.navigate()
+    #rospy.loginfo("Moving to Pose 1")
+    #setpoint.setPose(-25,-25,10,5)
+    #rospy.loginfo("Landing")
+    #setpoint.land()
 
     rospy.loginfo("Bye!")
 

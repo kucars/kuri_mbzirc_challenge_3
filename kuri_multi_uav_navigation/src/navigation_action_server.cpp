@@ -37,12 +37,11 @@
 #include <kuri_msgs/Tasks.h>
 #include <kuri_msgs/NavTask.h>
 #include <kuri_msgs/NavTasks.h>
-#include <kuri_msgs/GeneratePathsAction.h>
+#include <kuri_msgs/FollowPathAction.h>
 #include <std_msgs/Float32.h>
 #include <actionlib/server/simple_action_server.h>
-#include "Navigator.h"
-#include "nav_msgs/Path.h"
-
+#include <nav_msgs/Path.h>
+#include <navigator.h>
 using namespace SSPP;
 
 class Navigation_action_server
@@ -54,12 +53,22 @@ public:
         actionName(name)
     {
         //register the goal and feeback callbacks
-        ROS_INFO("Registering callbacks for action %s", actionName.c_str());
         actionServer.registerGoalCallback(boost::bind(&Navigation_action_server::goalCB, this));
         actionServer.registerPreemptCallback(boost::bind(&Navigation_action_server::preemptCB, this));
-        ros::Subscriber currentPoseSub = nh.subscribe("/uav_1/mavros/local_position/pose", 1, &Navigation_action_server::startPositionCallback, this);
-                ROS_INFO("Starting server for action %s", actionName.c_str());
+         ROS_INFO("set subscriber");
+        currentPoseSub = nh.subscribe("/uav_1/mavros/local_position/pose", 1, &Navigation_action_server::startPositionCallback, this);
+        posePub        = nh.advertise<geometry_msgs::PoseStamped>("/uav_1/mavros/setpoint_position/local", 10);
+        visualTools.reset(new rviz_visual_tools::RvizVisualTools("map","/path_following_visualisation"));
+        visualTools->deleteAllMarkers();
+        visualTools->setLifetime(0.2);
         actionServer.start();
+        ROS_INFO("Action Server Ready for Orders: %s", actionName.c_str());
+        // Make these adjustable
+        dist=0;
+        threshold2Dist=0.5;
+        uav1_navigator = new Navigator(1);
+        uav2_navigator = new Navigator(2);
+        uav3_navigator = new Navigator(3);
     }
 
     ~Navigation_action_server(void)
@@ -73,20 +82,33 @@ public:
 
     void goalCB()
     {
+        ROS_INFO("Recieved a Goal");
         progressCount = 0;
         // accept the new goal
-                        ROS_INFO("Accepting Goal for action %s", actionName.c_str());
-        goal = actionServer.acceptNewGoal()->tasks;
-                ROS_INFO("started navigation");
-		nav_msgs::Path path = navigator.navigate(goal);
-		kuri_msgs::NavTask nav_task;
-		nav_task.path = path;
-		kuri_msgs::NavTasks nav_tasks;
-		nav_tasks.nav_tasks.push_back(nav_task);
-		result.nav_tasks = nav_tasks;
-		ROS_INFO("%s: Succeeded", actionName.c_str());
-                //// set the action state to succeeded
-                actionServer.setSucceeded(result);
+        goal = actionServer.acceptNewGoal()->navigation_task;
+        ROS_INFO("Following for uav_%d",goal.task.uav_id);
+        path = goal.path;
+        if(goal.task.uav_id==1){
+        uav1_navigator->navigate(&actionServer,
+                          feedback,
+                           result,
+                           path,
+                           pathTrail);
+        }else if(goal.task.uav_id==2){
+            uav2_navigator->navigate(&actionServer,
+                              feedback,
+                               result,
+                               path,
+                               pathTrail);
+        }else if(goal.task.uav_id==3){
+            uav3_navigator->navigate(&actionServer,
+                              feedback,
+                               result,
+                               path,
+                               pathTrail);
+        }else{
+            ROS_INFO("uav_id is incorrect");
+        }
     }
 
     void preemptCB()
@@ -96,20 +118,98 @@ public:
         actionServer.setPreempted();
     }
 
+//    void navigate()
+//    {
+//        ros::Rate loopRate(1);
+//        //TODO::we should return something
+//        if(path.poses.size()<1)
+//        {
+//            ROS_INFO("%s: Aborted", actionName.c_str());
+//            result.success = false;
+//            actionServer.setAborted(result);
+//            return;
+//        }
+//        int wayPointIndex = 0;
+//        pathTrail.poses.push_back(path.poses[wayPointIndex]);
+//        while(ros::ok())
+//        {
+//            ros::spinOnce();
+//            ROS_INFO("Current Pose x:%f y:%f z:%f",currentPose.position.x,currentPose.position.y,currentPose.position.z);
+//            // check that preempt has not been requested by the client
+//            if (actionServer.isPreemptRequested() || !ros::ok())
+//            {
+//              ROS_INFO("%s: Preempted", actionName.c_str());
+//              actionServer.setPreempted();
+//              result.success = false;
+//              break;
+//            }
+//            for(int i=0;i<(pathTrail.poses.size()-1);i++)
+//            {
+//                linePoint.x = pathTrail.poses[i].pose.position.x;
+//                linePoint.y = pathTrail.poses[i].pose.position.y;
+//                linePoint.z = pathTrail.poses[i].pose.position.z;
+//                robotPose.poses.push_back(pathTrail.poses[i].pose);
+//                pathSegments.push_back(linePoint);
+
+//                linePoint.x = pathTrail.poses[i+1].pose.position.x;
+//                linePoint.y = pathTrail.poses[i+1].pose.position.y;
+//                linePoint.z = pathTrail.poses[i+1].pose.position.z;
+//                robotPose.poses.push_back(pathTrail.poses[i+1].pose);
+//                pathSegments.push_back(linePoint);
+
+//                dist = dist+ Dist(pathTrail.poses[i].pose,pathTrail.poses[i+1].pose);
+//            }
+//            // Redraw
+//            visualTools->resetMarkerCounts();
+//            for(int i=0;i<robotPose.poses.size();i++)
+//            {
+//                visualTools->publishArrow(robotPose.poses[i],rviz_visual_tools::YELLOW, rviz_visual_tools::LARGE,0.3);
+//            }
+//            if(pathSegments.size()>0)
+//                visualTools->publishPath(pathSegments, rviz_visual_tools::RED, rviz_visual_tools::LARGE,"path_trail");
+
+//            if(Dist(path.poses[wayPointIndex].pose,currentPose) < threshold2Dist)
+//            {
+//                // Last waypoint reached ?
+//                if(++wayPointIndex>(path.poses.size()-1))
+//                {
+//                    ROS_INFO("%s: Succeeded", actionName.c_str());
+//                    result.success = true;
+//                    actionServer.setSucceeded(result);
+//                    break;
+//                }
+//                ROS_INFO("Sending a New WayPoint(x,y,z):(%g,%g,%g)",path.poses[wayPointIndex].pose.position.x,path.poses[wayPointIndex].pose.position.y,path.poses[wayPointIndex].pose.position.z);
+//                pathTrail.poses.push_back(path.poses[wayPointIndex]);
+//            }
+//            posePub.publish(path.poses[wayPointIndex]) ;
+//            ros::spinOnce();
+//            loopRate.sleep();
+//        }
+//    }
 
 protected:
 
     ros::NodeHandle nh;
-    actionlib::SimpleActionServer<kuri_msgs::GeneratePathsAction> actionServer;
+    actionlib::SimpleActionServer<kuri_msgs::FollowPathAction> actionServer;
+    ros::Publisher  posePub;
+    ros::Subscriber currentPoseSub;
     std::string actionName;
     float progressCount;
-    kuri_msgs::Tasks goal;
-    kuri_msgs::GeneratePathsFeedback feedback;
-    kuri_msgs::GeneratePathsResult   result;
+    kuri_msgs::NavTask goal;
+    kuri_msgs::FollowPathFeedback feedback;
+    kuri_msgs::FollowPathResult   result;
     kuri_msgs::NavTasks navTasks;
     ros::Subscriber sub;
     geometry_msgs::Pose currentPose;
-    Navigator navigator;
+    nav_msgs::Path path,pathTrail;
+    std::vector<geometry_msgs::Point> pathSegments;
+    geometry_msgs::PoseArray robotPose;
+    geometry_msgs::Point linePoint;
+    double dist,threshold2Dist;
+    rviz_visual_tools::RvizVisualToolsPtr visualTools;
+    Navigator* uav1_navigator;
+    Navigator* uav2_navigator;
+    Navigator* uav3_navigator;
 };
 
 int main(int argc, char** argv)

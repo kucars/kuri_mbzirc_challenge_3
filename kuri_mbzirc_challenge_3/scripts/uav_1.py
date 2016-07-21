@@ -30,6 +30,7 @@ from math import *
 from mavros.utils import *
 from mavros import setpoint as SP
 from tf.transformations import quaternion_from_euler
+from geometry_msgs.msg import Pose
 
 class SetpointPosition:
     """
@@ -47,6 +48,7 @@ class SetpointPosition:
         # subscriber for mavros/local_position/local
         self.sub = rospy.Subscriber(mavros.get_topic('local_position', 'pose'),
                                     SP.PoseStamped, self.reached)
+        self.waypointsub = rospy.Subscriber("/uav_1/waypoint", SP.PoseStamped, self.updateposition, queue_size=1)
 
         try:
             thread.start_new_thread(self.navigate, ())
@@ -56,8 +58,10 @@ class SetpointPosition:
         # TODO(simon): Clean this up.
         self.done = False
         self.done_evt = threading.Event()
-
+    def updateposition(self,p):
+        self.setPose(p.pose.position.x,p.pose.position.y,p.pose.position.z,0,False)
     def navigate(self):
+        rospy.loginfo("Navigate")
         rate = rospy.Rate(10)   # 10hz
 
         msg = SP.PoseStamped(
@@ -135,7 +139,8 @@ def setpoint_demo():
     time.sleep(1)
     
     rospy.loginfo("Climb")
-    setpoint.takeoff(3.0)
+    setpoint.takeoff(10.0)
+    setpoint.navigate()
     #rospy.loginfo("Moving to Pose 1")
     #setpoint.setPose(-25,-25,10,5)
     #rospy.loginfo("Landing")

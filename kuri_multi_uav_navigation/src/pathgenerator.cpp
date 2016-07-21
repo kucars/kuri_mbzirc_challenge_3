@@ -34,11 +34,13 @@ PathGenerator::PathGenerator(void)
 
 }
 
-void PathGenerator::uav1_startPositionCallback(const geometry_msgs::PoseStamped& msg) {
+void PathGenerator::uav1_startPositionCallback(const geometry_msgs::PoseStamped& msg)
+{
     uav1_currentPose = msg.pose;
 }
 
-void PathGenerator::uav2_startPositionCallback(const geometry_msgs::PoseStamped& msg) {
+void PathGenerator::uav2_startPositionCallback(const geometry_msgs::PoseStamped& msg)
+{
     uav2_currentPose = msg.pose;
 }
 
@@ -67,16 +69,18 @@ kuri_msgs::NavTasks PathGenerator::generatePaths(const kuri_msgs::Tasks newtasks
     QTime timer;
     geometry_msgs::Pose gridStartPose;
     geometry_msgs::Vector3 gridSize;
-//    gridStartPose.position.x = -50;
-//    gridStartPose.position.y = -30;
+    //    gridStartPose.position.x = -50;
+    //    gridStartPose.position.y = -30;
     gridStartPose.position.x = 0;
     gridStartPose.position.y = 0;
 
     gridStartPose.position.z = 0;
-    // Dhanhani: including start to drop zone the arena is 140 x 60
-    gridSize.x = 12;
-    gridSize.y = 6;
-    gridSize.z = 30;
+    //Dhanhani: including start to drop zone the arena is 140 x 60
+    //gridSize.x = 12;
+    //gridSize.y = 6;
+    gridSize.x = 70;
+    gridSize.y = 70;
+    gridSize.z = 20;
     PathPlanner * pathPlanner;
 
     double robotH = 0.9, robotW = 0.5, narrowestPath = 0.987;
@@ -126,43 +130,47 @@ kuri_msgs::NavTasks PathGenerator::generatePaths(const kuri_msgs::Tasks newtasks
     while (ros::ok()) {
         // TODO: allow the handling of multiple paths
         if (tasks.tasks.size()<1) {
+            tasks = newtasks;
             std::vector<Node*> paths = pathPlanner->paths;
             kuri_msgs::NavTasks nav_tasks;
             int i = 0;
             for(std::vector<Node*>::iterator it = paths.begin(); it!=paths.end();it++)
             {
                 Node * path2Add = *it;
-                    nav_msgs::Path result;
-                    result.header.frame_id="/map";
-                    while (path2Add != NULL) {
-                        geometry_msgs::PoseStamped uavWayPoint;
-                        uavWayPoint.pose = path2Add->pose.p;
-                        result.poses.push_back(uavWayPoint);
-                        path2Add = path2Add->next;
-                    }
+                nav_msgs::Path result;
+                result.header.frame_id="/map";
+                while (path2Add != NULL) {
                     geometry_msgs::PoseStamped uavWayPoint;
-                    uavWayPoint.pose = endPoses.at(i);
-                    i++;
-                    //endPoses.pop_back();
+                    uavWayPoint.pose = path2Add->pose.p;
                     result.poses.push_back(uavWayPoint);
+                    path2Add = path2Add->next;
+                }
+                geometry_msgs::PoseStamped uavWayPoint;
+                uavWayPoint.pose = endPoses.at(i);
+                i++;
+                //endPoses.pop_back();
+                result.poses.push_back(uavWayPoint);
                 kuri_msgs::NavTask nav_task;
                 nav_task.path = result;
+                kuri_msgs::Task task = tasks.tasks.back();
+                tasks.tasks.pop_back();
+                nav_task.task = task;
                 nav_tasks.nav_tasks.push_back(nav_task);
             }
 
 
-//            Node * path2Send = path;
-//            nav_msgs::Path result;
-//            result.header.frame_id="/map";
-//            while (path2Send != NULL) {
-//                geometry_msgs::PoseStamped uavWayPoint;
-//                uavWayPoint.pose = path2Send->pose.p;
-//                result.poses.push_back(uavWayPoint);
-//                path2Send = path2Send->next;
-//            }
-//            geometry_msgs::PoseStamped uavWayPoint;
-//            uavWayPoint.pose = endPose;
-//            result.poses.push_back(uavWayPoint);
+            //            Node * path2Send = path;
+            //            nav_msgs::Path result;
+            //            result.header.frame_id="/map";
+            //            while (path2Send != NULL) {
+            //                geometry_msgs::PoseStamped uavWayPoint;
+            //                uavWayPoint.pose = path2Send->pose.p;
+            //                result.poses.push_back(uavWayPoint);
+            //                path2Send = path2Send->next;
+            //            }
+            //            geometry_msgs::PoseStamped uavWayPoint;
+            //            uavWayPoint.pose = endPose;
+            //            result.poses.push_back(uavWayPoint);
             return nav_tasks;
         }else{
             ROS_INFO("Path Planning for a new task");
@@ -174,7 +182,7 @@ kuri_msgs::NavTasks PathGenerator::generatePaths(const kuri_msgs::Tasks newtasks
             // Find path and visualise it
             timer.restart();
             //To avoid crawling on the ground, always start at 10m altitude
-             geometry_msgs::Pose currentPose;
+            geometry_msgs::Pose currentPose;
             if(task.uav_id==1){
                 currentPose = uav1_currentPose;
             }else if(task.uav_id==2){
@@ -183,6 +191,7 @@ kuri_msgs::NavTasks PathGenerator::generatePaths(const kuri_msgs::Tasks newtasks
                 currentPose = uav3_currentPose;
             }
             ROS_INFO("New Destination(x,y,z): (%g,%g,%g) Current Location(x,y,z): (%g,%g,%g)", currentObj.pose.pose.position.x, currentObj.pose.pose.position.y, currentObj.pose.pose.position.z, currentPose.position.x, currentPose.position.y, currentPose.position.z);
+            // ToFix: make sure currentPose was acctualy updated before generating the path
             Pose start(currentPose.position.x, currentPose.position.y, 10.0, DTOR(0.0));
             //To allow visual servoying assisted landing, always hover at predefined z: 10m
             Pose end(currentObj.pose.pose.position.x, currentObj.pose.pose.position.y, 10, DTOR(0.0));
@@ -198,7 +207,7 @@ kuri_msgs::NavTasks PathGenerator::generatePaths(const kuri_msgs::Tasks newtasks
                 std::cout << "\nNo Path Found";
                 continue;
             }
-           // path = pathPlanner->paths[0];
+            // path = pathPlanner->paths[0];
         }
 
         ros::spinOnce();
