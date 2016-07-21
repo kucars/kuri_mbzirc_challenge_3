@@ -2,12 +2,12 @@
 <package>
   <name>kuri_objects_mapping</name>
   <version>0.0.1</version>
-  <description>My package description</description>
-  <maintainer email="email@email.com">My Name</maintainer>
+  <description>MBZIRC Object Tracking</description>
+  <maintainer email="buti.aldelail@kustar.ac.ae">Buti Al Delail</maintainer>
   <license>LGPLv3</license>
   <url type="website">https://github.com/kuri-kustar/kuri_mbzirc_challenge_3/wiki</url>
 
-  <author email="email@email.com">My Name</author>
+  <author email="buti.aldelail@kustar.ac.ae">Buti Al Delail</author>
 
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>roscpp</build_depend>
