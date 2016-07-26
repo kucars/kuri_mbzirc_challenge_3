@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 #Copyright (c) 2016, Buti Al Delail
 #All rights reserved.
 #
@@ -24,8 +25,8 @@
 #SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
 #OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
 #OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 #CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY,
+
 import rospy
 import thread
 import threading
@@ -81,6 +82,11 @@ class Exploration:
         
         self.sub = rospy.Subscriber("MappingAction/feedback",ObjectsMap, self.callback)
 
+        try:
+            thread.start_new_thread(self.navigate, ())
+        except:
+            fault("Error: Unable to start thread")
+
 
         
     def callback(self, objects):
@@ -92,11 +98,6 @@ class Exploration:
         else:
             self.actionServer.objects_map = self.objects_map
             self.actionServer._feedback.area_percent_complete = len(self.objects_map.objects)
-
-        try:
-            thread.start_new_thread(self.navigate, ())
-        except:
-            fault("Error: Unable to start thread")
 
 
     def navigate(self):
@@ -172,7 +173,7 @@ class Exploration:
             while self.done == False: 
                 rate = rospy.Rate(10)
             
-                setpoint = SetpointPosition()
+                setpoint = self#SetpointPosition()
                 
                 time.sleep(1)
                 

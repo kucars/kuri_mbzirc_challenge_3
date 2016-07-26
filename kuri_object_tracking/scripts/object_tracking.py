@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 #Copyright (c) 2016, Buti Al Delail
 #All rights reserved.
 #
@@ -126,6 +127,7 @@ class object_tracking:
       newObject.width = width
       newObject.height = height
       newObject.color = color
+      newObject.obj_id = self.object_number
       self.obstacles.objects.append(newObject)
       if self.actionServer.hasGoal:
           self.actionServer.update(self.obstacles, self.object_number + 1)
@@ -158,18 +160,21 @@ class object_tracking:
     img = image2Analyse
     self.height, self.width = img.shape[:2]
     
+    
+    obstacles = self.detector.detect_obstacles(img)
+    #colors = self.detector.detect_colors(img, obstacles) #Removed, will implement better approach later
+    
     for tracker in self.tracked_objects:
         poly = tracker.track_object(img)
         result = poly.corners()
-        if self.nearEdge([result[0][0], result[0][1]]) == False:
+        overlap = 0
+        for ob in obstacles:
+            overlap = overlap + self.overlap(ob, tracker.polygon.corners())
+        if self.nearEdge([result[0][0], result[0][1]]) == False and overlap > 0:
             cv2.rectangle(img, (result[0][0], result[0][1]), (result[2][0], result[2][1]), (255,0,0), 2)
             cv2.putText(img,"#" + ("%d" % tracker.id), (result[0][0],result[0][1] + 50), cv2.FONT_HERSHEY_SIMPLEX, .8, (255, 0, 0), 2)
         else:
             self.tracked_objects.remove(tracker)
-    
-    
-    obstacles = self.detector.detect_obstacles(img)
-    #colors = self.detector.detect_colors(img, obstacles)
     
     for ob in obstacles:
         overlap = 0
@@ -177,10 +182,11 @@ class object_tracking:
             overlap = overlap + self.overlap(ob, tracker.polygon.corners())
         if overlap == 0:
             if self.nearEdge2(ob) != True:
-                new_tracker = object_tracker(ob[0], ob[1], ob[2], ob[3], self.object_number)
+                new_tracker = object_tracker(ob[0] - ob[2]/2, ob[1] - ob[3] / 2, ob[2], ob[3], self.object_number)
                 self.tracked_objects.append(new_tracker)
                 self.addObject(self.pose, 0, ob[2], ob[3], 'RED')
                 self.object_number = self.object_number + 1
+            
     
     
     label = "POS" +  "(" + ("%.2fm" % self.currentPoseX) + "," + ("%.2fm" % self.currentPoseY) + "," + ("%.2fm" % self.currentPoseZ) + ")"

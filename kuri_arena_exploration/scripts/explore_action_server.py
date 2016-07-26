@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 #Copyright (c) 2016, Buti Al Delail
 #All rights reserved.
 #
