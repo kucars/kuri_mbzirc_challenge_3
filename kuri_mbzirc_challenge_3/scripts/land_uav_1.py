@@ -1,7 +1,4 @@
 #!/usr/bin/env python
-# vim:set ts=4 sw=4 et:
-#
-# Copyright 2015 UAVenture AG.
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -130,21 +127,13 @@ class SetpointPosition:
 
 def setpoint_demo():
     rospy.init_node('setpoint_position_demo_1')
-    #mavros.set_namespace()  # initialize mavros module with default namespace
     mavros.set_namespace('/uav_1/mavros')    
     rate = rospy.Rate(10)
 
-    setpoint = SetpointPosition()
-    
-    time.sleep(1)
-    
-    rospy.loginfo("Climb")
-    setpoint.takeoff(5.0)
-    #setpoint.navigate()
-    #rospy.loginfo("Moving to Pose 1")
-    #setpoint.setPose(-25,-25,10,5)
-    #rospy.loginfo("Landing")
-    #setpoint.land()
+    setpoint = SetpointPosition()   
+    time.sleep(1)   
+    rospy.loginfo("Landing Drone 1")
+    setpoint.land()
 
     rospy.loginfo("Bye!")
 

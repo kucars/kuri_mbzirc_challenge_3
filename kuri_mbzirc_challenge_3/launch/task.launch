@@ -80,7 +80,7 @@
   
   <arg name="run_demo" default="true" />
   <group if="$(arg run_demo)" >
-    <node pkg="kuri_mbzirc_challenge_3" type="uav_1.py" name="uav_1_move" />
+    <!--node pkg="kuri_mbzirc_challenge_3" type="uav_1.py" name="uav_1_move" /-->
     <node pkg="kuri_mbzirc_challenge_3" type="uav_2.py" name="uav_2_move" />
     <node pkg="kuri_mbzirc_challenge_3" type="uav_3.py" name="uav_3_move" />
   </group>
