@@ -1,7 +1,6 @@
 #!/usr/bin/env python
-# vim:set ts=4 sw=4 et:
 #
-# Copyright 2015 UAVenture AG.
+# Copyright 2016: KURI
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -53,7 +52,6 @@ class SetpointPosition:
         except:
             fault("Error: Unable to start thread")
 
-        # TODO(simon): Clean this up.
         self.done = False
         self.done_evt = threading.Event()
 

@@ -52,7 +52,6 @@ class SetpointPosition:
         except:
             fault("Error: Unable to start thread")
 
-        # TODO(simon): Clean this up.
         self.done = False
         self.done_evt = threading.Event()
     def updateposition(self,p):

@@ -41,11 +41,9 @@ from kuri_msgs.msg import *
 from explore_action_server import ExploreServer
 
 class Exploration:
-    """
-    This class sends position targets to FCU's position controller
-    """
-    def __init__(self):
-        # TODO(simon): Clean this up.
+
+    def __init__(self,actionServer):
+        self.actionServer = actionServer
         self.done = False
         self.done_evt = threading.Event()
         self.isExploring = False
@@ -56,29 +54,29 @@ class Exploration:
         self.currentPoseX = 0 
         self.currentPoseY = 0
         self.currentPoseZ = 0
+        self.navigating = False
         # publisher for mavros/setpoint_position/local
         self.pub = SP.get_pub_position_local(queue_size=10)
         # subscriber for mavros/local_position/local
         self.sub = rospy.Subscriber(mavros.get_topic('local_position', 'pose'),
                                     SP.PoseStamped, self.reached)
 
-        #self.actionServer = ExploreServer()
         self.objects_map = ObjectsMap()
 
         self.client = actionlib.SimpleActionClient('MappingAction', MappingAction)
         client = self.client
         #client = self.actionServer.client
-        
+
         print "Waiting for mapping server"
-        client.wait_for_server()        
+        client.wait_for_server()
         goal = TrackingGoal()
         goal.uav_id = 3
         client.send_goal(goal)
         print "Waiting for result"
-        client.wait_for_result() 
+        client.wait_for_result()
         print "Result:"
         self.objects_map = client.get_result().objects_map
-        print self.objects_map        
+        print self.objects_map
         
         self.sub = rospy.Subscriber("MappingAction/feedback",ObjectsMap, self.callback)
 
@@ -92,9 +90,9 @@ class Exploration:
     def callback(self, objects):
         print 'Recieving Mapped Objects Progress ', objects.feedback.total_mapped_objects
         #self.objects_map = objects.feedback.total_mapped_objects#.objects_map
-        
+        # bogus 10% progress
         if self.actionServer.hasGoal:
-            self.actionServer.update(self.objects_map)
+            self.actionServer.update(self.objects_map,10)
         else:
             self.actionServer.objects_map = self.objects_map
             self.actionServer._feedback.area_percent_complete = len(self.objects_map.objects)
@@ -128,7 +126,7 @@ class Exploration:
         self.x = x
         self.y = y
         self.z = z
-
+        self.navigating = True
         if wait:
             rate = rospy.Rate(5)
             while not self.done and not rospy.is_shutdown():
@@ -139,6 +137,7 @@ class Exploration:
         diff = z - self.currentPoseZ
         while not abs(diff)<0.2:
             diff = z - self.currentPoseZ
+            print "Diff",diff
             if diff>0:
                 self.setPose(self.currentPoseX,self.currentPoseY,self.currentPoseZ + 1 ,2)
             else:
@@ -162,32 +161,28 @@ class Exploration:
         if is_near('X', topic.pose.position.x, self.x) and \
            is_near('Y', topic.pose.position.y, self.y) and \
            is_near('Z', topic.pose.position.z, self.z):
-            self.done = True
-            self.done_evt.set()
+            if  self.navigating:
+                self.done = True
+                self.navigating = False
+                self.done_evt.set()
 
 
     def explore(self):
         print 'explore started '
+        rate = rospy.Rate(10)
+        self.newGoal = True
         if self.isExploring == False:
-            self.isExploring = True
-            while self.done == False: 
-                rate = rospy.Rate(10)
-            
-                setpoint = self#SetpointPosition()
-                
-                time.sleep(1)
-                
-                rospy.loginfo("Climb")
-                setpoint.progress += 0.1
-                setpoint.takeoff(15)
-                setpoint.progress += 0.1
-                rospy.loginfo("Moving to Pose 1")
-                setpoint.progress += 0.1
-                setpoint.setPose(0,0,15,5)
-                setpoint.progress += 0.1    
-                #rospy.loginfo("Landing")
-                #setpoint.land()
-            
-                rospy.loginfo("Bye!")
-            self.isExploring = False
+            #Change this later when we have a better exploration
+            #self.isExploring = True
+            while self.done == False:
+                    time.sleep(1)
+                    rospy.loginfo("Climb")
+                    self.progress += 0.1
+                    self.takeoff(15)
+                    self.progress += 0.1
+                    rospy.loginfo("Moving to Pose 1")
+                    self.progress += 0.1
+                    self.setPose(0,0,15,5)
+                    self.progress += 0.1
+                    rospy.loginfo("Bye!")
 
