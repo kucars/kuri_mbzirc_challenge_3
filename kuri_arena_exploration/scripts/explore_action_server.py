@@ -57,14 +57,14 @@ class ExploreServer:
          success = False
          return
      if self.exploration == None:
-	 self.exploration = Exploration()
+         self.exploration = Exploration(self)
      self.exploration.explore()
      self.exploration.client.wait_for_server()        
      goal = MappingGoal()
      goal.uav_id = 3
      self.exploration.client.send_goal(goal)
      print "Waiting for result"
-     self.exploration.wait_for_result() 
+     self.exploration.client.wait_for_result()
      print "Result:"
      self.objects_map = self.exploration.client.get_result().objects_map
      print self.objects_map        
@@ -90,8 +90,7 @@ class ExploreServer:
     
 def main(args):
   rospy.init_node('exploration')
-  #mavros.set_namespace()  # initialize mavros module with default namespace
-  mavros.set_namespace('/uav_3/mavros')   
+  mavros.set_namespace('/uav_3/mavros')
   actionserver = ExploreServer()
   try:
     rospy.spin()

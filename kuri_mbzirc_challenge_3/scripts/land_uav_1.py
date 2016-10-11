@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 #
-# Copyright 2016: KURI
-#
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
 # the Free Software Foundation; either version 3 of the License, or
@@ -29,6 +27,7 @@ from math import *
 from mavros.utils import *
 from mavros import setpoint as SP
 from tf.transformations import quaternion_from_euler
+from geometry_msgs.msg import Pose
 
 class SetpointPosition:
     """
@@ -46,6 +45,7 @@ class SetpointPosition:
         # subscriber for mavros/local_position/local
         self.sub = rospy.Subscriber(mavros.get_topic('local_position', 'pose'),
                                     SP.PoseStamped, self.reached)
+        self.waypointsub = rospy.Subscriber("/uav_1/waypoint", SP.PoseStamped, self.updateposition, queue_size=1)
 
         try:
             thread.start_new_thread(self.navigate, ())
@@ -54,8 +54,10 @@ class SetpointPosition:
 
         self.done = False
         self.done_evt = threading.Event()
-
+    def updateposition(self,p):
+        self.setPose(p.pose.position.x,p.pose.position.y,p.pose.position.z,0,False)
     def navigate(self):
+        rospy.loginfo("Navigate")
         rate = rospy.Rate(10)   # 10hz
 
         msg = SP.PoseStamped(
@@ -63,23 +65,21 @@ class SetpointPosition:
                 frame_id="base_footprint",  # no matter, plugin don't use TF
                 stamp=rospy.Time.now()),    # stamp should update
         )
-	try:
-	  while not rospy.is_shutdown():
-	      msg.pose.position.x = self.x
-	      msg.pose.position.y = self.y
-	      msg.pose.position.z = self.z
 
-	      # For demo purposes we will lock yaw/heading to north.
-	      yaw_degrees = 0  # North
-	      yaw = radians(yaw_degrees)
-	      quaternion = quaternion_from_euler(0, 0, yaw)
-	      msg.pose.orientation = SP.Quaternion(*quaternion)
+        while not rospy.is_shutdown():
+            msg.pose.position.x = self.x
+            msg.pose.position.y = self.y
+            msg.pose.position.z = self.z
 
-	      self.pub.publish(msg)
-	      rate.sleep()
-	except:
-	  print "Exception"
-	  
+            # For demo purposes we will lock yaw/heading to north.
+            yaw_degrees = 0  # North
+            yaw = radians(yaw_degrees)
+            quaternion = quaternion_from_euler(0, 0, yaw)
+            msg.pose.orientation = SP.Quaternion(*quaternion)
+
+            self.pub.publish(msg)
+            rate.sleep()
+
     def setPose(self, x, y, z, delay=0, wait=True):
         self.done = False
         self.x = x
@@ -125,21 +125,14 @@ class SetpointPosition:
 
 
 def setpoint_demo():
-    rospy.init_node('explore_arena_integration_test')
-    #mavros.set_namespace()  # initialize mavros module with default namespace
-    mavros.set_namespace('/uav_3/mavros')    
+    rospy.init_node('setpoint_position_demo_1')
+    mavros.set_namespace('/uav_1/mavros')    
     rate = rospy.Rate(10)
 
-    setpoint = SetpointPosition()
-    
-    time.sleep(1)
-    
-    rospy.loginfo("Climb")
-    setpoint.takeoff(10)
-    rospy.loginfo("Moving to Pose 1")
-    setpoint.setPose(0,0,15,300)
-    #rospy.loginfo("Landing")
-    #setpoint.land()
+    setpoint = SetpointPosition()   
+    time.sleep(1)   
+    rospy.loginfo("Landing Drone 1")
+    setpoint.land()
 
     rospy.loginfo("Bye!")
 
