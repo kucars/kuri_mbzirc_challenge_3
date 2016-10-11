@@ -34,8 +34,8 @@ velocityX = 0.0
 velocityY = 0.0 
 velocityZ = 0.0 
 # Position of the objetc "Currently looking for a way to make it dynamic or subscribe for it" 
-objx = 2.114884
-objy = 1.958894
+objx = -3.471835
+objy = -3.003585
 
 class ObjectsLanded(unittest.TestCase):
     def __init__(self, *args):
@@ -49,7 +49,7 @@ class ObjectsLanded(unittest.TestCase):
     #to run after each test
     #def tearDown():
     
-    def test_objects_detection(self):
+    def test_objects_landing(self):
         #
         sub = rospy.Subscriber('/uav_1/mavros/local_position/odom', Odometry, self.callback)
         sub = rospy.Subscriber('/uav_1/mavros/setpoint_velocity/cmd_vel', TwistStamped, self.velocityCallback)
@@ -80,14 +80,14 @@ class ObjectsLanded(unittest.TestCase):
 	#print sqrt( (msg.pose.pose.position.x - objx)^2  + (msg.pose.pose.position.y - objy)^2 )   )
 
 	# condition that it landed in accurate way         
-	if sqrt( (msg.pose.pose.position.x - objx)^2  + (msg.pose.pose.position.y - objy)^2 ) <= 0.02 and velocityX == 0 and velocityY== 0 and velocityZ==0 :
+	if sqrt( (msg.pose.pose.position.x - objx)^2  + (msg.pose.pose.position.y - objy)^2 ) <= 0.5 and velocityX == 0 and velocityY== 0 and velocityZ==0 :
             self.objectLanded = True  
 		 
 
 if __name__ == '__main__':
     time.sleep(0.75)
     try:
-        rostest.run('test_aerial_mani', testName, ObjectsLanded, sys.argv)
+        rostest.run('test_objects_landing', testName, ObjectsLanded, sys.argv)
     except KeyboardInterrupt:
         pass
     print("exiting") 

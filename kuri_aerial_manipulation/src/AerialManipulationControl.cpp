@@ -65,14 +65,11 @@ bool AerialManipulationControl::waitforResults (kuri_msgs::Object goal)
 {
 color_sent = goal.color ; 
       std::cout << "goal.color   "<< goal.color << std::endl << std::flush ;
-
       std::cout << "Constructor of class 2 " << std::endl << std::flush ; 
-
     //publish pointcloud msgs:
-
     std::string topic2 = nh_.resolveName("/uav_1/mavros/setpoint_velocity/cmd_vel");
     velocity_pub_ = nh_.advertise<geometry_msgs::TwistStamped>(topic2, 1);
-
+    
     img_sub_  = new message_filters::Subscriber<sensor_msgs::Image>(nh_, "/uav_1/downward_cam/camera/image", 10);
     camera_info_sub_ = new message_filters::Subscriber<sensor_msgs::CameraInfo>(nh_, "/uav_1/downward_cam/camera/camera_info", 10);
     uav_odom_sub_ = new message_filters::Subscriber<nav_msgs::Odometry>(nh_, "/uav_1/mavros/local_position/odom", 10);
@@ -300,14 +297,19 @@ void AerialManipulationControl::p2p(const sensor_msgs::ImageConstPtr& img,
     }
     else
     {
+      
         std::cout << "It shoud move" << std::endl << std::flush ;
-        new_cmd_vel.twist.linear.x = T_unitVector3x * 1 ;
+        new_cmd_vel.twist.linear.x = T_unitVector3x * (odom->pose.pose.position.x - objectPoseX)  * 0.1  ; 
+
+       // new_cmd_vel.twist.linear.x = T_unitVector3x * 1 ;
 	std::cout << "1" << std::endl << std::flush ;
 
-        new_cmd_vel.twist.linear.y = T_unitVector3y * 1;
+//        new_cmd_vel.twist.linear.y = T_unitVector3y * 1;
+        new_cmd_vel.twist.linear.y = T_unitVector3y * (odom->pose.pose.position.y - objectPoseY) * 0.1;
         std::cout << "2" << std::endl << std::flush ;
 
-	new_cmd_vel.twist.linear.z = T_unitVector3z * - 0.4;
+//	new_cmd_vel.twist.linear.z = T_unitVector3z * - 0.4;
+	new_cmd_vel.twist.linear.z = T_unitVector3z * -1 * odom->pose.pose.position.z * 0.1;
         std::cout << "3" << std::endl << std::flush ;
 
 	velocity_pub_.publish(new_cmd_vel) ;
