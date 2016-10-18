@@ -1,5 +1,11 @@
 <?xml version="1.0"?>
 <launch>
+  <param name="statistics_window_max_elements" value="300" /> <!-- 100 / 3 -->
+  <param name="statistics_window_min_elements" value="10" /> <!-- 10  / 2-->
+  <param name="statistics_window_max_size" value="20" />     <!-- 64  / 5-->
+  <param name="statistics_window_min_size" value="4" />     <!-- 4   / 1-->
+  <param name="enable_statistics" value="true" />
+
   <arg name="paused" default="false"/>
   <arg name="debug" default="false"/>
   <arg name="gui" default="true" />
@@ -80,9 +86,9 @@
   
   <arg name="run_demo" default="true" />
   <group if="$(arg run_demo)" >
-    <node pkg="kuri_arena_exploration" type="explore_action_server.py"  name="exploration" />
+    <!--node pkg="kuri_arena_exploration" type="explore_action_server.py"  name="exploration" />
     <node pkg="kuri_objects_mapping"   type="mapping_action_server.py"  name="objects_mapping" />
-    <node pkg="kuri_object_tracking"   type="tracking_action_server.py" name="object_tracking" />
+    <node pkg="kuri_object_tracking"   type="tracking_action_server.py" name="object_tracking" /-->
     <!--node pkg="kuri_mbzirc_challenge_3" type="uav_3.py" name="uav_3_move" /-->
   </group>
 

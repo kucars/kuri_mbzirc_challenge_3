@@ -39,6 +39,7 @@ class Exploring(smach.State):
 
     def execute(self, userdata):
         rospy.loginfo('Executing state Exploring')
+        rospy.sleep(2.0)
         if self.counter < 3:
             self.counter += 1
             return 'moving2pose'
@@ -52,6 +53,7 @@ class DetectingObjects(smach.State):
 
     def execute(self, userdata):
         rospy.loginfo('Executing state DetectingObjects')
+        rospy.sleep(2.0)
         if self.counter < 3:
             self.counter += 1
             return 'detectingObjects'
@@ -65,6 +67,7 @@ class AllocatingTasks(smach.State):
 
     def execute(self, userdata):
         rospy.loginfo('Executing state AllocatingTasks')
+        rospy.sleep(2.0)
         if self.counter < 3:
             self.counter += 1
             return 'planning'
@@ -78,6 +81,7 @@ class Navigating2Object(smach.State):
 
     def execute(self, userdata):
         rospy.loginfo('Executing state Navigating2Object')
+        rospy.sleep(2.0)
         if self.counter < 3:
             self.counter += 1
             return 'navigating'
@@ -91,6 +95,7 @@ class PickingObject(smach.State):
 
     def execute(self, userdata):
         rospy.loginfo('Executing state PickingObject')
+        rospy.sleep(2.0)
         if self.counter < 3:
             self.counter += 1
             return 'descending'
@@ -104,6 +109,7 @@ class Navigating2DropZone(smach.State):
 
     def execute(self, userdata):
         rospy.loginfo('Executing state Navigating2DropZone')
+        rospy.sleep(2.0)
         if self.counter < 3:
             self.counter += 1
             return 'navigating'
@@ -117,6 +123,7 @@ class DroppingObject(smach.State):
 
     def execute(self, userdata):
         rospy.loginfo('Executing state DroppingObject')
+        rospy.sleep(2.0)
         if self.counter < 3:
             self.counter += 1
             return 'dropping'
@@ -151,8 +158,11 @@ def main():
                                transitions={'dropping':'DroppingObject',
                                'dropped':'finished'})
 
-
+    sis = smach_ros.IntrospectionServer('kuri_mbzirc_challenge3_state_machine_viewer', sm, '/kuri_mbzirc_challenge3_state_machine_root')
+    sis.start()
     outcome = sm.execute()
-
+    rospy.spin()
+    sis.stop()
 if __name__ == '__main__':
     main()
+
