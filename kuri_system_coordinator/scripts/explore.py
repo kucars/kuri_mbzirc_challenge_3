@@ -87,14 +87,14 @@ class SetpointPosition:
         self.z = z
 
         if wait:
-            rate = rospy.Rate(5)
+            rate = rospy.Rate(20)
             while not self.done and not rospy.is_shutdown():
                 rate.sleep()
         time.sleep(delay)
         
     def takeoff(self, z, delay=0, wait=True):
         diff = z - self.currentPoseZ
-        while not abs(diff)<0.2:
+        while not abs(diff)<0.5:
             diff = z - self.currentPoseZ
             print diff
             if diff>0:
@@ -112,7 +112,7 @@ class SetpointPosition:
         def is_near(msg, x, y):
             rospy.logdebug("Position %s: local: %d, target: %d, abs diff: %d",
                            msg, x, y, abs(x - y))
-            return abs(x - y) < 0.2
+            return abs(x - y) < 0.5
         self.currentPoseX = topic.pose.position.x 
         self.currentPoseY = topic.pose.position.y
         self.currentPoseZ = topic.pose.position.z
@@ -137,9 +137,11 @@ def setpoint_demo():
     rospy.loginfo("Climb")
     setpoint.takeoff(10)
     rospy.loginfo("Moving to Pose 1")
-    setpoint.setPose(0,0,15,300)
-    #rospy.loginfo("Landing")
-    #setpoint.land()
+    setpoint.setPose(0,0,15,2)
+    rospy.loginfo("Moving to Pose 2")    
+    setpoint.setPose(10,10,15,10)
+    rospy.loginfo("Landing")
+    setpoint.land()
 
     rospy.loginfo("Bye!")
 

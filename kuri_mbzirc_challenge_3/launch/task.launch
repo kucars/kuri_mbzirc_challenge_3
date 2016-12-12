@@ -1,10 +1,10 @@
 <?xml version="1.0"?>
 <launch>
-  <param name="statistics_window_max_elements" value="300" /> <!-- 100 / 3 -->
+  <param name="statistics_window_max_elements" value="100" /> <!-- 100 / 3 -->
   <param name="statistics_window_min_elements" value="10" /> <!-- 10  / 2-->
-  <param name="statistics_window_max_size" value="20" />     <!-- 64  / 5-->
+  <param name="statistics_window_max_size" value="64" />     <!-- 64  / 5-->
   <param name="statistics_window_min_size" value="4" />     <!-- 4   / 1-->
-  <param name="enable_statistics" value="true" />
+  <param name="enable_statistics" value="false" />
 
   <arg name="paused" default="false"/>
   <arg name="debug" default="false"/>
