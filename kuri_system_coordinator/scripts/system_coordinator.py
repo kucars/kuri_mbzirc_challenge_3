@@ -32,14 +32,29 @@ from tf.transformations import quaternion_from_euler
 import smach
 import smach_ros
 
+
+class Starting(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['waitingforGPS','GPSFixed'])
+        self.counter = 0
+
+    def execute(self, userdata):
+        rospy.loginfo('Waiting for GPS Fix')
+        rospy.sleep(1.0)
+        if self.counter < 3:
+            self.counter += 1
+            return 'waitingforGPS'
+        else:
+            return 'GPSFixed'
+
 class Exploring(smach.State):
     def __init__(self):
         smach.State.__init__(self, outcomes=['moving2pose','hovering'])
         self.counter = 0
 
     def execute(self, userdata):
-        rospy.loginfo('Executing state Exploring')
-        rospy.sleep(2.0)
+        rospy.loginfo('CON 1: Executing state Exploring')
+        rospy.sleep(1.0)
         if self.counter < 3:
             self.counter += 1
             return 'moving2pose'
@@ -52,8 +67,8 @@ class DetectingObjects(smach.State):
         self.counter = 0
 
     def execute(self, userdata):
-        rospy.loginfo('Executing state DetectingObjects')
-        rospy.sleep(2.0)
+        rospy.loginfo('CON 1: Executing state DetectingObjects')
+        rospy.sleep(1.0)
         if self.counter < 3:
             self.counter += 1
             return 'detectingObjects'
@@ -67,7 +82,7 @@ class AllocatingTasks(smach.State):
 
     def execute(self, userdata):
         rospy.loginfo('Executing state AllocatingTasks')
-        rospy.sleep(2.0)
+        rospy.sleep(1.0)
         if self.counter < 3:
             self.counter += 1
             return 'planning'
@@ -81,7 +96,7 @@ class Navigating2Object(smach.State):
 
     def execute(self, userdata):
         rospy.loginfo('Executing state Navigating2Object')
-        rospy.sleep(2.0)
+        rospy.sleep(1.0)
         if self.counter < 3:
             self.counter += 1
             return 'navigating'
@@ -95,7 +110,7 @@ class PickingObject(smach.State):
 
     def execute(self, userdata):
         rospy.loginfo('Executing state PickingObject')
-        rospy.sleep(2.0)
+        rospy.sleep(1.0)
         if self.counter < 3:
             self.counter += 1
             return 'descending'
@@ -109,7 +124,7 @@ class Navigating2DropZone(smach.State):
 
     def execute(self, userdata):
         rospy.loginfo('Executing state Navigating2DropZone')
-        rospy.sleep(2.0)
+        rospy.sleep(1.0)
         if self.counter < 3:
             self.counter += 1
             return 'navigating'
@@ -123,28 +138,51 @@ class DroppingObject(smach.State):
 
     def execute(self, userdata):
         rospy.loginfo('Executing state DroppingObject')
-        rospy.sleep(2.0)
+        rospy.sleep(1.0)
         if self.counter < 3:
             self.counter += 1
             return 'dropping'
         else:
             return 'dropped'
 
+class WaitingForTask(smach.State):
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['waiting','ready'])
+        self.counter = 0
+
+    def execute(self, userdata):
+        rospy.loginfo('Executing state DroppingObject')
+        rospy.sleep(1.0)
+        if self.counter < 3:
+            self.counter += 1
+            return 'waiting'
+        else:
+            return 'ready'
 
 def main():
     rospy.init_node('kuri_mbzirc_challenge3_state_machine')
-    sm = smach.StateMachine(outcomes=['finished', 'timeout'])
 
-    with sm:
+
+    explorationUAV_SM = smach.StateMachine(outcomes=['done'])
+    with explorationUAV_SM:
         smach.StateMachine.add('Exploring', Exploring(),
                                transitions={'moving2pose':'Exploring',
                                             'hovering':'DetectingObjects'})
         smach.StateMachine.add('DetectingObjects', DetectingObjects(),
-                               transitions={'detectingObjects':'DetectingObjects',
-                                            'objectsDetected':'AllocatingTasks'})
+                                    transitions={'detectingObjects':'DetectingObjects',
+                                                 'objectsDetected':'done'})
+
+    task_allocator_sm = smach.StateMachine(outcomes=['tasks_ready'])
+    with task_allocator_sm:
         smach.StateMachine.add('AllocatingTasks', AllocatingTasks(),
                                transitions={'planning':'AllocatingTasks',
-                                'succeeded':'Navigating2Object'})
+                                'succeeded':'tasks_ready'})
+
+    uav_worker = smach.StateMachine(outcomes=['finished'])
+    with uav_worker:
+        smach.StateMachine.add('WaitingForTask', WaitingForTask(),
+                               transitions={'waiting':'WaitingForTask',
+                                'ready':'Navigating2Object'})
         smach.StateMachine.add('Navigating2Object', Navigating2Object(),
                                transitions={'navigating':'Navigating2Object',
                                 'reached':'PickingObject'})
@@ -158,9 +196,31 @@ def main():
                                transitions={'dropping':'DroppingObject',
                                'dropped':'finished'})
 
-    sis = smach_ros.IntrospectionServer('kuri_mbzirc_challenge3_state_machine_viewer', sm, '/kuri_mbzirc_challenge3_state_machine_root')
+        cc = smach.Concurrence(
+                    outcomes=['JustDoIt'],
+                    default_outcome='JustDoIt',
+                    outcome_map = {'JustDoIt':{'MainState':'finished','ExplorationUAV_SM':'done'}})
+
+        with cc:
+            smach.Concurrence.add('MainState', uav_worker)
+            smach.Concurrence.add('ExplorationUAV_SM', explorationUAV_SM)
+
+
+    main_sm = smach.StateMachine(outcomes=['WeWin'])
+    with main_sm:
+        smach.StateMachine.add('Start', Starting(),
+                           transitions={'waitingforGPS':'Start',
+                                        'GPSFixed':'CC'})
+        smach.StateMachine.add('ExplorationUAV_SM', explorationUAV_SM,
+                                   transitions={'done':'WeWin'})
+        smach.StateMachine.add('MainState', uav_worker,
+                           transitions={'finished':'WeWin'})
+        smach.StateMachine.add('CC', cc,
+                               transitions={'JustDoIt':'WeWin'})
+
+    sis = smach_ros.IntrospectionServer('kuri_mbzirc_challenge3_state_machine_viewer', main_sm, '/kuri_mbzirc_challenge3_state_machine_root')
     sis.start()
-    outcome = sm.execute()
+    outcome = main_sm.execute()
     rospy.spin()
     sis.stop()
 if __name__ == '__main__':

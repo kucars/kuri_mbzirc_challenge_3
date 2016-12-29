@@ -66,7 +66,7 @@ kuri_msgs::NavTasks PathGenerator::generatePaths(const kuri_msgs::Tasks newtasks
     visualTools->deleteAllMarkers();
     visualTools->setLifetime(0.2);
 
-    QTime timer;
+    ros::Time timer_start = ros::Time::now();
     geometry_msgs::Pose gridStartPose;
     geometry_msgs::Vector3 gridSize;
     //    gridStartPose.position.x = -50;
@@ -87,7 +87,9 @@ kuri_msgs::NavTasks PathGenerator::generatePaths(const kuri_msgs::Tasks newtasks
     double distanceToGoal = 1.5, regGridConRad = 3;
     double gridRes = 2;
 
-    QPointF robotCenter(-0.3f, 0.0f);
+    geometry_msgs::Point robotCenter;
+    robotCenter.x = -0.3f;
+    robotCenter.y = 0.0f;
     Robot *robot = new Robot("Robot", robotH, robotW, narrowestPath, robotCenter);
 
     // Every how many iterations to display the tree
@@ -103,12 +105,12 @@ kuri_msgs::NavTasks PathGenerator::generatePaths(const kuri_msgs::Tasks newtasks
     // Generate Grid Samples and visualise it
     pathPlanner->generateRegularGrid(gridStartPose, gridSize, gridRes, false);
     std::vector<geometry_msgs::Point> searchSpaceNodes = pathPlanner->getSearchSpace();
-    std::cout << "\n" << QString("\n---->>> Total Nodes in search Space =%1").arg(searchSpaceNodes.size()).toStdString();
+    std::cout<<"\n\n---->>> Total Nodes in search Space ="<<searchSpaceNodes.size();
 
     // Connect nodes and visualise it
     pathPlanner->setMultiAgentSupport(true);
     pathPlanner->connectNodes();
-    std::cout << "\nSpace Generation took:" << timer.elapsed() / double(1000.00) << " secs";
+    std::cout<<"\nSpace Generation took:"<<double(ros::Time::now().toSec() - timer_start.toSec())<<" secs";
     std::vector<geometry_msgs::Point> searchSpaceConnections = pathPlanner->getConnections();
     visualTools->publishPath(searchSpaceConnections, rviz_visual_tools::BLUE, rviz_visual_tools::LARGE, "search_space");
 
@@ -180,7 +182,7 @@ kuri_msgs::NavTasks PathGenerator::generatePaths(const kuri_msgs::Tasks newtasks
             kuri_msgs::Object currentObj = task.object;
             endPoses.push_back(currentObj.pose.pose);
             // Find path and visualise it
-            timer.restart();
+            timer_start = ros::Time::now();
             //To avoid crawling on the ground, always start at 10m altitude
             geometry_msgs::Pose currentPose;
             if(task.uav_id==1){
@@ -199,7 +201,7 @@ kuri_msgs::NavTasks PathGenerator::generatePaths(const kuri_msgs::Tasks newtasks
             distanceHeuristic.setEndPose(end.p);
             ROS_INFO("Starting search");
             Node * retval = pathPlanner->startSearch(start);
-            std::cout << "\nPath Finding took:" << (timer.elapsed() / double(1000.00)) << " secs";
+            std::cout<<"\nPath Finding took:"<<double(ros::Time::now().toSec() - timer_start.toSec())<<" secs";
             //path print and visualization
             if (retval) {
                 pathPlanner->printNodeList();

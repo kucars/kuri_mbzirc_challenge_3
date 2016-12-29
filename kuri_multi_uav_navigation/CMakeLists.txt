@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(kuri_multi_agent_navigation)
 SET ( CMAKE_CXX_FLAGS "-frounding-math" )
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   pcl_ros
@@ -17,9 +18,21 @@ find_package(catkin REQUIRED COMPONENTS
   sspp
   )
 
+set( ROS_DISTRO $ENV{ROS_DISTRO} )
+if( ${ROS_DISTRO} STREQUAL "indigo" )
+    find_package(fcl REQUIRED)
+elseif(${ROS_DISTRO} STREQUAL "kinetic")
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(LIBFCL REQUIRED fcl)
+else()
+    message("Unsupported ROS Distro")
+endif()
+
+
+
 # find_package(Boost REQUIRED COMPONENTS system)
 find_package(CGAL QUIET COMPONENTS  )
-find_package(fcl REQUIRED)
+#find_package(fcl REQUIRED)
 find_package(PCL REQUIRED)
 find_package(sspp REQUIRED)
 find_package(CUDA QUIET)

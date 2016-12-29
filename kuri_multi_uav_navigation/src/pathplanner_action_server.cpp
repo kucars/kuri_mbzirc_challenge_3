@@ -20,7 +20,7 @@
  *   51 Franklin Steet, Fifth Floor, Boston, MA  02111-1307, USA.          *
  ***************************************************************************/
 
-#include "pathplanner.h"
+#include "sspp/pathplanner.h"
 #include "ros/ros.h"
 #include <ros/package.h>
 #include <tf/tf.h>
@@ -29,8 +29,8 @@
 #include <eigen_conversions/eigen_msg.h>
 #include <geometry_msgs/Pose.h>
 #include <geometry_msgs/PoseArray.h>
-#include "distance_heuristic.h"
-#include "rviz_drawing_tools.h"
+#include "sspp/distance_heuristic.h"
+#include "sspp/rviz_drawing_tools.h"
 #include "rviz_visual_tools/rviz_visual_tools.h"
 #include "geometry_msgs/PoseStamped.h"
 
