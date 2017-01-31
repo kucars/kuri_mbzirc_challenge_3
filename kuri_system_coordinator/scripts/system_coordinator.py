@@ -2,7 +2,8 @@
 #
 #   Copyright (C) 2006 - 2016 by                                          
 #      Tarek Taha, KURI  <tataha@tarektaha.com>                           
-#                                                                         
+#      Randa Almadhoun, KURI <randa.almadhoun@gmail.com> 
+#
 #   This program is free software; you can redistribute it and/or modify  
 #   it under the terms of the GNU General Public License as published by  
 #   the Free Software Foundation; either version 2 of the License, or     
@@ -31,369 +32,316 @@ from mavros import setpoint as SP
 from tf.transformations import quaternion_from_euler
 import smach
 import smach_ros
+from uav_explorer_states import *
+from util_states import *
+from uav_worker_states import *
 
 
-class Starting(smach.State):
-    def __init__(self,sleep_t):
-        smach.State.__init__(self, outcomes=['waitingforGPS','GPSFixed'],output_keys=['starting_out'])
-        self.counter = 0
-	self.sleep_t=sleep_t
-    def execute(self, userdata):
-        rospy.loginfo('Waiting for GPS Fix\n\n')
-        rospy.sleep(self.sleep_t)
-        if self.counter < 3:
-            self.counter += 1
-            return 'waitingforGPS'
-        else:
-	    userdata.starting_out = 22 #userdata example
-            return 'GPSFixed'
-
-class Exploring(smach.State):
-    def __init__(self,sleep_t):
-        smach.State.__init__(self, outcomes=['moving2pose','hovering'],input_keys=['exploring_in'],output_keys=['exploring_out'])
-        self.counter = 0
-	self.sleep_t=sleep_t
-    def execute(self, userdata):
-        rospy.loginfo('Executing state Exploring\n\n')
-        rospy.sleep(self.sleep_t)
-        if self.counter < 3:
-            self.counter += 1
-            return 'moving2pose'
-        else:
-	    userdata.exploring_out = userdata.exploring_in+1 #userdata example
-            return 'hovering'
-
-class DetectingObjects(smach.State):
-    def __init__(self,sleep_t):
-        smach.State.__init__(self, outcomes=['detectingObjects','objectsDetected'],input_keys=['detecting_objects_in'],output_keys=['detecting_objects_out'] )
-        self.counter = 0
-	self.sleep_t=sleep_t
-    def execute(self, userdata):
-        rospy.loginfo('Executing state DetectingObjects\n\n')
-        rospy.sleep(self.sleep_t)
-        if self.counter < 3:
-            self.counter += 1
-            return 'detectingObjects'
-        else:
-	    userdata.detecting_objects_out=userdata.detecting_objects_in+1 #userdata example
-            return 'objectsDetected'
-
-class AllocatingTasks(smach.State):
-    def __init__(self,sleep_t):
-        smach.State.__init__(self, outcomes=['planning','succeeded'], input_keys=['allocating_tasks_in'],output_keys=['allocating_tasks_out_uav1','allocating_tasks_out_uav2'])
-        self.counter = 0
-	self.sleep_t=sleep_t	
-    def execute(self, userdata):
-        rospy.loginfo('Executing state AllocatingTasks\n\n')
-        userdata.allocating_tasks_out_uav1 = userdata.allocating_tasks_in + 1 #userdata example
-	userdata.allocating_tasks_out_uav2 = userdata.allocating_tasks_in + 1 #userdata example
-	#print(">>>>>> %f <<<<<<<<",userdata.allocating_tasks_in)
-        rospy.sleep(self.sleep_t)
-        if self.counter < 4:
-            self.counter += 1
-            return 'planning'
-        else:
-            return 'succeeded'
-
-class Navigating2Object(smach.State):
-    def __init__(self,sleep_t):
-        smach.State.__init__(self, outcomes=['navigating','reached'], input_keys=['navigating_2_object_in'])
-        self.counter = 0
-	self.sleep_t=sleep_t
-    def execute(self, userdata):
-        rospy.loginfo('Executing state Navigating2Object\n\n')
-        rospy.sleep(self.sleep_t)
-        if self.counter < 3:
-            self.counter += 1
-            return 'navigating'
-        else:
-            return 'reached'
-
-class PickingObject(smach.State):
-    def __init__(self,sleep_t):
-        smach.State.__init__(self, outcomes=['descending','picked','object_fell'])
-        self.counter = 0
-	self.sleep_t=sleep_t
-    def execute(self, userdata):
-        rospy.loginfo('Executing state PickingObject\n\n')
-        rospy.sleep(self.sleep_t)
-        if self.counter < 3:
-            self.counter += 1
-            return 'descending'
-        else:
-            return 'picked'
-	return 'object_fell'  
-
-class Navigating2DropZone(smach.State):
-    def __init__(self,sleep_t):
-        smach.State.__init__(self, outcomes=['navigating','hovering'], input_keys=['navigating_2dropzone_in'])
-        self.counter = 0
-	self.sleep_t=sleep_t
-    def execute(self, userdata):
-        rospy.loginfo('Executing state Navigating2DropZone\n\n')
-        rospy.sleep(self.sleep_t)
-        if self.counter < 3:
-            self.counter += 1
-            return 'navigating'
-        else:
-            return 'hovering'
-
-class DroppingObject(smach.State):
-    def __init__(self,sleep_t):
-        smach.State.__init__(self, outcomes=['dropping','dropped','dropping_fault'])
-        self.counter = 0
-	self.sleep_t=sleep_t
-    def execute(self, userdata):
-        rospy.loginfo('Executing state DroppingObject\n\n')
-        rospy.sleep(self.sleep_t)
-        if self.counter < 3:
-            self.counter += 1
-            return 'dropping'
-        else:
-            return 'dropped'
-	return 'dropping_fault'  
-
-class WaitingForTask(smach.State):
-    def __init__(self, sleep_t):
-        smach.State.__init__(self, outcomes=['waiting','ready'],input_keys=['waiting_for_tasks_in'],output_keys=['waiting_for_tasks_out'])
-        self.counter = 0
-        self.sleep_t=sleep_t
-    def execute(self, userdata):
-        rospy.loginfo('Executing state WaitingForTask\n\n')
-        #userdata.waiting_for_tasks_out=1
-        rospy.sleep(self.sleep_t)
-        if self.counter < 3:
-            self.counter += 1
-            return 'waiting'
-        else:
-	    userdata.waiting_for_tasks_out = userdata.waiting_for_tasks_in + 1 #userdata example
-            return 'ready'
 
 def main():
     rospy.init_node('kuri_mbzirc_challenge3_state_machine')
 
-    ### Explorer UAV
-    uav_exlorer_sm = smach.StateMachine(outcomes=['done'], 
-					input_keys=['explorer_gps_in'],
-					output_keys=['explorer_objects_out'] 
-				       )
-    with uav_exlorer_sm:
-        smach.StateMachine.add('Exploring', Exploring(0.5),
-                               transitions={
-					    'moving2pose':'Exploring',
-                                            'hovering':'DetectingObjects'
-					   },
-			       remapping={
-					  'exploring_in':'explorer_gps_in',
-					  'exploring_out':'waypoints'
-					 }
-			       )
-        smach.StateMachine.add('DetectingObjects', DetectingObjects(0.5),
-                               transitions={
-					    'detectingObjects':'DetectingObjects',
-                                            'objectsDetected':'done'
-					   },
-			       remapping={
-					  'detecting_objects_in' : 'waypoints',
-					  'detecting_objects_out':'explorer_objects_out'
-					 }
-			      )
-
-
-    ### Task Allocator
-    task_allocator_sm = smach.StateMachine(outcomes=['tasks_ready'],
-					   input_keys=['task_allocator_in'],
-					   output_keys=['task_allocator_out_uav1', 'task_allocator_out_uav2']
-					   )
-    with task_allocator_sm:
-        smach.StateMachine.add('AllocatingTasks', AllocatingTasks(0.5),
-                               transitions={
-					    'planning':'AllocatingTasks',
-					    'succeeded':'tasks_ready'
-					   },
-			       remapping={
-					  'allocating_tasks_in':'task_allocator_in',
-					  'allocating_tasks_out_uav1':'task_allocator_out_uav1',
-					  'allocating_tasks_out_uav2':'task_allocator_out_uav2'
-					 }
-			       )
-
-
-
-    ### UAV Worker 1
-    uav_worker1_sm = smach.StateMachine(outcomes=['finished', 'task_failed'], input_keys=['uav1_worker_tasks_in'])
-    with uav_worker1_sm:
-        smach.StateMachine.add('WaitingForTask', WaitingForTask(0.5),
-                               transitions={
-					    'waiting':'WaitingForTask',
-					    'ready':'Navigating2Object'
-					   },
-			       remapping={
-					    'waiting_for_tasks_in':'uav1_worker_tasks_in',
-					    'waiting_for_tasks_out':'object'
-					 }
-			       )
-        smach.StateMachine.add('Navigating2Object', Navigating2Object(0.5),
-                               transitions={
-					    'navigating':'Navigating2Object',
-					    'reached':'PickingObject'},
-			       remapping={
-					    'navigating_2_object_in':'object'
-					 }
-			       )
-        smach.StateMachine.add('PickingObject', PickingObject(0.5),
-                               transitions={
-					    'descending':'PickingObject',
-					    'picked':'Navigating2DropZone',
-					    'object_fell':'task_failed'
-					      
-					      }
-
-			       )
-        smach.StateMachine.add('Navigating2DropZone', Navigating2DropZone(0.5),
-                               transitions={
-					    'navigating':'Navigating2DropZone',
-					    'hovering':'DroppingObject'
-					   }
-			       )
-        smach.StateMachine.add('DroppingObject', DroppingObject(0.5),
-                               transitions={
-					    'dropping':'DroppingObject',
-					    'dropped':'finished',
-					    'dropping_fault':'task_failed'
-				    
-					   }
-			       )
-    
-    ### UAV Worker 2
-    uav_worker2_sm = smach.StateMachine(outcomes=['finished', 'task_failed'], input_keys=['uav2_worker_tasks_in'])
-    with uav_worker2_sm:
-        smach.StateMachine.add('WaitingForTask', WaitingForTask(1),
-                               transitions={
-					    'waiting':'WaitingForTask',
-					    'ready':'Navigating2Object'
-					   },
-			       remapping={
-					    'waiting_for_tasks_in':'uav2_worker_tasks_in',
-					    'waiting_for_tasks_out':'object'
-					 }
-			       )
-        smach.StateMachine.add('Navigating2Object', Navigating2Object(1),
-                               transitions={
-					    'navigating':'Navigating2Object',
-					    'reached':'PickingObject'},
-			       remapping={
-					    'navigating_2_object_in':'object'
-					 }
-			       )
-        smach.StateMachine.add('PickingObject', PickingObject(1),
-                               transitions={
-					    'descending':'PickingObject',
-					    'picked':'Navigating2DropZone',
-					    'object_fell':'task_failed'
-					      
-					      }
-
-			       )
-        smach.StateMachine.add('Navigating2DropZone', Navigating2DropZone(1),
-                               transitions={
-					    'navigating':'Navigating2DropZone',
-					    'hovering':'DroppingObject'
-					   }
-			       )
-        smach.StateMachine.add('DroppingObject', DroppingObject(1),
-                               transitions={
-					    'dropping':'DroppingObject',
-					    'dropped':'finished',
-					    'dropping_fault':'task_failed'
-				    
-					   }
-			       )
-    
-    
-    
-       
-    ### concurruncy
-    cc = smach.Concurrence(
-                    outcomes=['succeeded','failed'],
-                    default_outcome='succeeded',
-                    outcome_map = {
-				    'succeeded':{'UAV_Worker1':'finished','UAV_Worker2':'finished'},
-				    'failed':{'UAV_Worker1':'task_failed','UAV_Worker2':'task_failed'},
-				    'failed':{'UAV_Worker1':'task_failed','UAV_Worker2':'finished'},
-				    'failed':{'UAV_Worker1':'finished','UAV_Worker2':'task_failed'} 
-				  }, 
-                    input_keys=['cc_uav1_tasks_in','cc_uav2_tasks_in']
-                    #input_keys=['cc_in']
-                    )
-	
-    with cc:
-	    ## the task allocator inside concurruncy have problem with userdata since the tasks are needed by the states of the uav_workers
-	    #smach.Concurrence.add('Task_Allocator', task_allocator_sm,
-				    #remapping={
-						#'task_allocator_in':'cc_in',
-						#'task_allocator_out_uav1':'UAV1_tasks',
-						#'task_allocator_out_uav2':'UAV2_tasks'
-					      #}			        
-				  #)
-            smach.Concurrence.add('UAV_Worker1', uav_worker1_sm,
-				    remapping={
-						'uav1_worker_tasks_in':'cc_uav1_tasks_in'
-						#'uav1_worker_tasks_in':'UAV1_tasks'
-					      }					       
-				  
-				  )
-            smach.Concurrence.add('UAV_Worker2', uav_worker2_sm,
-				    remapping={
-						'uav2_worker_tasks_in':'cc_uav2_tasks_in'
-						#'uav2_worker_tasks_in':'UAV2_tasks'
-					      }					  
-
-				  )
-
-
 
     ### MAIN
-    main_sm = smach.StateMachine(outcomes=['Mission_Accomplished'])
+    main_sm = smach.StateMachine(outcomes=['mission_accomplished','mission_incomplete'])
     with main_sm:
-        smach.StateMachine.add('Start', Starting(1),
-				    transitions={'waitingforGPS':'Start',
-                                        'GPSFixed':'UAV_Explorer'},
+      
+	### Explorer UAV
+	uav_exlorer_sm = smach.StateMachine(outcomes=['finally','smth_wrong'], 
+					    input_keys=['explorer_gps_in'],
+					    output_keys=['explorer_objects_out'] 
+					   )
+	task_allocator_sm = smach.StateMachine(outcomes=['tasksReady','fail'],
+					    input_keys=['task_allocator_in'],
+					    output_keys=['task_allocator_out_uav1','task_allocator_out_uav2'] 
+					   )	
+	### Worker1 UAV				    	
+	uav_worker1_sm = smach.StateMachine(outcomes=['taskDone','ObjectFellFailure'], 
+					    input_keys=['uav_worker1_sm_in'],
+					   )
+	### Worker2 UAV			   
+	uav_worker2_sm = smach.StateMachine(outcomes=['taskDone','ObjectFellFailure'], 
+					    input_keys=['uav_worker2_sm_in'],
+					   )
+	
+	
+	
+	#state 1 in the main sm --> starting 	       	
+	smach.StateMachine.add('STARTING', Starting(1),
+				    transitions={
+						  'waitingforGPS':'STARTING',
+						  'GPSFixed':'UAV_EXPLORER'
+						},
 				    remapping={'starting_out':'uav_gps_loc'}
-			      )		   
-        smach.StateMachine.add('UAV_Explorer', uav_exlorer_sm,
-				    transitions={'done':'Task_Allocator'}, #change CC to task_allocator if you want to remove taskallocator from the concurruncy
+			      )	
+				    
+	#state 2 in the main sm --> explorer	       
+        smach.StateMachine.add('UAV_EXPLORER', uav_exlorer_sm,
+				    transitions={
+						 'finally':'TASK_ALLOCATION',#mission_accomplished
+						 'smth_wrong':'mission_incomplete'
+						}, 
 				    remapping={
 						'explorer_gps_in':'uav_gps_loc',
 						'explorer_objects_out':'objects_locations'
 					      }
 			      )
-				    
-	#if we don't want to put the task_allocator in the concurruncy			    
-	smach.StateMachine.add('Task_Allocator', task_allocator_sm,
-				    transitions={'tasks_ready':'CC'},
+	
+	#state 3 in the main sm --> task allocation
+	smach.StateMachine.add('TASK_ALLOCATION', task_allocator_sm,
+				    transitions={'tasksReady':'UAV_WORKERS_CC',
+						 'fail' : 'mission_incomplete'
+						},
 				    remapping={
 						'task_allocator_in':'objects_locations',
-						'task_allocator_out_uav1':'UAV1_tasks',
-  						'task_allocator_out_uav2':'UAV2_tasks'
+						'task_allocator_out_uav1':'uav1_tasks',
+  						'task_allocator_out_uav2':'uav2_tasks'
 					      }			        
+			      )	
+        #smach.StateMachine.add('ALLOCATING_TASKS', AllocatingTasks(0.5),
+				    #transitions={
+						 #'planning':'ALLOCATING_TASKS',
+						 #'tasksAllocated':'UAV_WORKERS_CC'#mission_accomplished
+						#}, 
+				    #remapping={
+						#'allocating_tasks_in':'objects_locations',
+						#'allocating_tasks_out_uav1':'uav1_tasks',
+						#'allocating_tasks_out_uav2':'uav2_tasks'
+					      #}
+			      #)
+	
+	#for now, UAVFailed corresponds to object fail failure until we add other failures types
+	uav_workers_cc = smach.Concurrence(outcomes=['workersFinished','UAVFailed'],
+					   default_outcome='workersFinished',
+					   outcome_map = {
+							    'workersFinished':{'UAV_Worker1':'taskDone','UAV_Worker2':'taskDone'},
+							    'UAVFailed':{'UAV_Worker1':'ObjectFellFailure','UAV_Worker2':'taskDone'},
+							    'UAVFailed':{'UAV_Worker1':'taskDone','UAV_Worker2':'ObjectFellFailure'},
+							    'UAVFailed':{'UAV_Worker1':'ObjectFellFailure','UAV_Worker2':'ObjectFellFailure'}
+							  }, 
+					   input_keys=['uav_worker1_cc_in','uav_worker2_cc_in']
+					  )				    
+	#state 4 in the main sm--> workers concurruncy 			    
+        smach.StateMachine.add('UAV_WORKERS_CC', uav_workers_cc,
+				    transitions={
+						 'workersFinished':'mission_accomplished',
+						 'UAVFailed':'TASK_ALLOCATION'
+						}, 
+				    remapping={
+						'uav_worker1_cc_in':'uav1_tasks',
+						'uav_worker2_cc_in':'uav2_tasks'
+					      }
 			      )
- 
-        smach.StateMachine.add('CC', cc,
-                               transitions={'succeeded':'Mission_Accomplished',
-					    'failed':'UAV_Explorer'
+	
+	#*************************************
+	# Define the uav_workers concurruncy	
+	with uav_workers_cc:
+            smach.Concurrence.add('UAV_Worker1', uav_worker1_sm,
+				    remapping={
+						'uav_worker1_sm_in':'uav_worker1_cc_in'
+					      }					       
+				  
+				 )
+            smach.Concurrence.add('UAV_Worker2', uav_worker2_sm,
+				    remapping={
+						'uav_worker2_sm_in':'uav_worker2_cc_in'
+					      }					  
+
+				 )
+	# End uav_workers concurruncy  
+	#************************************			    
+				    
+			    
+				    
+				    
+				    
+        #**********************************
+	# Define the explorer state machine
+	with uav_exlorer_sm:
+	  #smach.StateMachine.add('STARTING', Starting(1),
+				    #transitions={
+						  #'waitingforGPS':'STARTING',
+						  #'GPSFixed':'GENERATING_WAYPOINTS'
+						#},
+				    #remapping={'starting_out':'uav_gps_loc'}
+			        #)	
+	  smach.StateMachine.add('GENERATING_WAYPOINTS', GenerateWaypoints(0.5),
+                               transitions={
+					    'generatingWaypoints':'GENERATING_WAYPOINTS',
+                                            'waypointsGenerated':'EXPLORE_DETECT_CC'
 					   },
-                               remapping={
-					    'cc_in':'objects_locations',
-   					    'cc_uav1_tasks_in':'UAV1_tasks',
-   					    'cc_uav2_tasks_in':'UAV2_tasks'
+			       remapping={
+					  'generate_waypoints_in':'explorer_gps_in',
+					  'generate_waypoints_out':'waypoints'
 					 }
-                              )
+			        )
+			       
+	  explore_detect_cc = smach.Concurrence(outcomes=['finished','explore_detect','aported'],
+						default_outcome='finished',
+						outcome_map = {
+								'finished':{'EXPLORING':'hovering','DETECTING_OBJECTS':'objectsDetected'},
+								'explore_detect':{'EXPLORING':'moving2Pose','DETECTING_OBJECTS':'detectingObjects'},
+								'aported':{'EXPLORING':'exploreFailed','DETECTING_OBJECTS':'objectsDetected'},
+								'aported':{'EXPLORING':'hovering','DETECTING_OBJECTS':'detectFailed'},
+								'aported':{'EXPLORING':'exploreFailed','DETECTING_OBJECTS':'detectFailed'},
+							      }, 
+						input_keys=['explore_detect_cc_in'],
+						output_keys=['explore_detect_cc_out']
+						)		       
+	  smach.StateMachine.add('EXPLORE_DETECT_CC', explore_detect_cc,
+			           transitions={
+						'finished':'finally',
+						'explore_detect':'EXPLORE_DETECT_CC',
+						'aported':'smth_wrong'
+					       },
+				   remapping={
+					      'explore_detect_cc_in':'waypoints',
+					      'explore_detect_cc_out':'explorer_objects_out'
+					     }
+				)
+
+
+	  #*************************************
+	  # Define the explor_detect concurruncy
+	  with explore_detect_cc:
+	   smach.Concurrence.add('EXPLORING', Exploring(0.5),
+			       remapping={
+					  'exploring_in':'explore_detect_cc_in',
+					 }
+			        )
+	   smach.Concurrence.add('DETECTING_OBJECTS', DetectingObjects(0.5),
+			       remapping={
+					  'detecting_objects_out':'explore_detect_cc_out'
+					 }
+			        )
+	  # End explore_detect conccuruncy  
+	  #************************************
+	# End uav_explorer state machine  
+	#************************************
+	
+	
+	
+	
+	
+	#*************************************
+	# Define the task_allocator state machine	
+	with task_allocator_sm:
+	  smach.StateMachine.add('ALLOCATING_TASKS', AllocatingTasks(0.5),
+				    transitions={
+						 'planning':'ALLOCATING_TASKS',
+						 'tasksAllocated':'tasksReady',
+						 'allocationFailure' : 'fail'
+						}, 
+				    remapping={
+						'allocating_tasks_in':'task_allocator_in',
+						'allocating_tasks_out_uav1':'task_allocator_out_uav1',
+						'allocating_tasks_out_uav2':'task_allocator_out_uav2'
+					      }
+			      )
+	
+	# End task_allocator state machine  
+	#************************************
+	
+	
+	
+	
+	
+	#*************************************
+	# Define the uav_worker1 state machine
+	with uav_worker1_sm:
+	  smach.StateMachine.add('NAVIGATING_2_OBJECT', Navigating2Object(0.5),
+				transitions={
+					    'navigating':'NAVIGATING_2_OBJECT',
+					    'reached':'PICKING_OBJECT'
+					    },
+				remapping={
+					    'navigating_2_object_in':'uav1_worker_sm_in'
+					  }
+				)
+	  smach.StateMachine.add('PICKING_OBJECT', PickingObject(0.5),
+				transitions={
+					    'descending':'PICKING_OBJECT',
+					    'picked':'NAVIGATING_2_DROPZONE',
+					    'pickFail':'OBJECT_FELL' 
+					    }
+				)
+	  smach.StateMachine.add('NAVIGATING_2_DROPZONE', Navigating2DropZone(0.5),
+				transitions={
+					    'navigating':'NAVIGATING_2_DROPZONE',
+					    'hovering':'DROPPING_OBJECT'
+					   }
+				)
+	  smach.StateMachine.add('DROPPING_OBJECT', DroppingObject(0.5),
+				transitions={
+					    'dropping':'DROPPING_OBJECT',
+					    'dropped':'taskDone',
+					    'droppingFail':'OBJECT_FELL'
+					    }
+				)
+				
+	  smach.StateMachine.add('OBJECT_FELL', ObjectFell(0.5),
+				transitions={
+					    'canSee':'PICKING_OBJECT',
+					    'cannotSee':'ObjectFellFailure'
+					    }
+			      )			
+				
+	# End uav_worker1 state machine  
+	#*************************************
 
 
 
+
+	#*************************************
+	# Define the uav_worker2 state machine
+	with uav_worker2_sm:
+	  smach.StateMachine.add('NAVIGATING_2_OBJECT', Navigating2Object(0.5),
+				transitions={
+					    'navigating':'NAVIGATING_2_OBJECT',
+					    'reached':'PICKING_OBJECT'
+					    },
+				remapping={
+					    'navigating_2_object_in':'uav2_worker_sm_in'
+					  }
+				)
+	  smach.StateMachine.add('PICKING_OBJECT', PickingObject(0.5),
+				transitions={
+					    'descending':'PICKING_OBJECT',
+					    'picked':'NAVIGATING_2_DROPZONE',
+					    'pickFail':'OBJECT_FELL' 
+					    }
+				)
+	  smach.StateMachine.add('NAVIGATING_2_DROPZONE', Navigating2DropZone(0.5),
+				transitions={
+					    'navigating':'NAVIGATING_2_DROPZONE',
+					    'hovering':'DROPPING_OBJECT'
+					    }
+				)
+	  smach.StateMachine.add('DROPPING_OBJECT', DroppingObject(0.5),
+				transitions={
+					    'dropping':'DROPPING_OBJECT',
+					    'dropped':'taskDone',
+					    'droppingFail':'OBJECT_FELL'
+					    }
+				)
+	  smach.StateMachine.add('OBJECT_FELL', ObjectFell(0.5),
+				transitions={
+					    'canSee':'PICKING_OBJECT',
+					    'cannotSee':'ObjectFellFailure'
+					    }
+			      )				
+	# End uav_worker2 state machine  
+	#************************************
+
+
+
+
+
+    # Create the introspection server
     sis = smach_ros.IntrospectionServer('kuri_mbzirc_challenge3_state_machine_viewer', main_sm, '/kuri_mbzirc_challenge3_state_machine_root')
     sis.start()
+    
+    # Execute the main state machine
     outcome = main_sm.execute()
     rospy.spin()
     sis.stop()
