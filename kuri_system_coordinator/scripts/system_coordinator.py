@@ -25,18 +25,19 @@ import thread
 import threading
 import time
 import mavros
+import actionlib
+import smach
+import smach_ros
 
 from math import *
 from mavros.utils import *
 from mavros import setpoint as SP
 from tf.transformations import quaternion_from_euler
-import smach
-import smach_ros
 from uav_explorer_states import *
 from util_states import *
 from uav_worker_states import *
-
-
+from kuri_msgs.msg import GenerateExplorationWaypointsAction, Task
+from smach_ros import SimpleActionState
 
 def main():
     rospy.init_node('kuri_mbzirc_challenge3_state_machine')
@@ -51,6 +52,7 @@ def main():
 					    input_keys=['explorer_gps_in'],
 					    output_keys=['explorer_objects_out'] 
 					   )
+	### task allocator 
 	task_allocator_sm = smach.StateMachine(outcomes=['tasksReady','fail'],
 					    input_keys=['task_allocator_in'],
 					    output_keys=['task_allocator_out_uav1','task_allocator_out_uav2'] 
@@ -165,10 +167,12 @@ def main():
 						#},
 				    #remapping={'starting_out':'uav_gps_loc'}
 			        #)	
-	  smach.StateMachine.add('GENERATING_WAYPOINTS', GenerateWaypoints(0.5),
+	    
+	  smach.StateMachine.add('GENERATING_WAYPOINTS',  GenerateWaypoints(), 
                                transitions={
-					    'generatingWaypoints':'GENERATING_WAYPOINTS',
-                                            'waypointsGenerated':'EXPLORE_DETECT_CC'
+                                            'succeeded':'EXPLORE_DETECT_CC',
+                                            'aborted':'smth_wrong',
+                                            'preempted':'smth_wrong'
 					   },
 			       remapping={
 					  'generate_waypoints_in':'explorer_gps_in',
@@ -176,14 +180,19 @@ def main():
 					 }
 			        )
 			       
-	  explore_detect_cc = smach.Concurrence(outcomes=['finished','explore_detect','aported'],
+	  explore_detect_cc = smach.Concurrence(outcomes=['finished','aborted'],
 						default_outcome='finished',
 						outcome_map = {
-								'finished':{'EXPLORING':'hovering','DETECTING_OBJECTS':'objectsDetected'},
-								'explore_detect':{'EXPLORING':'moving2Pose','DETECTING_OBJECTS':'detectingObjects'},
-								'aported':{'EXPLORING':'exploreFailed','DETECTING_OBJECTS':'objectsDetected'},
-								'aported':{'EXPLORING':'hovering','DETECTING_OBJECTS':'detectFailed'},
-								'aported':{'EXPLORING':'exploreFailed','DETECTING_OBJECTS':'detectFailed'},
+								'finished':{'EXPLORING':'succeeded','DETECTING_OBJECTS':'succeeded'},
+								#'explore_detect':{'EXPLORING':'moving2Pose','DETECTING_OBJECTS':'detectingObjects'},
+								'aborted':{'EXPLORING':'aborted','DETECTING_OBJECTS':'succeeded'},
+								'aborted':{'EXPLORING':'succeeded','DETECTING_OBJECTS':'aborted'},
+								'aborted':{'EXPLORING':'aborted','DETECTING_OBJECTS':'aborted'},
+								'aborted':{'EXPLORING':'preempted','DETECTING_OBJECTS':'aborted'},
+								'aborted':{'EXPLORING':'preempted','DETECTING_OBJECTS':'succeeded'},
+								'aborted':{'EXPLORING':'aborted','DETECTING_OBJECTS':'preempted'},
+								'aborted':{'EXPLORING':'succeeded','DETECTING_OBJECTS':'preempted'},
+								'aborted':{'EXPLORING':'preempted','DETECTING_OBJECTS':'preempted'}
 							      }, 
 						input_keys=['explore_detect_cc_in'],
 						output_keys=['explore_detect_cc_out']
@@ -191,8 +200,8 @@ def main():
 	  smach.StateMachine.add('EXPLORE_DETECT_CC', explore_detect_cc,
 			           transitions={
 						'finished':'finally',
-						'explore_detect':'EXPLORE_DETECT_CC',
-						'aported':'smth_wrong'
+						#'explore_detect':'EXPLORE_DETECT_CC',
+						'aborted':'smth_wrong'
 					       },
 				   remapping={
 					      'explore_detect_cc_in':'waypoints',
@@ -204,12 +213,12 @@ def main():
 	  #*************************************
 	  # Define the explor_detect concurruncy
 	  with explore_detect_cc:
-	   smach.Concurrence.add('EXPLORING', Exploring(0.5),
+	   smach.Concurrence.add('EXPLORING', Exploring(),
 			       remapping={
-					  'exploring_in':'explore_detect_cc_in',
+					  'navigation_task':'explore_detect_cc_in',
 					 }
 			        )
-	   smach.Concurrence.add('DETECTING_OBJECTS', DetectingObjects(0.5),
+	   smach.Concurrence.add('DETECTING_OBJECTS', DetectingObjects(),
 			       remapping={
 					  'detecting_objects_out':'explore_detect_cc_out'
 					 }

@@ -69,6 +69,12 @@ public:
         uav1_navigator = new Navigator(1);
         uav2_navigator = new Navigator(2);
         uav3_navigator = new Navigator(3);
+        // uav1_navigator->initiator();
+        // uav2_navigator->initiator();
+        // uav3_navigator->initiator();
+        // std::cout<<"************************* Three drones are armed now ****************************"<<std::endl;
+
+
     }
 
     ~Navigation_action_server(void)
@@ -89,18 +95,21 @@ public:
         ROS_INFO("Following for uav_%d",goal.task.uav_id);
         path = goal.path;
         if(goal.task.uav_id==1){
+//        uav1_navigator->initiator();
         uav1_navigator->navigate(&actionServer,
                           feedback,
                            result,
                            path,
                            pathTrail);
         }else if(goal.task.uav_id==2){
+//            uav2_navigator->initiator();
             uav2_navigator->navigate(&actionServer,
                               feedback,
                                result,
                                path,
                                pathTrail);
         }else if(goal.task.uav_id==3){
+//            uav3_navigator->initiator();
             uav3_navigator->navigate(&actionServer,
                               feedback,
                                result,

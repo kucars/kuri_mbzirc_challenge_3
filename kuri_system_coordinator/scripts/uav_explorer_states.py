@@ -25,6 +25,7 @@ import thread
 import threading
 import time
 import mavros
+import actionlib
 
 from math import *
 from mavros.utils import *
@@ -33,15 +34,17 @@ from mavros import setpoint as SP
 from tf.transformations import quaternion_from_euler
 import smach
 import smach_ros
+from kuri_msgs.msg import GenerateExplorationWaypointsAction, Task, NavTask,NavTasks, FollowPathAction,TrackingAction
+from smach_ros import SimpleActionState
+from actionlib_msgs.msg import GoalStatus
 
-
-
-class GenerateWaypoints(smach.State):
+class GenerateWaypoints(smach_ros.SimpleActionState):
     """generates a set of waypoints for covering the entrire arena 
     Outcomes
     --------
-        generatingWaypoints : generate the set of waypoints
-        waypointsGenerated : the generation of the waypoints is done
+        succeeded : generate the set of waypoints
+        preempted : a cancel request by the client occured
+        aborted : an error occured in the exploration waypoints action server
    
     input_keys
     ----------
@@ -52,86 +55,90 @@ class GenerateWaypoints(smach.State):
 	generate_waypoints_out : a set of waypoints the UAV should pass to entirely map the arena
     """
     
-    def __init__(self,sleep_t):
-        smach.State.__init__(self, 
-			     outcomes=['generatingWaypoints','waypointsGenerated'],
-			     input_keys=['generate_waypoints_in'],
-			     output_keys=['generate_waypoints_out'])
-        self.counter = 0
-	self.sleep_t=sleep_t
+    def __init__(self):
+	smach_ros.SimpleActionState.__init__(self,'exploration_waypoints_action_server',
+						  GenerateExplorationWaypointsAction,
+						  goal_cb=self.goal_callback,
+						  result_cb=self.result_callback,
+						  #input_keys=['generate_waypoints_in'], will be added later when using really the gps data !!
+						  output_keys=['generate_waypoints_out']
+					    )
+	rospy.loginfo('Executing state generating waypoints\n\n')
 	
-    def execute(self, userdata):
-        rospy.loginfo('Executing state generating waypoints\n\n')
-        rospy.sleep(self.sleep_t)
-        if self.counter < 3:
-            self.counter += 1
-            userdata.generate_waypoints_out = 10 #userdata example
-            return 'generatingWaypoints'
+    def goal_callback(self, userdata, goal):
+	task = Task(uav_id=1)
+        return task
+      
+    def result_callback(self, userdata, status, result):
+	if status == GoalStatus.SUCCEEDED:
+	  userdata.generate_waypoints_out = result.expPath
+          return 'succeeded'
+	elif status == GoalStatus.PREEMPTED:
+	  return 'preempted'
 	else:
-	    return 'waypointsGenerated'
+	  return 'aborted'
 	  
 	  
-class Exploring(smach.State):
+class Exploring(smach_ros.SimpleActionState):
     """Explore the arena 
     Outcomes
     --------
-        move2Pose : moving to the waypoint
-        hovering : hovering at one of the waypoint 
+        succeeded : moved to the waypoint
+        preempted : a cancel request by the client occured
+        aborted : an error occured in the navigation action server
     
     input_keys
     ----------
 	exploring_in : the waypoint location (gps or local)
     """
     
-    def __init__(self,sleep_t):
-        smach.State.__init__(self, 
-			     outcomes=['moving2Pose','hovering','exploreFailed'],
-			     input_keys=['exploring_in']
-			     )
-        self.counter = 0
-	self.sleep_t=sleep_t
+    def __init__(self):
+	smach_ros.SimpleActionState.__init__(self,'navigation_action_server',
+						  FollowPathAction,
+						  goal_slots=['navigation_task'],
+						  result_cb=self.result_callback,						  
+						  input_keys=['navigation_task']  
+					    )
+	rospy.loginfo('Executing state Exploring\n\n')
+
+    def result_callback(self, userdata, status, result):
+	if status == GoalStatus.SUCCEEDED:
+          return 'succeeded'
+	elif status == GoalStatus.PREEMPTED:
+	  return 'preempted'
+	else:
+	  return 'aborted'
 	
-    def execute(self, userdata):
-        rospy.loginfo('Executing state Exploring\n\n')
-        rospy.sleep(self.sleep_t)
-        if self.counter < 3:
-            self.counter += 1
-            return 'moving2Pose'
-        else:
-            return 'hovering'
-
-	return 'exploreFailed'
-
-class DetectingObjects(smach.State):
+class DetectingObjects(smach_ros.SimpleActionState):
     """detecting the objects at the waypoints of the exploration  
     Outcomes
     --------
-        detectingObjects : execute the objects detection and tracking at the hovering place
-        objectsDetected : objects detection is done for all the waypoints
-    
-    input_keys
-    ----------
-	detecting_objects_in : uav location
+        succeeded : objects detection is done passing through the arena (exploration)
+        preempted : a cancel request by the client occured
+        aborted : an error occured in the tracker action server
 	
     output_keys
     ----------
 	detecting_objects_out : detected objects locations
     """  
-    def __init__(self,sleep_t):
-        smach.State.__init__(self, outcomes=['detectingObjects','objectsDetected','detectFailed'],
-				   output_keys=['detecting_objects_out'] )
-        self.counter = 0
-	self.sleep_t=sleep_t
+    def __init__(self):
+        smach_ros.SimpleActionState.__init__(self, 'TrackingAction',
+						    TrackingAction,
+						    goal_cb=self.goal_callback,
+						    result_cb=self.result_callback,						  
+						    output_keys=['detecting_objects_out']  
+					    )
+	rospy.loginfo('Executing state Detecting Objects\n\n')
 	
-    def execute(self, userdata):
-        rospy.loginfo('Executing state DetectingObjects\n\n')
-        rospy.sleep(self.sleep_t)
-        if self.counter < 3:
-            self.counter += 1
-            userdata.detecting_objects_out=3
-            return 'detectingObjects'
-        else:
-	    #userdata.detecting_objects_out=userdata.detecting_objects_in+1 #userdata example
-	    userdata.detecting_objects_out=3 #userdata example
-            return 'objectsDetected'
-	return 'detectFailed'
+    def goal_callback(self, userdata, goal):
+	task = Task(uav_id=1)
+        return task	
+      
+    def result_callback(self, userdata, status, result):
+	if status == GoalStatus.SUCCEEDED:
+	  userdata.detecting_objects_out = result.total_objects_tracked
+          return 'succeeded'
+	elif status == GoalStatus.PREEMPTED:
+	  return 'preempted'
+	else:
+	  return 'aborted'

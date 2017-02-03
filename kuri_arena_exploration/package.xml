@@ -2,20 +2,37 @@
 <package>
   <name>kuri_arena_exploration</name>
   <version>0.0.1</version>
-  <description>MBZIRC Object Tracking</description>
-  <maintainer email="buti.aldelail@kustar.ac.ae">Buti Al Delail</maintainer>
+  <description>MBZIRC Exploration</description>
+  <maintainer email="randa.almadhoun@gmail.com">Randa Almadhoun</maintainer>
   <license>LGPLv3</license>
   <url type="website">https://github.com/kuri-kustar/kuri_mbzirc_challenge_3/wiki</url>
 
-  <author email="buti.aldelail@kustar.ac.ae">Buti Al Delail</author>
 
   <buildtool_depend>catkin</buildtool_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>rospy</build_depend>
   <build_depend>std_msgs</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>libpcl1-dev</build_depend>
+  <build_depend>pcl_ros</build_depend>
+  <build_depend>tf</build_depend>
+  <build_depend>tf_conversions</build_depend>
+  <build_depend>eigen_conversions</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>visualization_msgs</build_depend>
+  <build_depend>kuri_msgs</build_depend>
+  <build_depend>sspp</build_depend>
   <run_depend>roscpp</run_depend>
   <run_depend>rospy</run_depend>
   <run_depend>std_msgs</run_depend>
+  <run_depend>sensor_msgs</run_depend>
+  <run_depend>libpcl1</run_depend>
+  <run_depend>pcl_ros</run_depend>
+  <run_depend>tf</run_depend>
+  <run_depend>tf_conversions</run_depend>
+  <run_depend>eigen_conversions</run_depend>
+  <run_depend>geometry_msgs</run_depend>
+  <run_depend>sspp</run_depend>
 
   <export>
   </export>

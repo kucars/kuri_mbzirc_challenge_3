@@ -1,7 +1,6 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(kuri_multi_agent_navigation)
 SET ( CMAKE_CXX_FLAGS "-frounding-math" )
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   pcl_ros
@@ -22,6 +21,7 @@ set( ROS_DISTRO $ENV{ROS_DISTRO} )
 if( ${ROS_DISTRO} STREQUAL "indigo" )
     find_package(fcl REQUIRED)
 elseif(${ROS_DISTRO} STREQUAL "kinetic")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(LIBFCL REQUIRED fcl)
 else()
@@ -60,15 +60,11 @@ include_directories(include
   ${rviz_visual_tools_INCLUDE_DIRS}
 )
 
-##################
-#    QT STUFF    #
-##################
 set(CMAKE_AUTOMOC ON)
 set(CMAKE_INCLUDE_CURRENT_DIR ON)
-find_package(Qt4 REQUIRED)
 
 # Set include directories
-include_directories(include ${QT_INCLUDES})
+include_directories(include ${catkin_INCLUDE_DIRS})
 link_directories(${PCL_LIBRARY_DIRS})
 add_definitions(${PCL_DEFINITIONS})
 
@@ -89,8 +85,6 @@ target_link_libraries(pathplanner_action_server SSPathPlanner
     -lgmp -lmpfr
     ${CGAL_LIBRARY}
     ${CGAL_Core_LIBRARY}
-    Qt4::QtGui
-    Qt4::QtCore
     ${catkin_LIBRARIES}
     ${PCL_LIBRARIES}
     ${rviz_visual_tools_LIBRARIES}
@@ -101,12 +95,14 @@ target_link_libraries(navigation_action_server SSPathPlanner
     -lgmp -lmpfr
     ${CGAL_LIBRARY}
     ${CGAL_Core_LIBRARY}
-    Qt4::QtGui
-    Qt4::QtCore
     ${catkin_LIBRARIES}
     ${PCL_LIBRARIES}
     ${rviz_visual_tools_LIBRARIES}
     )
+
+add_executable(uavs_initiator src/uavs_initiator.cpp)
+target_link_libraries(uavs_initiator ${catkin_LIBRARIES})
+
 
 #add_executable(path_follower src/pathfollower.cpp)
 #target_link_libraries(path_follower SSPathPlanner
