@@ -52,6 +52,7 @@ using namespace SSPP;
 Navigator::Navigator(int uav_id)
 {
     currentPoseSub = nh.subscribe("/uav_"+boost::lexical_cast<std::string>(uav_id)+"/mavros/local_position/pose", 1000, &Navigator::localPoseCallback, this);
+    flagPub = nh.advertise<geometry_msgs::Point> ("/uav_"+boost::lexical_cast<std::string>(uav_id)+"/flag", 10);
     // posePub        = nh.advertise<geometry_msgs::PoseStamped>("/uav_"+boost::lexical_cast<std::string>(uav_id)+"/waypoint", 10);
     stateSub = nh.subscribe<mavros_msgs::State> ("/uav_"+boost::lexical_cast<std::string>(uav_id)+"/mavros/state", 10, &Navigator::stateCallback, this);
     posePub = nh.advertise<geometry_msgs::PoseStamped> ("/uav_"+boost::lexical_cast<std::string>(uav_id)+"/mavros/setpoint_position/local", 10);
@@ -61,72 +62,24 @@ Navigator::Navigator(int uav_id)
     visualTools.reset(new rviz_visual_tools::RvizVisualTools("map","/path_following_visualisation"));
     visualTools->deleteAllMarkers();
     visualTools->setLifetime(0.2);
+
     // Make these adjustable
-    dist=0;
-    threshold2Dist=0.5;
-    count       = 0 ;
+    dist      = 0;
+    count     = 0 ;
     tolerance = 0.2;
     errorX    = 0;
     errorY    = 0;
     errorZ    = 0;
-    // initiator();
+
+    //flag to indicate that the path following finished or not
+    flag.x    = 0;
+    flag.y    = 0;
+    flag.z    = 0;
 }
 
-void Navigator::initiator()
-{
-
-
-    //the setpoint publishing rate MUST be faster than 2Hz
-    ros::Rate rate(20.0);
-
-    offbSetMode.request.custom_mode = "OFFBOARD";
-    armCmd.request.value = true;
-
-    ros::Time lastRequest = ros::Time::now();
-    ros::Time statusUpdate = ros::Time::now();
-
-    while(ros::ok())
-    {
-        if( currentState.mode != "OFFBOARD" && (ros::Time::now() - lastRequest > ros::Duration(5.0)))
-        {
-            if( setModeClient.call(offbSetMode) && offbSetMode.response.success)
-            {
-                ROS_INFO("Offboard enabled");
-            }
-            lastRequest = ros::Time::now();
-        }
-        else
-        {
-            if( !currentState.armed && (ros::Time::now() - lastRequest > ros::Duration(5.0)))
-            {
-                if( armingClient.call(armCmd) && armCmd.response.success)
-                {
-                    ROS_INFO("Vehicle armed");
-                    break;
-                }
-                lastRequest = ros::Time::now();
-            }
-            if(ros::Time::now() - statusUpdate > ros::Duration(1.0))
-            {
-                std::cout<<"Current Mode is: "<<currentState.mode<<"\n"; fflush(stdout);
-                statusUpdate = ros::Time::now();
-            }
-        }
-
-
-        ros::spinOnce();
-        rate.sleep();
-    }
-
-}
 
 void Navigator::stateCallback(const mavros_msgs::State::ConstPtr& msg){
     currentState = *msg;
-}
-
-void Navigator::startPositionCallback(const geometry_msgs::PoseStamped& msg)
-{
-    currentPose = msg.pose;
 }
 
 void Navigator::localPoseCallback(const geometry_msgs :: PoseStamped :: ConstPtr& msg)
@@ -210,14 +163,23 @@ void Navigator::navigate(actionlib::SimpleActionServer<kuri_msgs::FollowPathActi
     ros::Time lastRequest = ros::Time::now();
     ros::Time statusUpdate = ros::Time::now();
 
+    flag.x = 0;
+    flag.y = 0;
+    flag.z = 0;
+
     while(ros::ok())
     {
-        // ROS_INFO("Current Pose x:%f y:%f z:%f",currentPose.position.x,currentPose.position.y,currentPose.position.z);
+        //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        //PROBLEM:
+        // using offboard mode and arming the drone requires publishing a position, once we stop
+        // publishing a position the drone disarms and failsafe mode executes (doing landing)!!!
+        // which means once the path is followed successfully, we stop publishing positions
+        //so the drone lands (disarms), how to keep it armed ??!!!!!!!!
 
-        //PROBLEM: using offboard mode and arming the drone requires publishing a position, once we stop publishing a position the drone disarms and failsafe mode executes (doing landing)!!!!!!!!!!!
-        // which means once the path is followed successfully, we stop publishing positions so the drone lands (disarms), how to keep it armed ??!!!!!!!!
-
-        // used another node (uavs_initiator.cpp) instead of the below commented lines to keep node working but still the same problem occurs
+        // TEMP SOLUTION:
+        //used another node (uavs_initiator.cpp) instead of the below commented lines to keep node working
+        // and I used a flag that gets set and published when the path following succeed
+        //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 
         //        if( currentState.mode != "OFFBOARD" && (ros::Time::now() - lastRequest > ros::Duration(5.0)))
         //        {
@@ -261,6 +223,13 @@ void Navigator::navigate(actionlib::SimpleActionServer<kuri_msgs::FollowPathActi
             actionServer->setSucceeded(result);
             std::cout<<"path Trail points size: "<<pathTrail.poses.size()<<std::endl;
             std::cout<<"path points size: "<<path.poses.size()<<std::endl;
+            flag.x = goalPose.pose.position.x;
+            flag.y = goalPose.pose.position.y;
+            flag.z = goalPose.pose.position.z;
+
+            //Publish the flag 10 times just to make sure the other node listens to the messages
+            for(int i = 0 ; i<10; i++)
+                flagPub.publish(flag);
             //Problem : FCU Failsaif mode turns on when the code  break
             break;
         }
@@ -276,6 +245,7 @@ void Navigator::navigate(actionlib::SimpleActionServer<kuri_msgs::FollowPathActi
         }
 
         posePub.publish(goalPose);
+        flagPub.publish(flag);
         ROS_INFO("Published Pose x:%f y:%f z:%f",path.poses[count].pose.position.x,path.poses[count].pose.position.y,path.poses[count].pose.position.z);
 
         ros::spinOnce();

@@ -58,6 +58,7 @@ class Navigator
 public:
     ros::NodeHandle nh;
     ros::Publisher  posePub;
+    ros::Publisher  flagPub;
     ros::Subscriber currentPoseSub;
     ros::Subscriber stateSub;
     ros::ServiceClient armingClient;
@@ -76,12 +77,12 @@ public:
     std::vector<geometry_msgs::Point> pathSegments;
     geometry_msgs::PoseArray robotPose;
     geometry_msgs::Point linePoint;
-    double dist,threshold2Dist;
+    double dist;
     rviz_visual_tools::RvizVisualToolsPtr visualTools;
 
-	geometry_msgs::Pose endPose;
-	geometry_msgs::Pose target_coord;
-	kuri_msgs::Tasks tasks;
+    geometry_msgs::Pose endPose;
+    geometry_msgs::Pose target_coord;
+    kuri_msgs::Tasks tasks;
 
     geometry_msgs::Point        real;
     geometry_msgs::PoseArray    waypoints;
@@ -92,8 +93,8 @@ public:
     float errorX;
     float errorY;
     float errorZ;
+    geometry_msgs::Point flag;
 
-    void startPositionCallback(const geometry_msgs::PoseStamped& msg);
     void navTasksCallback(const kuri_msgs::Tasks newtasks);
     void stateCallback(const mavros_msgs::State::ConstPtr& msg);
     void localPoseCallback(const geometry_msgs :: PoseStamped :: ConstPtr& msg);
@@ -104,8 +105,7 @@ public:
                   kuri_msgs::FollowPathResult   result,
                   nav_msgs::Path path,
                   nav_msgs::Path pathTrail);
-    void initiator();
-//~Navigator(void);
+    //~Navigator(void);
 
 };
 
