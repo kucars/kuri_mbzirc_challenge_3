@@ -60,7 +60,8 @@ class GenerateWaypoints(smach_ros.SimpleActionState):
 						  GenerateExplorationWaypointsAction,
 						  goal_cb=self.goal_callback,
 						  result_cb=self.result_callback,
-						  #input_keys=['generate_waypoints_in'], will be added later when using really the gps data !!
+						  #TODO: the input key will be added later when using really the gps data (now I'm defining the start in the code)
+						  input_keys=['generate_waypoints_in'], 
 						  output_keys=['generate_waypoints_out']
 					    )
 	rospy.loginfo('Executing state generating waypoints\n\n')
@@ -125,7 +126,7 @@ class DetectingObjects(smach_ros.SimpleActionState):
         smach_ros.SimpleActionState.__init__(self, 'TrackingAction',
 						    TrackingAction,
 						    goal_cb=self.goal_callback,
-						    result_cb=self.result_callback,						  
+						    result_cb=self.result_callback,
 						    output_keys=['detecting_objects_out']  
 					    )
 	rospy.loginfo('Executing state Detecting Objects\n\n')
@@ -141,4 +142,4 @@ class DetectingObjects(smach_ros.SimpleActionState):
 	elif status == GoalStatus.PREEMPTED:
 	  return 'preempted'
 	else:
-	  return 'aborted'
+	  return 'aborted'	

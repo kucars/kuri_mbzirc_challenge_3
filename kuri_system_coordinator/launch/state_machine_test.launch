@@ -1,0 +1,45 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="paused" default="false"/>
+  <arg name="debug" default="false"/>
+  <arg name="gui" default="true" />
+  <arg name="headless" default="true"/>
+  <arg name="enable_logging" default="false"/>
+  <arg name="enable_ground_truth" default="true"/>
+  <arg name="ns" default="Change_Me"/>
+  <arg name="log_file" default="$(arg ns)"/>
+  
+   <!-- launching the action servers -->
+  <arg name="run_demo" default="true" />
+  <group if="$(arg run_demo)" >
+    <node pkg="kuri_multi_agent_navigation" type="uavs_initiator" name="uavs_initiator"/>
+    <node pkg="kuri_arena_exploration" type="exploration_waypoints_action_server" name="exploration_waypoints_action_server" />
+    <node pkg="kuri_object_tracking" type="tracking_action_server.py" name="tracking_action_server" />
+    <node pkg="kuri_task_allocation" type="task_allocator_action_server.py" name="task_allocator_action_server" />
+    <node pkg="kuri_multi_agent_navigation" type="navigation_action_server" name="navigation_action_server"/> 
+    <node pkg="kuri_multi_agent_navigation" type="pathplanner_action_server" name="pathplanner_action_server"/>  
+<!--    <node pkg="kuri_objects_mapping" type="mapping_action_server" name="objects_mapping"/>     still not completed-->
+   </group> 
+    
+  <!-- launching the environment -->
+  <include file="$(find kuri_mbzirc_sim)/launch/mavros_posix_sitl_px4_ch3.launch">
+    <arg name="screen" value="log"/>
+  </include>
+
+  <!-- launching the state machine (you can launch it seperately better -->
+<!--	***********************************************************************
+	* choose one of these modes for state machine testing mode argument:  *
+	*  1- normalRun 		: runs the normal scenario            *
+        *  2- testExplorer 		: test explorer states		      *
+        *  3- tastTaskAllocator 	: test task allocator	              *
+        *  4- testUAVWorkers 		: test the uav workers concurrent     *
+	*********************************************************************** --> 
+  <node pkg="kuri_system_coordinator" type="system_coordinator.py" name="system_coordinator" output="screen" args="normalRun" />  
+
+
+  <!-- launching the rviz if wanted -->
+  <group unless="$(arg headless)" >
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find kuri_system_coordinator)/config/integration_test.rviz"/>
+  </group>
+  
+</launch>
