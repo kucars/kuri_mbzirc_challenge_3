@@ -58,7 +58,7 @@ class TrackingServer:
          success = False
          return
      if self.tracking == None:
-	 self.tracking = object_tracking(self)
+	 self.tracking = object_tracking(self,goal)
      self._feedback.tracked_objects = Objects()
      self._feedback.tracked_objects = self.tracking.obstacles #self.total_objects
      # publish the feedback

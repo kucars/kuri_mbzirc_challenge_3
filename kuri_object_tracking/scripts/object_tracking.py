@@ -66,9 +66,10 @@ from tracking_action_server import TrackingServer
 class object_tracking:
 
   
-  def __init__(self, actionServer):
+  def __init__(self, actionServer, goal):
     #cv2.namedWindow("Tracker", cv2.CV_WINDOW_AUTOSIZE)
-    self.image_pub = rospy.Publisher("/uav_3/downward_cam/image_output",Image, queue_size=10)
+    self.goal = goal
+    self.image_pub = rospy.Publisher("/uav_"+str(goal.uav_id)+"/downward_cam/image_output",Image, queue_size=10)
 
     self.obstacles = Objects()
     self.map = ObjectsMap()
@@ -78,8 +79,8 @@ class object_tracking:
     self.edgeThresholdSize = 40
     self.object_number = 1
     self.bridge = CvBridge()
-    self.image_sub = rospy.Subscriber("/uav_3/downward_cam/camera/image",Image,self.callback)
-    mavros.set_namespace('/uav_3/mavros')
+    self.image_sub = rospy.Subscriber("/uav_"+str(goal.uav_id)+"/downward_cam/camera/image",Image,self.callback)
+    mavros.set_namespace('/uav_'+str(goal.uav_id)+'/mavros')
     self.currentPoseX = -1
     self.currentPoseY = -1
     self.currentPoseZ = -1
@@ -127,7 +128,8 @@ class object_tracking:
       newObject.width = width
       newObject.height = height
       newObject.color = color
-      newObject.obj_id = self.object_number
+      #TODO: #(object msg doesn't include obj_id )
+      #newObject.obj_id = self.object_number 
       self.obstacles.objects.append(newObject)
       if self.actionServer.hasGoal:
           self.actionServer.update(self.obstacles, self.object_number + 1)
