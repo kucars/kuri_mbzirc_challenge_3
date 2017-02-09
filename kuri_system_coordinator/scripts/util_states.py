@@ -54,6 +54,7 @@ class InitTestingMode(smach.State):
     input_keys
     ----------
 	testing_type_in : the chosen testing mode type
+	tasks : tasks that will be given to the path generator
 	
     output_keys
     ----------
@@ -245,15 +246,21 @@ class ObjectFell(smach.State):
 
 
 class GeneratePaths(smach_ros.SimpleActionState):
-    """ navigating to the object location according to the given task 
+    """ paths generator that recives tasks and generate nav tasks for each uav 
     Outcomes
     --------
-        navigating : going to the hovering position of the object
-        reached : reached the hovering place of the object
+        succeeded : generated paths (nav task for each uav) successfully
+        preempted : a cancel request by the client occured
+        aborted : an error occured in the path generator action server
 	
     input_keys
     ----------
-	navigating_2_object_in : the given task by the task allocator ( I'll assume it gives object position )
+	tasks : The allocated tasks
+
+    output_keys
+    ----------
+	generating_navpaths_uav1_out : The generated nav task for first uav
+	generating_navpaths_uav2_out : The generated nav task for second uav
     """  
     def __init__(self):
 	smach_ros.SimpleActionState.__init__(self,'path_planner_action_server',

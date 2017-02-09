@@ -81,7 +81,11 @@ class NavTasksLoop(smach.State):
 	
     input_keys
     ----------
-	navigation_task : the given tasks by the path generator (NavTasks)
+	looping_in : the given tasks by the path generator (NavTasks)
+
+    input_keys
+    ----------
+	looping_out : one of the nav tasks given to the uav (this will be passed to the uav Navigating2Object state)	
     """  
     def __init__(self):
 	smach.State.__init__(self, outcomes=['loopFinished','looping'],input_keys=['looping_in'], output_keys=['looping_out'])
@@ -106,12 +110,13 @@ class Navigating2Object(smach_ros.SimpleActionState):
     """ navigating to the object location according to the given task 
     Outcomes
     --------
-        navigating : going to the hovering position of the object
-        reached : reached the hovering place of the object
+        succeeded : finished following the path 
+        preempted : a cancel request by the client occured
+        aborted : an error occured in the navigation action server        
 	
     input_keys
     ----------
-	navigation_task : the given task by the task allocator (NavTask)
+	navigation_task : the given task by the path generator (NavTask)
     """  
     def __init__(self,actionServerNS):
 	smach_ros.SimpleActionState.__init__(self,actionServerNS,
