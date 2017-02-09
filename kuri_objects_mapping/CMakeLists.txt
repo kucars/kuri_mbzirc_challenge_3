@@ -6,9 +6,20 @@ find_package(catkin REQUIRED COMPONENTS
   rospy
   std_msgs
   genmsg actionlib_msgs actionlib
+  geometry_msgs
+  nav_msgs
+  sensor_msgs
+  message_generation
+  kuri_msgs
 )
 
-# find_package(Boost REQUIRED COMPONENTS system)
+
+
+find_package(OpenCV REQUIRED)
+## System dependencies are found with CMake's conventions
+find_package(Boost REQUIRED COMPONENTS system)
+
+
 
 
 ## Uncomment this if the package has a setup.py. This macro ensures
@@ -42,10 +53,10 @@ find_package(catkin REQUIRED COMPONENTS
 
 ## Generate messages in the 'msg' folder
 # add_message_files(
-#   FILES
+#  FILES
 #   Message1.msg
 #   Message2.msg
-# )
+ #)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -55,18 +66,17 @@ find_package(catkin REQUIRED COMPONENTS
 # )
 
 ## Generate actions in the 'action' folder
-# add_action_files(
-#   FILES
-#   Action1.action
+ #add_action_files(
+   #FILES
+   #kuri_msgs/Mapping.action
 #   Action2.action
-# )
-#add_action_files(DIRECTORY action FILES Explore.action)
-#generate_messages(DEPENDENCIES actionlib_msgs)
+ #)
+
 ## Generate added messages and services with any dependencies listed here
-# generate_messages(
-#   DEPENDENCIES
-#   std_msgs
-# )
+generate_messages(
+   DEPENDENCIES
+   std_msgs geometry_msgs nav_msgs actionlib_msgs # Or other packages containing msgs
+)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -83,10 +93,10 @@ find_package(catkin REQUIRED COMPONENTS
 ##     and list every .cfg file to be processed
 
 ## Generate dynamic reconfigure parameters in the 'cfg' folder
-# generate_dynamic_reconfigure_options(
+ #generate_dynamic_reconfigure_options(
 #   cfg/DynReconf1.cfg
 #   cfg/DynReconf2.cfg
-# )
+ #)
 
 ###################################
 ## catkin specific configuration ##
@@ -99,8 +109,8 @@ find_package(catkin REQUIRED COMPONENTS
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
 #  INCLUDE_DIRS include
-#  LIBRARIES beginner_tutorials
-#  CATKIN_DEPENDS roscpp rospy std_msgs
+#  LIBRARIES sar_haptic
+  CATKIN_DEPENDS roscpp rospy std_msgs geometry_msgs nav_msgs actionlib actionlib_msgs
 #  DEPENDS system_lib
 )
 
@@ -111,32 +121,42 @@ catkin_package(
 ## Specify additional locations of header files
 ## Your package locations should be listed before other locations
 # include_directories(include)
-include_directories(
+
+#add_library(
+  #src/plugins/distance_sensor.cpp
+  #src/plugins/px4flow.cpp
+  #src/plugins/mocap_pose_estimate.cpp
+  #src/plugins/mocap_fake_gps.cpp
+  #src/plugins/vision_pose_estimate.cpp
+  #src/plugins/vision_speed_estimate.cpp
+  #src/plugins/vibration.cpp
+ # src/plugins/cam_imu_sync.cpp
+#)
+
+include_directories(include
   ${catkin_INCLUDE_DIRS}
+  ${Eigen_INCLUDE_DIRS}
+  ${mavlink_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIRS}
 )
 
 ## Declare a C++ library
-# add_library(beginner_tutorials
-#   src/${PROJECT_NAME}/beginner_tutorials.cpp
+# add_library(sar_haptic
+#   src/${PROJECT_NAME}/sar_haptic.cpp
 # )
 
 ## Add cmake target dependencies of the library
 ## as an example, code may need to be generated before libraries
 ## either from message generation or dynamic reconfigure
-# add_dependencies(beginner_tutorials ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# add_dependencies(sar_haptic ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-## Declare a C++ executable
-# add_executable(beginner_tutorials_node src/beginner_tutorials_node.cpp)
 
-## Add cmake target dependencies of the executable
-## same as for the library above
-# add_dependencies(beginner_tutorials_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+add_executable(action_map_server src/action_server_occupancy_mapping.cpp  src/occupancy_mapping.cpp include/occupancy_mapping.h )
+add_dependencies(action_map_server  ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
+target_link_libraries(action_map_server  ${catkin_LIBRARIES} )
 
-## Specify libraries to link a library or executable target against
-# target_link_libraries(beginner_tutorials_node
-#   ${catkin_LIBRARIES}
-# )
 
+## target_link_libraries(camera ${catkin_LIBRARIES} )
 #############
 ## Install ##
 #############
@@ -152,7 +172,7 @@ include_directories(
 # )
 
 ## Mark executables and/or libraries for installation
-# install(TARGETS beginner_tutorials beginner_tutorials_node
+# install(TARGETS sar_haptic sar_haptic_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
@@ -177,10 +197,15 @@ include_directories(
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_beginner_tutorials.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_sar_haptic.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()
 
 ## Add folders to be run by python nosetests
+
 # catkin_add_nosetests(test)
+
+
+
+
