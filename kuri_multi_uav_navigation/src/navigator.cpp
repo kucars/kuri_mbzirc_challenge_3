@@ -70,7 +70,7 @@ Navigator::Navigator(int uav_id)
     errorX    = 0;
     errorY    = 0;
     errorZ    = 0;
-
+    uav_i     =uav_id;
     //flag to indicate that the path following finished or not
     flag.x    = 0;
     flag.y    = 0;
@@ -97,7 +97,7 @@ void Navigator::localPoseCallback(const geometry_msgs :: PoseStamped :: ConstPtr
         count++;
         if(count<waypoints.poses.size())
         {
-            ROS_INFO("Sending a New WayPoint(x,y,z):(%g,%g,%g)",waypoints.poses[count].position.x,waypoints.poses[count].position.y,waypoints.poses[count].position.z);
+            ROS_INFO("UAV %i : Sending a New WayPoint(x,y,z):(%g,%g,%g)",uav_i,waypoints.poses[count].position.x,waypoints.poses[count].position.y,waypoints.poses[count].position.z);
             goalPose.pose.position.x = waypoints.poses[count].position.x;
             goalPose.pose.position.y = waypoints.poses[count].position.y;
             goalPose.pose.position.z = waypoints.poses[count].position.z;
@@ -163,9 +163,9 @@ void Navigator::navigate(actionlib::SimpleActionServer<kuri_msgs::FollowPathActi
     ros::Time lastRequest = ros::Time::now();
     ros::Time statusUpdate = ros::Time::now();
 
-    flag.x = 0;
-    flag.y = 0;
-    flag.z = 0;
+    //    flag.x = 0;
+    //    flag.y = 0;
+    //    flag.z = 0;
 
     while(ros::ok())
     {
@@ -215,7 +215,7 @@ void Navigator::navigate(actionlib::SimpleActionServer<kuri_msgs::FollowPathActi
             result.success = false;
             break;
         }
-        std::cout<<"count : "<<count<<" path: "<<path.poses.size()-1<<std::endl;
+        std::cout<<"uav "<<uav_i<<" count : "<<count<<" path: "<<path.poses.size()-1<<std::endl;
         if(count>(path.poses.size()-1))
         {
             ROS_INFO("%s: Succeeded", actionName.c_str());
@@ -246,7 +246,7 @@ void Navigator::navigate(actionlib::SimpleActionServer<kuri_msgs::FollowPathActi
 
         posePub.publish(goalPose);
         flagPub.publish(flag);
-        ROS_INFO("Published Pose x:%f y:%f z:%f",path.poses[count].pose.position.x,path.poses[count].pose.position.y,path.poses[count].pose.position.z);
+        ROS_INFO("UAV %i :Published Pose x:%f y:%f z:%f",uav_i,path.poses[count].pose.position.x,path.poses[count].pose.position.y,path.poses[count].pose.position.z);
 
         ros::spinOnce();
         loopRate.sleep();

@@ -93,6 +93,7 @@ public:
     float errorX;
     float errorY;
     float errorZ;
+    int uav_i;
     geometry_msgs::Point flag;
 
     void navTasksCallback(const kuri_msgs::Tasks newtasks);

@@ -186,7 +186,7 @@ class object_tracking:
             if self.nearEdge2(ob) != True:
                 new_tracker = object_tracker(ob[0] - ob[2]/2, ob[1] - ob[3] / 2, ob[2], ob[3], self.object_number)
                 self.tracked_objects.append(new_tracker)
-                self.addObject(self.pose, 0, ob[2], ob[3], 'RED')
+                self.addObject(self.pose, 0, ob[2], ob[3], 'red')
                 self.object_number = self.object_number + 1
             
     

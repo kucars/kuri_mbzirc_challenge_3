@@ -29,9 +29,10 @@
 
 using namespace SSPP;
 
-PathGenerator::PathGenerator(void)
+PathGenerator::PathGenerator()
 {
-
+    searchSpacePub    = nh.advertise<visualization_msgs::Marker>("search_space", 10);
+    connectionsPub    = nh.advertise<visualization_msgs::Marker>("connections", 10);
 }
 
 void PathGenerator::uav1_startPositionCallback(const geometry_msgs::PoseStamped& msg)
@@ -56,9 +57,9 @@ void PathGenerator::navTasksCallback(const kuri_msgs::Tasks newtasks) {
 kuri_msgs::NavTasks PathGenerator::generatePaths(const kuri_msgs::Tasks newtasks)
 {
     tasks = newtasks;
-    ros::Subscriber uav1_currentPoseSub = nh.subscribe("/uav_1/mavros/local_position/pose", 1, &PathGenerator::uav1_startPositionCallback,this);
-    ros::Subscriber uav2_currentPoseSub = nh.subscribe("/uav_2/mavros/local_position/pose", 1, &PathGenerator::uav2_startPositionCallback,this);
-    ros::Subscriber uav3_currentPoseSub = nh.subscribe("/uav_3/mavros/local_position/pose", 1, &PathGenerator::uav3_startPositionCallback,this);
+    ros::Subscriber uav1_currentPoseSub = nh.subscribe("/uav_1/mavros/local_position/pose", 100, &PathGenerator::uav1_startPositionCallback,this);
+    ros::Subscriber uav2_currentPoseSub = nh.subscribe("/uav_2/mavros/local_position/pose", 100, &PathGenerator::uav2_startPositionCallback,this);
+    ros::Subscriber uav3_currentPoseSub = nh.subscribe("/uav_3/mavros/local_position/pose", 100, &PathGenerator::uav3_startPositionCallback,this);
     //ros::Subscriber taskSub = nh.subscribe("kuri_msgs/Tasks", 1, &PathGenerator::navTasksCallback,this);
     //ros::Publisher posePub = nh.advertise<geometry_msgs::PoseStamped>("/uav_1/mavros/setpoint_position/local", 10);
     rviz_visual_tools::RvizVisualToolsPtr visualTools;
@@ -69,22 +70,17 @@ kuri_msgs::NavTasks PathGenerator::generatePaths(const kuri_msgs::Tasks newtasks
     ros::Time timer_start = ros::Time::now();
     geometry_msgs::Pose gridStartPose;
     geometry_msgs::Vector3 gridSize;
-    //    gridStartPose.position.x = -50;
-    //    gridStartPose.position.y = -30;
-    gridStartPose.position.x = 0;
-    gridStartPose.position.y = 0;
-
+    gridStartPose.position.x = -45;
+    gridStartPose.position.y = -30;
     gridStartPose.position.z = 0;
-    //Dhanhani: including start to drop zone the arena is 140 x 60
-    //gridSize.x = 12;
-    //gridSize.y = 6;
-    gridSize.x = 70;
-    gridSize.y = 70;
+    //THE ARENA SIZE IS is 90 x 60
+    gridSize.x = 90;
+    gridSize.y = 60;
     gridSize.z = 20;
     PathPlanner * pathPlanner;
 
     double robotH = 0.9, robotW = 0.5, narrowestPath = 0.987;
-    double distanceToGoal = 1.5, regGridConRad = 3;
+    double distanceToGoal = 2, regGridConRad = 3;//distanceToGoal = 1.5
     double gridRes = 2;
 
     geometry_msgs::Point robotCenter;
@@ -106,6 +102,7 @@ kuri_msgs::NavTasks PathGenerator::generatePaths(const kuri_msgs::Tasks newtasks
     pathPlanner->generateRegularGrid(gridStartPose, gridSize, gridRes, false);
     std::vector<geometry_msgs::Point> searchSpaceNodes = pathPlanner->getSearchSpace();
     std::cout<<"\n\n---->>> Total Nodes in search Space ="<<searchSpaceNodes.size();
+    visualization_msgs::Marker searchSpaceMarker = drawPoints(searchSpaceNodes,2,1000000);
 
     // Connect nodes and visualise it
     pathPlanner->setMultiAgentSupport(true);
@@ -113,6 +110,9 @@ kuri_msgs::NavTasks PathGenerator::generatePaths(const kuri_msgs::Tasks newtasks
     std::cout<<"\nSpace Generation took:"<<double(ros::Time::now().toSec() - timer_start.toSec())<<" secs";
     std::vector<geometry_msgs::Point> searchSpaceConnections = pathPlanner->getConnections();
     visualTools->publishPath(searchSpaceConnections, rviz_visual_tools::BLUE, rviz_visual_tools::LARGE, "search_space");
+    visualization_msgs::Marker connectionsMarker = drawLines(searchSpaceConnections,10000,3,100000000,0.03);
+    searchSpacePub.publish(searchSpaceMarker);
+    connectionsPub.publish(connectionsMarker);
 
     //pathPlanner->disconnectNodes();
     std::cout<<"\n Nodes are now disconnected";
@@ -194,9 +194,9 @@ kuri_msgs::NavTasks PathGenerator::generatePaths(const kuri_msgs::Tasks newtasks
             }
             ROS_INFO("New Destination(x,y,z): (%g,%g,%g) Current Location(x,y,z): (%g,%g,%g)", currentObj.pose.pose.position.x, currentObj.pose.pose.position.y, currentObj.pose.pose.position.z, currentPose.position.x, currentPose.position.y, currentPose.position.z);
             // ToFix: make sure currentPose was acctualy updated before generating the path
-            Pose start(currentPose.position.x, currentPose.position.y, 10.0, DTOR(0.0));
+            Pose start(currentPose.position.x, currentPose.position.y, 10, DTOR(0.0));//it was currentPose.position.z = 10
             //To allow visual servoying assisted landing, always hover at predefined z: 10m
-            Pose end(currentObj.pose.pose.position.x, currentObj.pose.pose.position.y, 10, DTOR(0.0));
+            Pose end(currentObj.pose.pose.position.x, currentObj.pose.pose.position.y, 10, DTOR(0.0));//it was z=10
 
             distanceHeuristic.setEndPose(end.p);
             ROS_INFO("Starting search");

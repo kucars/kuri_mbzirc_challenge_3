@@ -53,7 +53,7 @@ class actionAllocator(object):
         def callback(data):
             # Just to make picking random colors and types easier
             WeightOfObject = 1  # Later below I will replace this with the score of the object to calculated weighted distances
-            Color = ['R', 'G', 'B']
+            Color = ['red', 'green', 'blue','yellow', 'orange']
             Type = ['Large', 'Small', 'Accelerating']
 
             # Extract the content I want from the Kuri-message format and insert it into a global array

@@ -16,11 +16,23 @@
     <node pkg="kuri_arena_exploration" type="exploration_waypoints_action_server" name="exploration_waypoints_action_server" />
     <node pkg="kuri_object_tracking" type="tracking_action_server.py" name="tracking_action_server" />
     <node pkg="kuri_task_allocation" type="task_allocator_action_server.py" name="task_allocator_action_server" />
-    <node pkg="kuri_multi_agent_navigation" type="navigation_action_server" name="navigation_action_server"/> 
     <node pkg="kuri_multi_agent_navigation" type="pathplanner_action_server" name="pathplanner_action_server"/>  
 <!--    <node pkg="kuri_objects_mapping" type="mapping_action_server" name="objects_mapping"/>     still not completed-->
    </group> 
-    
+   
+   <!-- launching the action servers for three different uavs to run in parallel -->   
+  <group ns="uav_1" >
+    <node pkg="kuri_multi_agent_navigation" type="navigation_action_server" name="navigation_action_server" args="navigation_action_server1 1" output="screen"/> 
+   </group>    
+  <group ns="uav_2" >
+    <node pkg="kuri_multi_agent_navigation" type="navigation_action_server" name="navigation_action_server" args="navigation_action_server2 2" output="screen"/> 
+   </group> 
+  <group ns="uav_3" >
+    <node pkg="kuri_multi_agent_navigation" type="navigation_action_server" name="navigation_action_server" args="navigation_action_server3 3" output="screen"/> 
+   </group> 
+
+
+   
   <!-- launching the environment -->
   <include file="$(find kuri_mbzirc_sim)/launch/mavros_posix_sitl_px4_ch3.launch">
     <arg name="screen" value="log"/>
