@@ -31,6 +31,9 @@ mavros_msgs::State current_state3;
 geometry_msgs::PoseStamped pose1;
 geometry_msgs::PoseStamped pose2;
 geometry_msgs::PoseStamped pose3;
+geometry_msgs::PoseStamped pose1Copy;
+geometry_msgs::PoseStamped pose2Copy;
+geometry_msgs::PoseStamped pose3Copy;
 geometry_msgs::Point flag_1;
 geometry_msgs::Point flag_2;
 geometry_msgs::Point flag_3;
@@ -133,6 +136,18 @@ int main(int argc, char **argv)
     }
 
 
+    pose1Copy.pose.position.x=0;
+    pose1Copy.pose.position.y=0;
+    pose1Copy.pose.position.z=10;
+
+    pose2Copy.pose.position.x=2;
+    pose2Copy.pose.position.y=2;
+    pose2Copy.pose.position.z=10;
+
+    pose3Copy.pose.position.x=-2;
+    pose3Copy.pose.position.y=-2;
+    pose3Copy.pose.position.z=10;
+
     mavros_msgs::SetMode offb_set_mode;
     offb_set_mode.request.custom_mode = "OFFBOARD";
 
@@ -142,6 +157,11 @@ int main(int argc, char **argv)
     ros::Time last_request = ros::Time::now();
     int r = 0;
     flag_1.x = 0;
+    bool takeoffF = false;
+    bool publishF1 = false;
+    bool publishF2 = false;
+    bool publishF3 = false;
+
     while(ros::ok()){
         if(  (current_state1.mode != "OFFBOARD" && (ros::Time::now() - last_request > ros::Duration(5.0)))  &&
              (current_state2.mode != "OFFBOARD" && (ros::Time::now() - last_request > ros::Duration(5.0))) &&
@@ -175,11 +195,25 @@ int main(int argc, char **argv)
             }
         }
 
+        if(!publishF1)
+        {
+            local_pos_pub1.publish(pose1Copy);
+        } else  std::cout<<"***********UAV1 moving***********"<<std::endl;
+        if(!publishF2)
+        {
+            local_pos_pub2.publish(pose2Copy);
+        } else  std::cout<<"***********UAV2 moving***********"<<std::endl;
+        if(!publishF3)
+        {
+            local_pos_pub3.publish(pose3Copy);
+        } else  std::cout<<"***********UAV3 moving***********"<<std::endl;
+
         if(flag_1.x != 0 && flag_1.y != 0 && flag_1.z != 0){
             pose1.pose.position.x=flag_1.x;
             pose1.pose.position.y=flag_1.y;
             pose1.pose.position.z=flag_1.z;
             local_pos_pub1.publish(pose1);
+            publishF1=true;
         }
 
         if(flag_2.x != 0 && flag_2.y != 0 && flag_2.z != 0)
@@ -188,14 +222,18 @@ int main(int argc, char **argv)
             pose2.pose.position.y=flag_2.y;
             pose2.pose.position.z=flag_2.z;
             local_pos_pub2.publish(pose2);
+            publishF2=true;
         }
+
         if(flag_3.x != 0 && flag_3.y != 0 && flag_3.z != 0)
         {
             pose3.pose.position.x=flag_3.x;
             pose3.pose.position.y=flag_3.y;
             pose3.pose.position.z=flag_3.z;
             local_pos_pub3.publish(pose3);
+            publishF3=true;
         }
+
 
 
         ros::spinOnce();

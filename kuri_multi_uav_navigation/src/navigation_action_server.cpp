@@ -48,9 +48,10 @@ class Navigation_action_server
 {
 public:
 
-    Navigation_action_server(std::string name) :
+    Navigation_action_server(std::string name, int uav_id) :
         actionServer(nh, name, false),
-        actionName(name)
+        actionName(name),
+        uav_i(uav_id)
     {
         //register the goal and feeback callbacks
         actionServer.registerGoalCallback(boost::bind(&Navigation_action_server::goalCB, this));
@@ -66,9 +67,7 @@ public:
         // Make these adjustable
         dist=0;
         threshold2Dist=0.5;
-        uav1_navigator = new Navigator(1);
-        uav2_navigator = new Navigator(2);
-        uav3_navigator = new Navigator(3);
+        uav_navigator = new Navigator(uav_i);
 
     }
 
@@ -89,27 +88,17 @@ public:
         goal = actionServer.acceptNewGoal()->navigation_task;
         ROS_INFO("Following for uav_%d",goal.task.uav_id);
         path = goal.path;
-        if(goal.task.uav_id==1){
-        uav1_navigator->navigate(&actionServer,
+        if(goal.task.uav_id==1 || goal.task.uav_id==2 || goal.task.uav_id==3){
+        uav_navigator->navigate(&actionServer,
                           feedback,
                            result,
                            path,
                            pathTrail);
-        }else if(goal.task.uav_id==2){
-            uav2_navigator->navigate(&actionServer,
-                              feedback,
-                               result,
-                               path,
-                               pathTrail);
-        }else if(goal.task.uav_id==3){
-            uav3_navigator->navigate(&actionServer,
-                              feedback,
-                               result,
-                               path,
-                               pathTrail);
-        }else{
+        }
+        else{
             ROS_INFO("uav_id is incorrect");
         }
+
     }
 
     void preemptCB()
@@ -208,15 +197,17 @@ protected:
     geometry_msgs::Point linePoint;
     double dist,threshold2Dist;
     rviz_visual_tools::RvizVisualToolsPtr visualTools;
-    Navigator* uav1_navigator;
-    Navigator* uav2_navigator;
-    Navigator* uav3_navigator;
+    Navigator* uav_navigator;
+    int uav_i;
+
 };
 
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "navigation_action_server");
-    Navigation_action_server navigation_action_server(ros::this_node::getName());
+    int id = atoi( argv[2] );
+    Navigation_action_server navigation_action_server1(argv[1],id);
+
     ros::spin();
     return 0;
 }

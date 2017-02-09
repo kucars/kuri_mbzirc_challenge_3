@@ -25,14 +25,20 @@ import thread
 import threading
 import time
 import mavros
+import smach
+import smach_ros
+import actionlib
 
 from math import *
 from mavros.utils import *
 from geometry_msgs.msg import *
 from mavros import setpoint as SP
 from tf.transformations import quaternion_from_euler
-import smach
-import smach_ros
+from kuri_msgs.msg import GenerateExplorationWaypointsAction, Task, NavTask,NavTasks, FollowPathAction,TrackingAction, GeneratePathsAction
+from smach_ros import SimpleActionState
+from actionlib_msgs.msg import GoalStatus
+
+
 
 
 class WaitingForTask(smach.State):## unnecessary state (in my opinion)
@@ -65,8 +71,38 @@ class WaitingForTask(smach.State):## unnecessary state (in my opinion)
         else:
 	    userdata.waiting_for_tasks_out = userdata.waiting_for_tasks_in + 1 #userdata example
             return 'ready'
+	  
+class NavTasksLoop(smach.State):
+    """ looping through nav tasks returned by path genrator
+    Outcomes
+    --------
+        looping : going to the hovering position of the object
+        loopFinished : I executed all the paths for this worker
+	
+    input_keys
+    ----------
+	navigation_task : the given tasks by the path generator (NavTasks)
+    """  
+    def __init__(self):
+	smach.State.__init__(self, outcomes=['loopFinished','looping'],input_keys=['looping_in'], output_keys=['looping_out'])
+	self.counter = 0
 
-class Navigating2Object(smach.State):
+    def execute(self, userdata):
+      	rospy.loginfo('Executing state NavTasksLooping\n\n')
+	
+        if self.counter < len(userdata.looping_in.nav_tasks):
+	    nav = NavTask()
+      	    nav = userdata.looping_in.nav_tasks[self.counter]
+      	    userdata.looping_out = nav
+      	    print("uav %i \n\n" % (nav.task.uav_id))
+      	    print("nav task %i is (%f,%f,%f) \n\n" % (self.counter,nav.path.poses[0].pose.position.x, nav.path.poses[0].pose.position.y,nav.path.poses[0].pose.position.z))
+            self.counter += 1
+            return 'looping'
+        else:
+            return 'loopFinished'
+	  
+	  
+class Navigating2Object(smach_ros.SimpleActionState):
     """ navigating to the object location according to the given task 
     Outcomes
     --------
@@ -75,23 +111,31 @@ class Navigating2Object(smach.State):
 	
     input_keys
     ----------
-	navigating_2_object_in : the given task by the task allocator ( I'll assume it gives object position )
+	navigation_task : the given task by the task allocator (NavTask)
     """  
-    def __init__(self,sleep_t):
-        smach.State.__init__(self, 
-			     outcomes=['navigating','reached'],
-			     input_keys=['navigating_2_object_in'])
-        self.counter = 0
-	self.sleep_t=sleep_t
+    def __init__(self,actionServerNS):
+	smach_ros.SimpleActionState.__init__(self,actionServerNS,
+						  FollowPathAction,
+						  goal_slots=['navigation_task'],
+						  result_cb=self.result_callback,						  
+						  input_keys=['navigation_task']  
+					    )
+	#self.counter = 0
 	
-    def execute(self, userdata):
-        rospy.loginfo('Executing state Navigating2Object\n\n')
-        rospy.sleep(self.sleep_t)
-        if self.counter < 3:
-            self.counter += 1
-            return 'navigating'
-        else:
-            return 'reached'
+    #def goal_callback(self, userdata, goal):
+      	#rospy.loginfo('Executing state Navigation2Object\n\n')
+      	#nav = NavTask()
+      	#nav = userdata.navigation_task.nav_tasks[self.counter]
+      	#self.counter = self.counter + 1
+        #return nav	
+      
+    def result_callback(self, userdata, status, result):
+	if status == GoalStatus.SUCCEEDED:
+          return 'succeeded'
+	elif status == GoalStatus.PREEMPTED:
+	  return 'preempted'
+	else:
+	  return 'aborted'	
 
 class PickingObject(smach.State):
     """ picking object at the reached hovering location 

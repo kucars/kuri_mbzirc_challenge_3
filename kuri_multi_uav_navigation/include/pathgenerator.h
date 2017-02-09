@@ -29,13 +29,15 @@
 class PathGenerator
 {
 public:
-geometry_msgs::Pose uav1_currentPose;
-geometry_msgs::Pose uav2_currentPose;
-geometry_msgs::Pose uav3_currentPose;
+    geometry_msgs::Pose uav1_currentPose;
+    geometry_msgs::Pose uav2_currentPose;
+    geometry_msgs::Pose uav3_currentPose;
     std::vector<geometry_msgs::Pose> endPoses;
     geometry_msgs::Pose target_coord;
     kuri_msgs::Tasks tasks;
     ros::NodeHandle nh;
+    ros::Publisher searchSpacePub;
+    ros::Publisher connectionsPub;
     PathGenerator();
     void uav1_startPositionCallback(const geometry_msgs::PoseStamped& msg);
     void uav2_startPositionCallback(const geometry_msgs::PoseStamped& msg);

@@ -64,9 +64,9 @@ class GenerateWaypoints(smach_ros.SimpleActionState):
 						  input_keys=['generate_waypoints_in'], 
 						  output_keys=['generate_waypoints_out']
 					    )
-	rospy.loginfo('Executing state generating waypoints\n\n')
-	
+
     def goal_callback(self, userdata, goal):
+	rospy.loginfo('Executing state generating waypoints\n\n')
 	task = Task(uav_id=1)
         return task
       
@@ -93,16 +93,16 @@ class Exploring(smach_ros.SimpleActionState):
 	exploring_in : the waypoint location (gps or local)
     """
     
-    def __init__(self):
-	smach_ros.SimpleActionState.__init__(self,'navigation_action_server',
+    def __init__(self,actionServerNS):
+	smach_ros.SimpleActionState.__init__(self,actionServerNS,
 						  FollowPathAction,
 						  goal_slots=['navigation_task'],
 						  result_cb=self.result_callback,						  
 						  input_keys=['navigation_task']  
 					    )
-	rospy.loginfo('Executing state Exploring\n\n')
 
     def result_callback(self, userdata, status, result):
+      	rospy.loginfo('Executing state Exploring\n\n')
 	if status == GoalStatus.SUCCEEDED:
           return 'succeeded'
 	elif status == GoalStatus.PREEMPTED:
@@ -129,9 +129,9 @@ class DetectingObjects(smach_ros.SimpleActionState):
 						    result_cb=self.result_callback,
 						    output_keys=['detecting_objects_out']  
 					    )
-	rospy.loginfo('Executing state Detecting Objects\n\n')
 	
     def goal_callback(self, userdata, goal):
+      	rospy.loginfo('Executing state Detecting Objects\n\n')
 	task = Task(uav_id=1)
         return task	
       
