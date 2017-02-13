@@ -34,7 +34,7 @@ from mavros import setpoint as SP
 from tf.transformations import quaternion_from_euler
 import smach
 import smach_ros
-from kuri_msgs.msg import GenerateExplorationWaypointsAction, Task, NavTask,NavTasks, FollowPathAction,TrackingAction
+from kuri_msgs.msg import GenerateExplorationWaypointsAction, Task, NavTask,NavTasks, FollowPathAction,TrackingAction, MappingAction,Object,Objects
 from smach_ros import SimpleActionState
 from actionlib_msgs.msg import GoalStatus
 
@@ -73,6 +73,39 @@ class GenerateWaypoints(smach_ros.SimpleActionState):
     def result_callback(self, userdata, status, result):
 	if status == GoalStatus.SUCCEEDED:
 	  userdata.generate_waypoints_out = result.expPath
+          return 'succeeded'
+	elif status == GoalStatus.PREEMPTED:
+	  return 'preempted'
+	else:
+	  return 'aborted'
+
+
+class Mapping(smach_ros.SimpleActionState):
+    """ perform mapping to the arena  
+    Outcomes
+    --------
+        succeeded : mapping arena is done
+        preempted :  map is preempted by client request
+        aborted : an error occured in the mapping action server
+	
+    output_keys
+    ----------	
+	mapping_out : object map (map + objects) it should be published    
+    """  
+    def __init__(self):
+	smach_ros.SimpleActionState.__init__(self,'create_map',
+						  MappingAction,
+						  goal_cb=self.goal_callback,
+						  result_cb=self.result_callback
+					    )  
+	
+    def goal_callback(self, userdata, goal):
+        rospy.loginfo('Executing state Mapping\n\n')
+	task = Task(uav_id=1)
+        return task
+      
+    def result_callback(self, userdata, status, result):
+	if status == GoalStatus.SUCCEEDED:
           return 'succeeded'
 	elif status == GoalStatus.PREEMPTED:
 	  return 'preempted'
@@ -142,4 +175,65 @@ class DetectingObjects(smach_ros.SimpleActionState):
 	elif status == GoalStatus.PREEMPTED:
 	  return 'preempted'
 	else:
-	  return 'aborted'	
+	  return 'aborted'
+
+class DetectingObjectsS(smach.State):
+    """detecting the objects at the waypoints of the exploration  
+    Outcomes
+    --------
+        succeeded : objects detection is done passing through the arena (exploration)
+        preempted : a cancel request by the client occured
+        aborted : an error occured in the tracker action server
+	
+    output_keys
+    ----------
+	detecting_objects_out : detected objects locations
+    """  
+    def __init__(self):
+        smach.State.__init__(self,
+                             outcomes=['succeeded',
+                                       'aborted',
+                                       'preempted']
+                             )
+	self.detectedObjects = Objects()		     
+	self.objects_pub = rospy.Publisher("/TrackingAction/feedback",Objects, queue_size=10)
+
+    def execute(self, userdata):
+      rospy.loginfo('Executing state Detecting Objects (example)\n\n')
+      self.addObjects(4) #example of 2 red objects
+      self.objects_pub.publish(self.detectedObjects)
+      rospy.sleep(5)
+      return 'succeeded'
+      return 'preempted'
+      return 'aborted'
+   
+    def addObjects(self, numOfObjects):   
+      i=0
+      j=-1
+      r=0
+      c=0
+      while i<numOfObjects:
+	pose = PoseWithCovariance()
+	pose.pose.position.x = i*j
+	pose.pose.position.y = 2+(r*j)
+	pose.pose.position.z = 10
+	print("object %i: x:%f, y:%f, z:%f" % (i,pose.pose.position.x,pose.pose.position.y,pose.pose.position.z))
+	newObject = Object()
+	newObject.pose = pose
+	newObject.velocity = Twist()
+	newObject.width = 100
+	newObject.height = 100
+	if(c==0):
+	    newObject.color = 'red'
+	    c=1
+	elif(c==1):
+	    newObject.color = 'green'
+	    c=2
+	else:
+	    newObject.color = 'blue'
+	    c=0
+	self.detectedObjects.objects.append(newObject)
+	i=i+1
+	r=r+3
+	j=j*-1
+	

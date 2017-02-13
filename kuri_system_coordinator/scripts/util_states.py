@@ -72,7 +72,7 @@ class InitTestingMode(smach.State):
                                        'testUAVWorkers'],
                              input_keys=['testing_type_in'],
                              output_keys=[
-					  'explorer_test_in',
+					  'waypoint_generator_test_in',
 					  'task_allocator_test_in',
 					  'tasks',
 					  'uav_worker1_test_in',
@@ -93,7 +93,7 @@ class InitTestingMode(smach.State):
 	    startPose.position.x = 0
 	    startPose.position.y = 1
 	    startPose.position.z = 2
-	    userdata.explorer_test_in = startPose #userdata example
+	    userdata.waypoint_generator_test_in = startPose #userdata example
 	    
 	    #example of the objects detected (for testing task allocator)
 	    self.objectMap.map = OccupancyGrid()
@@ -182,6 +182,32 @@ class Starting(smach.State):
 	    startPose.position.z = 22
 	    userdata.starting_out = startPose #userdata example
             return 'GPSFixed'
+
+
+
+class StatusChecking(smach.State):
+    """ check the time, objects that has been picked and dropped, and UAV power :D
+    Outcomes
+    --------
+        checking : waiting the gps to get fixed
+         theEnd: the competition ended, objects collected, or power problem
+
+    """  
+    def __init__(self,currentTime,startTime):
+        smach.State.__init__(self, 
+			     outcomes=['checking','theEnd'])
+	self.currentTime = currentTime
+	self.compTime = 15*60
+	self.startTime = startTime
+	
+    def execute(self, userdata):
+        rospy.loginfo('Status Checking\n\n')
+        elapsed = self.currentTime - self.startTime 
+        if elapsed <= self.compTime:
+            return 'checking'
+        else:
+            return 'theEnd'
+
 	  
 	  
 class AllocatingTasks(smach_ros.SimpleActionState):
@@ -278,6 +304,7 @@ class GeneratePaths(smach_ros.SimpleActionState):
 	  #navUAV2Tasks = NavTasks()  
 	  print("number of generated paths: %f",len(result.nav_tasks.nav_tasks))
 	  for navPath in result.nav_tasks.nav_tasks:
+	    print("nav task: %i" % navPath.task.uav_id)
 	    if navPath.task.uav_id == 2:
 	      print("***UAV2***")
 	      #navUAV1Tasks.nav_tasks.append(navPath)
@@ -293,4 +320,5 @@ class GeneratePaths(smach_ros.SimpleActionState):
 	elif status == GoalStatus.PREEMPTED:
 	  return 'preempted'
 	else:
-	  return 'aborted'	  
+	  return 'aborted'
+	

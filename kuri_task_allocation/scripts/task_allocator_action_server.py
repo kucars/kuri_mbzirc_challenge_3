@@ -82,6 +82,7 @@ class actionAllocator(object):
                     output = Task()
                     output.object = objfortask
                     output.uav_name = drone
+                    output.uav_id = (int)(drone[3])## randa added this
                     output.task_type = ""
 
                     finaloutput.tasks.append(output)

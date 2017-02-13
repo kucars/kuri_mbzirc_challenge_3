@@ -32,7 +32,7 @@ public:
         ROS_INFO("Accepting Goal for action %s", actionName.c_str());
         goal = actionServer.acceptNewGoal()->uav_id;
         ROS_INFO("started Mapping");
-        MapObject->StoreMap(&actionServer,result);   
+        MapObject->StoreMap(&actionServer,result);
     }
 
     void preemptCB()

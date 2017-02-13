@@ -31,24 +31,25 @@ class Object_mapping
 
 public:
 
-  Object_mapping();  
-  void mapcallback(const  kuri_msgs::Objects objects);
-  void ObjectsRemovalcallback(const kuri_msgs::Objects objectsR);
-  void UpdateMap(const kuri_msgs::Objects objects,int objectsNum , int Add_Remove);
-  void StoreMap(actionlib::SimpleActionServer<kuri_msgs::MappingAction> *actionServer,kuri_msgs::MappingResult result); 
+    Object_mapping();
+    void mapcallback(const  kuri_msgs::Objects objects);
+    void ObjectsRemovalcallback(const kuri_msgs::Objects objectsR);
+    void UpdateMap(const kuri_msgs::Objects objects,int objectsNum , int Add_Remove);
+    void StoreMap(actionlib::SimpleActionServer<kuri_msgs::MappingAction> *actionServer,kuri_msgs::MappingResult result);
 
 private:
-  ros::NodeHandle ph; 
-  ros::Publisher map_pub;
-  ros::Publisher map_pub1;
-  ros::Subscriber map_sub;
-  ros::Subscriber map_sub1;
-  nav_msgs::OccupancyGrid map;
-  int objectsNum;
-  std::string actionName;
-  std_msgs::Bool flag;
-  int vertex;
-  std::mutex m;
+    ros::NodeHandle ph;
+    ros::Publisher map_pub;
+    ros::Publisher map_pub1;
+    ros::Subscriber map_sub;
+    ros::Subscriber map_sub1;
+    nav_msgs::OccupancyGrid map;
+    int objectsNum;
+    std::string actionName;
+    std_msgs::Bool flag;
+    int vertex;
+    std::mutex m;
+    bool flag_success;
 
 };
 
