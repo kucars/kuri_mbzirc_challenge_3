@@ -32,8 +32,7 @@ public:
         ROS_INFO("Accepting Goal for action %s", actionName.c_str());
         goal = actionServer.acceptNewGoal()->uav_id;
         ROS_INFO("started Mapping");
-        MapObject->coverage_percentage(&actionServer,feedback,result);
-        
+        MapObject->StoreMap(&actionServer,result);   
     }
 
     void preemptCB()
@@ -61,7 +60,7 @@ protected:
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "Object_Mapping");
-    Mapping_action_server Mapping_action_server("create_map");    // This added for testing
+    Mapping_action_server Mapping_action_server("create_map");  // This added for testing
     ros::spin();
     return 0;
 }
