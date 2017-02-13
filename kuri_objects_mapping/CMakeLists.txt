@@ -151,7 +151,6 @@ include_directories(include
 ## either from message generation or dynamic reconfigure
 # add_dependencies(sar_haptic ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
-
 add_executable(action_map_server src/action_server_occupancy_mapping.cpp  src/occupancy_mapping.cpp include/occupancy_mapping.h )
 add_dependencies(action_map_server  ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 target_link_libraries(action_map_server  ${catkin_LIBRARIES} )

@@ -9,10 +9,10 @@ Object_mapping::Object_mapping(void){
     map_sub1 = ph.subscribe("/RemovedObjects", 100, &Object_mapping::ObjectsRemovalcallback, this);
     map.header.frame_id="/world";
     map.info.resolution= 1.0;
-    map.info.width= 60;
-    map.info.height= 90;
-    map.info.origin.position.x = -(60)/2;
-    map.info.origin.position.y = -(90)/2;
+    map.info.width= 90;
+    map.info.height= 60;
+    map.info.origin.position.x = -(90)/2;
+    map.info.origin.position.y = -(60)/2;
     std::vector<int8_t> update_map(map.info.width*map.info.height,-1);
     map.data=update_map;
     flag.data=true;
@@ -45,14 +45,17 @@ void Object_mapping::UpdateMap(const kuri_msgs::Objects objects,int objectsNum ,
     std::lock_guard<std::mutex> lock(m); // lock the thread to avoid adding and removing objects simultaneoulsy
 
     std::vector<int8_t> update_map = map.data;
-    for (int i=0;i<objectsNum;i++){
-        if (objects.objects[i].pose.pose.position.x <= 0 && objects.objects[i].pose.pose.position.y <=0)  vertex= ((-29+int(objects.objects[i].pose.pose.position.y)-1)*-1)+(44+int(objects.objects[i].pose.pose.position.x))*60;
-        if (objects.objects[i].pose.pose.position.x <= 0 && objects.objects[i].pose.pose.position.y >0)   vertex= ((-29+int(objects.objects[i].pose.pose.position.y))*-1)+(44+int(objects.objects[i].pose.pose.position.x))*60;
-        if (objects.objects[i].pose.pose.position.x > 0 && objects.objects[i].pose.pose.position.y <=0)   vertex= ((-29+int(objects.objects[i].pose.pose.position.y)-1)*-1)+(44+int(objects.objects[i].pose.pose.position.x)+1)*60;
-        if (objects.objects[i].pose.pose.position.x > 0 && objects.objects[i].pose.pose.position.y >0)    vertex= ((-29+int(objects.objects[i].pose.pose.position.y))*-1)+(44+int(objects.objects[i].pose.pose.position.x)+1)*60;
-        if (Add_Remove ==0) update_map[vertex]=100;
-        else if (Add_Remove ==1) update_map[vertex]=0;
-    }
+	for (int i=0;i<objectsNum;i++){
+	if (abs(objects.objects[i].pose.pose.position.x) < 45 && abs(objects.objects[i].pose.pose.position.y) <30) {
+	if (objects.objects[i].pose.pose.position.x <= 0 && objects.objects[i].pose.pose.position.y <=0)  vertex= (44+int(objects.objects[i].pose.pose.position.x))+(29+int(objects.objects[i].pose.pose.position.y))*90;
+	if (objects.objects[i].pose.pose.position.x <= 0 && objects.objects[i].pose.pose.position.y >0)   vertex= (44+int(objects.objects[i].pose.pose.position.x))+(29+int(objects.objects[i].pose.pose.position.y)+1)*90;
+	if (objects.objects[i].pose.pose.position.x > 0 && objects.objects[i].pose.pose.position.y <=0)   vertex= (44+int(objects.objects[i].pose.pose.position.x)+1)+(29+int(objects.objects[i].pose.pose.position.y))*90;
+	if (objects.objects[i].pose.pose.position.x > 0 && objects.objects[i].pose.pose.position.y >0)    vertex= (44+int(objects.objects[i].pose.pose.position.x)+1)+(29+int(objects.objects[i].pose.pose.position.y)+1)*90;
+	if (Add_Remove ==0) update_map[vertex]=100;
+	else if (Add_Remove ==1) update_map[vertex]=0;
+	}
+	}
+
     map.data = update_map;
     map.header.stamp=ros::Time::now();
 
