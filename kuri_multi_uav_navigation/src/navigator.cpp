@@ -66,7 +66,7 @@ Navigator::Navigator(int uav_id)
     // Make these adjustable
     dist      = 0;
     count     = 0 ;
-    tolerance = 0.2;
+    tolerance = 0.3;
     errorX    = 0;
     errorY    = 0;
     errorZ    = 0;
@@ -166,7 +166,7 @@ void Navigator::navigate(actionlib::SimpleActionServer<kuri_msgs::FollowPathActi
     //    flag.x = 0;
     //    flag.y = 0;
     //    flag.z = 0;
-
+    bool flagOnce= true;
     while(ros::ok())
     {
         //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -245,6 +245,19 @@ void Navigator::navigate(actionlib::SimpleActionServer<kuri_msgs::FollowPathActi
         }
 
         posePub.publish(goalPose);
+        if(flagOnce)
+        {
+            flag.x = goalPose.pose.position.x;
+            flag.y = goalPose.pose.position.y;
+            flag.z = goalPose.pose.position.z;
+            flagOnce=false;
+        }else
+        {
+            flag.x=0;
+            flag.y=0;
+            flag.z=0;
+        }
+
         flagPub.publish(flag);
         ROS_INFO("UAV %i :Published Pose x:%f y:%f z:%f",uav_i,path.poses[count].pose.position.x,path.poses[count].pose.position.y,path.poses[count].pose.position.z);
 

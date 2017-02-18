@@ -68,11 +68,11 @@ kuri_msgs::NavTask ExpWaypointsGenerator::generateExpWaypoints(const int uav_id)
     geometry_msgs::Pose gridStartPose;
     geometry_msgs::Vector3 gridSize;
 
-    gridStartPose.position.x = -80;//-18
-    gridStartPose.position.y = -40 ;//-25
+    gridStartPose.position.x = -45;//-18
+    gridStartPose.position.y = -30 ;//-25
     gridStartPose.position.z = 20 ;//1
-    gridSize.x = 160;//36
-    gridSize.y = 80;//50
+    gridSize.x = 90;//36
+    gridSize.y = 60;//50
     gridSize.z = 0;//15
 
     PathPlanner * pathPlanner;
@@ -97,8 +97,8 @@ kuri_msgs::NavTask ExpWaypointsGenerator::generateExpWaypoints(const int uav_id)
     ROS_INFO("planner object created");
 
     double coverageTolerance=0.15, targetCov=20; // using 20 as a testing example, it should be 100 to cover arena
-    std::string collisionCheckModelPath = ros::package::getPath("component_test") + "/src/mesh/arena_modified_3.obj";
-    std::string occlusionCullingModelName = "arena_modified_3.pcd";
+    std::string collisionCheckModelPath = ros::package::getPath("component_test") + "/src/mesh/arena_modified_4.obj";
+    std::string occlusionCullingModelName = "arena_modified_4.pcd";
     CoveragePathPlanningHeuristic coveragePathPlanningHeuristic(nh,collisionCheckModelPath,occlusionCullingModelName,false, true, SurfaceCoverageH);
     coveragePathPlanningHeuristic.setCoverageTarget(targetCov);
     coveragePathPlanningHeuristic.setCoverageTolerance(coverageTolerance);
@@ -138,7 +138,7 @@ kuri_msgs::NavTask ExpWaypointsGenerator::generateExpWaypoints(const int uav_id)
 
     // TODO: later we should decide if we are going to take it from current UAV position or define it previously
     // Pose start(currentPose.position.x, currentPose.position.y, 20.0, DTOR(0.0));
-    Pose start(-63.0,17,20,DTOR(0.0));//-60.1 18 20 //-50.1,-15.1,20
+    Pose start(-27.0,8,20,DTOR(0.0));//-60.1 18 20 //-50.1,-15.1,20
 
 
     ROS_INFO("Starting search");

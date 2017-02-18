@@ -17,6 +17,11 @@ find_package(catkin REQUIRED COMPONENTS
     actionlib_msgs
 )
 
+add_service_files(
+  FILES
+  Attach.srv
+)
+
 catkin_package(
     CATKIN_DEPENDS actionlib_msgs
 )

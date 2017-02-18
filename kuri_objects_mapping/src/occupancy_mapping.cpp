@@ -45,16 +45,16 @@ void Object_mapping::UpdateMap(const kuri_msgs::Objects objects,int objectsNum ,
     std::lock_guard<std::mutex> lock(m); // lock the thread to avoid adding and removing objects simultaneoulsy
 
     std::vector<int8_t> update_map = map.data;
-	for (int i=0;i<objectsNum;i++){
-	if (abs(objects.objects[i].pose.pose.position.x) < 45 && abs(objects.objects[i].pose.pose.position.y) <30) {
-	if (objects.objects[i].pose.pose.position.x <= 0 && objects.objects[i].pose.pose.position.y <=0)  vertex= (44+int(objects.objects[i].pose.pose.position.x))+(29+int(objects.objects[i].pose.pose.position.y))*90;
-	if (objects.objects[i].pose.pose.position.x <= 0 && objects.objects[i].pose.pose.position.y >0)   vertex= (44+int(objects.objects[i].pose.pose.position.x))+(29+int(objects.objects[i].pose.pose.position.y)+1)*90;
-	if (objects.objects[i].pose.pose.position.x > 0 && objects.objects[i].pose.pose.position.y <=0)   vertex= (44+int(objects.objects[i].pose.pose.position.x)+1)+(29+int(objects.objects[i].pose.pose.position.y))*90;
-	if (objects.objects[i].pose.pose.position.x > 0 && objects.objects[i].pose.pose.position.y >0)    vertex= (44+int(objects.objects[i].pose.pose.position.x)+1)+(29+int(objects.objects[i].pose.pose.position.y)+1)*90;
-	if (Add_Remove ==0) update_map[vertex]=100;
-	else if (Add_Remove ==1) update_map[vertex]=0;
-	}
-	}
+    for (int i=0;i<objectsNum;i++){
+        if (abs(objects.objects[i].pose.pose.position.x) < 45 && abs(objects.objects[i].pose.pose.position.y) <30) {
+            if (objects.objects[i].pose.pose.position.x <= 0 && objects.objects[i].pose.pose.position.y <=0)  vertex= (44+int(objects.objects[i].pose.pose.position.x))+(29+int(objects.objects[i].pose.pose.position.y))*90;
+            if (objects.objects[i].pose.pose.position.x <= 0 && objects.objects[i].pose.pose.position.y >0)   vertex= (44+int(objects.objects[i].pose.pose.position.x))+(29+int(objects.objects[i].pose.pose.position.y)+1)*90;
+            if (objects.objects[i].pose.pose.position.x > 0 && objects.objects[i].pose.pose.position.y <=0)   vertex= (44+int(objects.objects[i].pose.pose.position.x)+1)+(29+int(objects.objects[i].pose.pose.position.y))*90;
+            if (objects.objects[i].pose.pose.position.x > 0 && objects.objects[i].pose.pose.position.y >0)    vertex= (44+int(objects.objects[i].pose.pose.position.x)+1)+(29+int(objects.objects[i].pose.pose.position.y)+1)*90;
+            if (Add_Remove ==0) update_map[vertex]=100;
+            else if (Add_Remove ==1) update_map[vertex]=0;
+        }
+    }
 
     map.data = update_map;
     map.header.stamp=ros::Time::now();
@@ -69,7 +69,7 @@ void Object_mapping::StoreMap(actionlib::SimpleActionServer<kuri_msgs::MappingAc
         {
             result.objects_map.map=map;
             flag_success=false;
-            actionServer->setSucceeded(result);
+//            actionServer->setSucceeded(result); //it should run continously
         }
         map_pub.publish(map);
         if (actionServer->isPreemptRequested()) {
