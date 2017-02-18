@@ -132,7 +132,8 @@ class object_tracking:
       #newObject.obj_id = self.object_number 
       self.obstacles.objects.append(newObject)
       if self.actionServer.hasGoal:
-          self.actionServer.update(self.obstacles, self.object_number + 1)
+          self.actionServer.update(self.obstacles)
+          #self.actionServer.newObjectPublish(newObject)
       else:
           self.actionServer.objects = self.obstacles
           print 'No Goal'

@@ -37,9 +37,8 @@ class TrackingServer:
 
    def __init__(self):
      print 'Starting TrackingServer'
+     #self.newObjectPub = rospy.Publisher("TrackingAction/NewObject",Object, queue_size=10)
      self.server = actionlib.SimpleActionServer('TrackingAction', TrackingAction, self.execute, False)
-     self.objects = Objects()
-     self.total_objects = 0
      self._feedback = TrackingFeedback()
      self._result   = TrackingResult()
      self.tracking = None
@@ -59,25 +58,26 @@ class TrackingServer:
          return
      if self.tracking == None:
 	 self.tracking = object_tracking(self,goal)
-     self._feedback.tracked_objects = Objects()
-     self._feedback.tracked_objects = self.tracking.obstacles #self.total_objects
+     self._feedback.new_object = Object()
+     #self._feedback.new_object = self.tracking.obstacles #self.total_objects
      # publish the feedback
-     self.server.publish_feedback(self._feedback)
+     #self.server.publish_feedback(self._feedback)
       
      if success:
-         
-         self._result.total_objects_tracked = self.tracking.object_number#self.total_objects
+         self._result.tracked_objects = self.tracking.obstacles#self.total_objects
          rospy.loginfo('TrackingAction: Succeeded')
          self.server.set_succeeded(self._result)
      else:
          rospy.loginfo('TrackingAction: Failed')
      
-   def update(self, objects, total):
-       self.objects = objects
-       self.total_objects = total
-       self._feedback.tracked_objects = objects
+   def update(self, new_object):
+       self._feedback.new_object = new_object
        self.server.publish_feedback(self._feedback)
        rospy.loginfo('TrackingAction: Sending Objects Feedback')
+       
+   #def newObjectPublish(self, newObject):
+   #    self.newObjectPub.publish()
+   #    rospy.loginfo('TrackingAction: Sending New Object')
 
 def main(args):
   rospy.init_node('mbzirc_challenge3_object_tracking', anonymous=True)
