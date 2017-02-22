@@ -104,6 +104,12 @@ add_executable(uavs_initiator src/uavs_initiator.cpp)
 target_link_libraries(uavs_initiator ${catkin_LIBRARIES})
 
 
+add_executable(gps_waypoints_local src/gps_waypoints_local.cpp)
+target_link_libraries(gps_waypoints_local ${catkin_LIBRARIES})
+
+add_executable(gps_waypoints_srv src/gps_waypoints_srv.cpp)
+target_link_libraries(gps_waypoints_srv ${catkin_LIBRARIES})
+
 #add_executable(path_follower src/pathfollower.cpp)
 #target_link_libraries(path_follower SSPathPlanner
 #    -lgmp -lmpfr
