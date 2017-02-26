@@ -1,8 +1,3 @@
-#include <iostream>
-#include <ros/ros.h>
-#include <nav_msgs/OccupancyGrid.h>
-#include <sensor_msgs/NavSatFix.h>
-#include <actionlib/server/simple_action_server.h>
 #include <occupancy_mapping.h>
 
 class Mapping_action_server
