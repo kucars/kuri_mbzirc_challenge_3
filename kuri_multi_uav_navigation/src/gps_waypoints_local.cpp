@@ -54,15 +54,37 @@
 #include <ros/package.h>
 #include <sensor_msgs/NavSatFix.h>
 
+mavros_msgs::PositionTarget p;
+geometry_msgs::Pose         globalPose;
+std::vector<mavros_msgs::PositionTarget> localPoses;
+geometry_msgs::Point        real;
+geometry_msgs::PoseArray    waypoints;
+geometry_msgs::PoseArray    globalWaypoints;
+geometry_msgs::PoseStamped  goalPose;
+mavros_msgs::State          current_state;
+
+int count        = 0 ;
+double tolerance = 0.4;
+double errorX    = 0;
+double errorY    = 0;
+double errorZ    = 0;
+
+double lat_ref;
+double lon_ref;
+
+bool flagRef = false;
+bool finished = false;
+
+
+// taken from the geo.c in PX4/Firmware
 #define CONSTANTS_ONE_G					9.80665f		/* m/s^2		*/
 #define CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C		1.225f			/* kg/m^3		*/
 #define CONSTANTS_AIR_GAS_CONST				287.1f 			/* J/(kg * K)		*/
 #define CONSTANTS_ABSOLUTE_NULL_CELSIUS			-273.15f		/* °C			*/
 #define CONSTANTS_RADIUS_OF_EARTH	6371000	/* meters (m)		*/
-mavros_msgs::PositionTarget p;
-geometry_msgs::Pose globalPose;
 
-std::vector<mavros_msgs::PositionTarget> localPoses;
+
+// taken from the geo.c in PX4/Firmware
 /* lat/lon are in radians */
 struct map_projection_reference_s {
     long double lat_rad;
@@ -73,32 +95,15 @@ struct map_projection_reference_s {
     uint64_t timestamp;
 };
 
+// taken from the geo.c in PX4/Firmware
 struct globallocal_converter_reference_s {
     double alt;
     bool init_done;
 };
 
+// taken from the geo.c in PX4/Firmware
 static struct map_projection_reference_s mp_ref = {0.0, 0.0, 0.0, 0.0, false, 0};
 static struct globallocal_converter_reference_s gl_ref = {0.0f, false};
-
-geometry_msgs::Point        real;
-geometry_msgs::PoseArray    waypoints;
-geometry_msgs::PoseArray    globalWaypoints;
-geometry_msgs::PoseStamped  goalPose;
-mavros_msgs::State          current_state;
-
-int count       = 0 ;
-double tolerance = 0.4;
-double errorX    = 0;
-double errorY    = 0;
-double errorZ    = 0;
-
-
-double lat_ref;
-double lon_ref;
-
-bool flagRef = false;
-bool finished = false;
 
 
 void state_cb(const mavros_msgs::State::ConstPtr& msg){
@@ -106,20 +111,21 @@ void state_cb(const mavros_msgs::State::ConstPtr& msg){
 }
 
 
-
+// taken from the geo.c in PX4/Firmware
 bool map_projection_initialized(const struct map_projection_reference_s *ref)
 {
     return ref->init_done;
 }
 
+// taken from the geo.c in PX4/Firmware
 bool map_projection_global_initialized()
 {
     return map_projection_initialized(&mp_ref);
 }
 
-
+// taken from the geo.c in PX4/Firmware
 int map_projection_reproject(const struct map_projection_reference_s *ref, double x, double y, long double *lat,
-                      long double *lon)
+                             long double *lon)
 {
     if (!map_projection_initialized(ref)) {
         return -1;
@@ -149,13 +155,13 @@ int map_projection_reproject(const struct map_projection_reference_s *ref, doubl
     return 0;
 }
 
+// taken from the geo.c in PX4/Firmware
 int map_projection_global_reproject(double x, double y, long double *lat, long double *lon)
 {
     return map_projection_reproject(&mp_ref, x, y, lat, lon);
 }
 
-
-
+// taken from the geo.c in PX4/Firmware
 int globallocalconverter_toglobal(double x, double y, double z,  long double *lat,long double *lon, double *alt)
 {
     if (!map_projection_global_initialized()) {
@@ -168,12 +174,9 @@ int globallocalconverter_toglobal(double x, double y, double z,  long double *la
     return 0;
 }
 
-
-
-
-
+// taken from the geo.c in PX4/Firmware
 int map_projection_init_timestamped(struct map_projection_reference_s *ref, double lat_0, double lon_0,
-        uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
+                                    uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
 {
 
     ref->lat_rad = lat_0 * M_PI / 180.0;
@@ -187,8 +190,9 @@ int map_projection_init_timestamped(struct map_projection_reference_s *ref, doub
     return 0;
 }
 
+// taken from the geo.c in PX4/Firmware
 int map_projection_project(const struct map_projection_reference_s *ref, double lat, double lon, double *x,
-                    double *y)
+                           double *y)
 {
     if (!map_projection_initialized(ref)) {
         return -1;
@@ -219,11 +223,14 @@ int map_projection_project(const struct map_projection_reference_s *ref, double 
     return 0;
 }
 
+// taken from the geo.c in PX4/Firmware
 int map_projection_global_project(double lat, double lon, double *x, double *y)
 {
     return map_projection_project(&mp_ref, lat, lon, x, y);
 
 }
+
+// taken from the geo.c in PX4/Firmware
 int globallocalconverter_tolocal(double lat, double lon, double alt, double *x, double *y, double *z)
 {
     if (!map_projection_global_initialized()) {
@@ -241,15 +248,16 @@ void reached(geometry_msgs::Point msg)
 {
 
     double x,y,z;
-    globallocalconverter_tolocal(msg.x,msg.y,msg.z,&x,&y,&z);
-    std::cout<<"GLOBAL: x"<<msg.x<<" y "<<msg.y<<" z "<<msg.z<<std::endl;
+    //transfered to local based on the uav home position as a map reference
+    globallocalconverter_tolocal(msg.x,msg.y,msg.z,&y,&x,&z);
+    std::cout<<"current global position: x"<<msg.x<<" y "<<msg.y<<" z "<<msg.z<<std::endl;
 
-    //check reached accroding to local
-    errorX =  p.position.x - y;
-    errorY =  p.position.y - x;
+    //check reached accroding to the home position of the uav
+    errorX =  p.position.x - x;
+    errorY =  p.position.y - y;
     errorZ =  p.position.z - z;
     std::cout<<"p: x"<<p.position.x<<" y "<<p.position.y<<" z "<<p.position.z<<std::endl;
-    std::cout<<"local2: x"<<x<<" y "<<y<<" z "<<z<<std::endl;
+    std::cout<<"current local position ref to the uav home position: x"<<x<<" y "<<y<<" z "<<z<<std::endl;
 
     std::cout<<"error: x"<<fabs(errorX)<<" y "<<fabs(errorY)<<" z "<<fabs(errorZ)<<std::endl;
     if ((fabs(errorX) < tolerance) && (fabs(errorY) < tolerance))
@@ -257,13 +265,8 @@ void reached(geometry_msgs::Point msg)
         count++;
         if(count<waypoints.poses.size())
         {
-//            goalPose.pose.position.x = waypoints.poses[count].position.x;
-//            goalPose.pose.position.y = waypoints.poses[count].position.y;
-//            goalPose.pose.position.z = waypoints.poses[count].position.z;
-//            lat_ref = msg.x;
-//            lon_ref = msg.y;
+
             localPoses.push_back(p);
-            globalWaypoints.poses.push_back(globalPose);
             std::cout<<"**************REACHED***************"<<std::endl;
 
         }else finished=true;
@@ -279,9 +282,12 @@ void globalPoseCallback(const sensor_msgs::NavSatFix:: ConstPtr& msg)
 
     if(!flagRef)
     {
-        lat_ref = real.x;
-        lon_ref = real.y;
-        flagRef=true;
+        if(real.x != 0 && real.y != 0)
+        {
+            lat_ref = real.x;
+            lon_ref = real.y;
+            flagRef=true;
+        }
 
     }else if(!finished){
         reached(real);
@@ -294,15 +300,15 @@ int main(int argc, char **argv)
     ros::NodeHandle nh;
 
     ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>
-            ("/uav_1/mavros/state", 10, state_cb);
+            ("/uav_2/mavros/state", 10, state_cb);
     ros::Publisher local_pos_pub = nh.advertise<mavros_msgs::PositionTarget>
-            ("/uav_1/mavros/setpoint_raw/local", 10);
+            ("/uav_2/mavros/setpoint_raw/local", 10);
     ros::ServiceClient arming_client = nh.serviceClient<mavros_msgs::CommandBool>
-            ("/uav_1/mavros/cmd/arming");
+            ("/uav_2/mavros/cmd/arming");
     ros::ServiceClient set_mode_client = nh.serviceClient<mavros_msgs::SetMode>
-            ("/uav_1/mavros/set_mode");
+            ("/uav_2/mavros/set_mode");
     ros::Subscriber globalPoseSub = nh.subscribe
-            ("/uav_1/mavros/global_position/global", 1, globalPoseCallback);
+            ("/uav_2/mavros/global_position/global", 1, globalPoseCallback);
 
     //the setpoint publishing rate MUST be faster than 2Hz
     ros::Rate rate(20.0);
@@ -332,6 +338,12 @@ int main(int argc, char **argv)
     double locationx,locationy,locationz,qy;
     geometry_msgs::Pose pose;
 
+    //transfer exploration generated waypoints in terms of the reference that was chosen in creating the search space ( in simulation it is the world 0,0,0 which is represented as zurich 47.3977419 , 8.5455938
+    // but in the real experiments it should be based on one of the corners of the arena of the challenge
+    double wpt_lat_ref = 47.3977419;
+    double wpt_lon_ref = 8.5455938;
+    std::cout<<" The local waypoints map reference: "<<(double)wpt_lat_ref<<" "<<(double)wpt_lon_ref<<std::endl;
+    map_projection_init_timestamped(&mp_ref,wpt_lat_ref,wpt_lon_ref,1);
     while (!feof(file1))
     {
         fscanf(file1,"%lf %lf %lf %lf\n",&locationx,&locationy,&locationz,&qy);
@@ -340,6 +352,19 @@ int main(int argc, char **argv)
         pose.position.z = locationz;
         pose.orientation.x = qy;
         waypoints.poses.push_back(pose);
+
+        long double lat;
+        long double lon;
+        double alt;
+
+        globallocalconverter_toglobal(locationy,locationx,locationz,&lat,&lon,&alt);
+        globalPose.position.x = lat;
+        globalPose.position.y = lon;
+        globalPose.position.z = alt*-1;
+        //std::cout<<"global : lat "<<lat<<" lon "<<lon<<" alt "<<alt<<std::endl;
+        //std::cout<<"local : x "<<locationx<<" y "<<locationy<<" z "<<locationz<<std::endl;
+
+        globalWaypoints.poses.push_back(globalPose);
 
     }
 
@@ -352,19 +377,19 @@ int main(int argc, char **argv)
     ros::Time last_request = ros::Time::now();
     bool flag=false;
     while(ros::ok()){
-            arm_cmd.request.value = true;
+        arm_cmd.request.value = true;
         if( current_state.mode != "OFFBOARD" &&
-            (ros::Time::now() - last_request > ros::Duration(5.0))){
+                (ros::Time::now() - last_request > ros::Duration(5.0))){
             if( set_mode_client.call(offb_set_mode) &&
-                offb_set_mode.response.success){
+                    offb_set_mode.response.success){
                 ROS_INFO("OFFBOARD enabled");
             }
             last_request = ros::Time::now();
         } else {
             if( !current_state.armed &&
-                (ros::Time::now() - last_request > ros::Duration(5.0))){
+                    (ros::Time::now() - last_request > ros::Duration(5.0))){
                 if( arming_client.call(arm_cmd) &&
-                    arm_cmd.response.success){
+                        arm_cmd.response.success){
                     ROS_INFO("Vehicle armed");
                 }
                 last_request = ros::Time::now();
@@ -375,21 +400,12 @@ int main(int argc, char **argv)
         {
             std::cout<<(double)lat_ref<<" "<<(double)lon_ref<<std::endl;
             map_projection_init_timestamped(&mp_ref,lat_ref,lon_ref,1);
-            long double lat;
-            long double lon;
-            double alt;
 
-            globallocalconverter_toglobal(waypoints.poses[count].position.x,waypoints.poses[count].position.y,waypoints.poses[count].position.z,&lat,&lon,&alt);
-            globalPose.position.x = lat;
-            globalPose.position.y = lon;
-            globalPose.position.z = alt*-1;
-            std::cout<<"waypoint : x "<<waypoints.poses[count].position.x<<" y "<<waypoints.poses[count].position.y<<" z "<<waypoints.poses[count].position.z<<std::endl;
-            std::cout<<"global : lat "<<lat<<" lon "<<lon<<" alt "<<alt<<std::endl;
 
-            //transfer in terms of the gps reference of the previous point
-            globallocalconverter_tolocal(lat,lon,alt,&p.position.x,&p.position.y,&p.position.z);
+            //transfer exploration global waypoints in terms of the uav gps home position
+            globallocalconverter_tolocal(globalWaypoints.poses[count].position.x,globalWaypoints.poses[count].position.y,-1*globalWaypoints.poses[count].position.z,&p.position.y,&p.position.x,&p.position.z);
 
-            std::cout<<"local : x "<<p.position.x<<" y "<<p.position.y<<" z "<<p.position.z<<std::endl;
+            std::cout<<"local waypoint based on the uav home position : x "<<p.position.x<<" y "<<p.position.y<<" z "<<p.position.z<<std::endl;
 
             p.coordinate_frame = mavros_msgs::PositionTarget::FRAME_LOCAL_NED;
             p.type_mask = (1 << 11) | (7 << 6) | (7 << 3);

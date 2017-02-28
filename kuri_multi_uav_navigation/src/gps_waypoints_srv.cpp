@@ -54,31 +54,16 @@
 #include <boost/filesystem.hpp>
 #include <ros/package.h>
 
+
+// taken from the geo.c in PX4/Firmware
 #define CONSTANTS_ONE_G					9.80665f		/* m/s^2		*/
 #define CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C		1.225f			/* kg/m^3		*/
 #define CONSTANTS_AIR_GAS_CONST				287.1f 			/* J/(kg * K)		*/
 #define CONSTANTS_ABSOLUTE_NULL_CELSIUS			-273.15f		/* °C			*/
 #define CONSTANTS_RADIUS_OF_EARTH	6371000	/* meters (m)		*/
+
+
 bool once = false;
-
-/* lat/lon are in radians */
-struct map_projection_reference_s {
-    long double lat_rad;
-    long double lon_rad;
-    long double sin_lat;
-    long double cos_lat;
-    bool init_done;
-    uint64_t timestamp;
-};
-
-struct globallocal_converter_reference_s {
-    double alt;
-    bool init_done;
-};
-
-static struct map_projection_reference_s mp_ref = {0.0, 0.0, 0.0, 0.0, false, 0};
-static struct globallocal_converter_reference_s gl_ref = {0.0f, false};
-
 ros::ServiceClient takeoff;
 
 geometry_msgs::Point        real;
@@ -95,23 +80,45 @@ double errorZ    = 0;
 double ref_la;
 double ref_lo;
 
+/* lat/lon are in radians */
+// taken from the geo.c in PX4/Firmware
+struct map_projection_reference_s {
+    long double lat_rad;
+    long double lon_rad;
+    long double sin_lat;
+    long double cos_lat;
+    bool init_done;
+    uint64_t timestamp;
+};
+// taken from the geo.c in PX4/Firmware
+struct globallocal_converter_reference_s {
+    double alt;
+    bool init_done;
+};
+
+// taken from the geo.c in PX4/Firmware
+static struct map_projection_reference_s mp_ref = {0.0, 0.0, 0.0, 0.0, false, 0};
+static struct globallocal_converter_reference_s gl_ref = {0.0f, false};
+
+
+
 void state_cb(const mavros_msgs::State::ConstPtr& msg){
     current_state = *msg;
 }
 
 
-
+// taken from the geo.c in PX4/Firmware
 bool map_projection_initialized(const struct map_projection_reference_s *ref)
 {
     return ref->init_done;
 }
-
+// taken from the geo.c in PX4/Firmware
 bool map_projection_global_initialized()
 {
     return map_projection_initialized(&mp_ref);
 }
 
-
+// taken from the geo.c in PX4/Firmware
 int map_projection_reproject(const struct map_projection_reference_s *ref, double x, double y, long double *lat,
                       long double *lon)
 {
@@ -143,13 +150,14 @@ int map_projection_reproject(const struct map_projection_reference_s *ref, doubl
     return 0;
 }
 
+// taken from the geo.c in PX4/Firmware
 int map_projection_global_reproject(double x, double y, long double *lat, long double *lon)
 {
     return map_projection_reproject(&mp_ref, x, y, lat, lon);
 }
 
 
-
+// taken from the geo.c in PX4/Firmware
 int globallocalconverter_toglobal(double x, double y, double z,  long double *lat,long double *lon, double *alt)
 {
     if (!map_projection_global_initialized()) {
