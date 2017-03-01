@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="offborad_mode" default="true"/>
+  <arg name="takeoff_mode" default="false"/>
+
+  <node pkg="kuri_multi_agent_navigation" type="gps_waypoints_srv" name="gps_waypoints_srv" output="screen" if="$(arg takeoff_mode)" >
+    <rosparam file="$(find kuri_multi_agent_navigation)/config/waypoints_map_ref.yaml"/>
+  </node>
+  
+  <node pkg="kuri_multi_agent_navigation" type="gps_waypoints_local" name="gps_waypoints_local" output="screen" if="$(arg offborad_mode)" >
+    <rosparam file="$(find kuri_multi_agent_navigation)/config/waypoints_map_ref.yaml"/>
+  </node>
+  
+</launch>

@@ -327,8 +327,9 @@ int main(int argc, char **argv)
 
     //transfer exploration generated waypoints in terms of the reference that was chosen in creating the search space ( in simulation it is the world 0,0,0 which is represented as zurich 47.3977419 , 8.5455938
     // but in the real experiments it should be based on one of the corners of the arena of the challenge
-    lat_ref = 47.397742;
-    lon_ref = 8.5455938;
+    ros::param::param("~ref_lat", lat_ref, 1.0);
+    ros::param::param("~ref_lon", lon_ref, 1.0);
+
     std::cout<<(double)lat_ref<<" "<<(double)lon_ref<<std::endl;
     map_projection_init_timestamped(&mp_ref,lat_ref,lon_ref,1);
 

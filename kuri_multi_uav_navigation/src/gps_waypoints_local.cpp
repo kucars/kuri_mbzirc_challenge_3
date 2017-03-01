@@ -250,16 +250,16 @@ void reached(geometry_msgs::Point msg)
     double x,y,z;
     //transfered to local based on the uav home position as a map reference
     globallocalconverter_tolocal(msg.x,msg.y,msg.z,&y,&x,&z);
-    std::cout<<"current global position: x"<<msg.x<<" y "<<msg.y<<" z "<<msg.z<<std::endl;
+    //std::cout<<"current global position: x"<<msg.x<<" y "<<msg.y<<" z "<<msg.z<<std::endl;
 
     //check reached accroding to the home position of the uav
     errorX =  p.position.x - x;
     errorY =  p.position.y - y;
     errorZ =  p.position.z - z;
-    std::cout<<"p: x"<<p.position.x<<" y "<<p.position.y<<" z "<<p.position.z<<std::endl;
-    std::cout<<"current local position ref to the uav home position: x"<<x<<" y "<<y<<" z "<<z<<std::endl;
+    //std::cout<<"p: x"<<p.position.x<<" y "<<p.position.y<<" z "<<p.position.z<<std::endl;
+    //std::cout<<"current local position ref to the uav home position: x"<<x<<" y "<<y<<" z "<<z<<std::endl;
 
-    std::cout<<"error: x"<<fabs(errorX)<<" y "<<fabs(errorY)<<" z "<<fabs(errorZ)<<std::endl;
+    //std::cout<<"error: x"<<fabs(errorX)<<" y "<<fabs(errorY)<<" z "<<fabs(errorZ)<<std::endl;
     if ((fabs(errorX) < tolerance) && (fabs(errorY) < tolerance))
     {
         count++;
@@ -267,7 +267,7 @@ void reached(geometry_msgs::Point msg)
         {
 
             localPoses.push_back(p);
-            std::cout<<"**************REACHED***************"<<std::endl;
+            std::cout<<"**************REACHED --> next ***************"<<std::endl;
 
         }else finished=true;
 
@@ -340,8 +340,10 @@ int main(int argc, char **argv)
 
     //transfer exploration generated waypoints in terms of the reference that was chosen in creating the search space ( in simulation it is the world 0,0,0 which is represented as zurich 47.3977419 , 8.5455938
     // but in the real experiments it should be based on one of the corners of the arena of the challenge
-    double wpt_lat_ref = 47.3977419;
-    double wpt_lon_ref = 8.5455938;
+    double wpt_lat_ref,wpt_lon_ref;
+    ros::param::param("~ref_lat", wpt_lat_ref, 1.0);
+    ros::param::param("~ref_lon", wpt_lon_ref, 1.0);
+
     std::cout<<" The local waypoints map reference: "<<(double)wpt_lat_ref<<" "<<(double)wpt_lon_ref<<std::endl;
     map_projection_init_timestamped(&mp_ref,wpt_lat_ref,wpt_lon_ref,1);
     while (!feof(file1))
