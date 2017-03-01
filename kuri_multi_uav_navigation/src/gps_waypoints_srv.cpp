@@ -55,15 +55,6 @@
 #include <ros/package.h>
 
 
-// taken from the geo.c in PX4/Firmware
-#define CONSTANTS_ONE_G					9.80665f		/* m/s^2		*/
-#define CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C		1.225f			/* kg/m^3		*/
-#define CONSTANTS_AIR_GAS_CONST				287.1f 			/* J/(kg * K)		*/
-#define CONSTANTS_ABSOLUTE_NULL_CELSIUS			-273.15f		/* °C			*/
-#define CONSTANTS_RADIUS_OF_EARTH	6371000	/* meters (m)		*/
-
-
-bool once = false;
 ros::ServiceClient takeoff;
 
 geometry_msgs::Point        real;
@@ -72,13 +63,24 @@ geometry_msgs::PoseArray    globalWaypoints;
 geometry_msgs::PoseStamped  goalPose;
 mavros_msgs::State          current_state;
 
-int count       = 0 ;
+int count        = 0 ;
 double tolerance = 0.4;
 double errorX    = 0;
 double errorY    = 0;
 double errorZ    = 0;
 double ref_la;
 double ref_lo;
+double lat_ref;
+double lon_ref;
+
+
+// taken from the geo.c in PX4/Firmware
+#define CONSTANTS_ONE_G					9.80665f		/* m/s^2		*/
+#define CONSTANTS_AIR_DENSITY_SEA_LEVEL_15C		1.225f			/* kg/m^3		*/
+#define CONSTANTS_AIR_GAS_CONST				287.1f 			/* J/(kg * K)		*/
+#define CONSTANTS_ABSOLUTE_NULL_CELSIUS			-273.15f		/* °C			*/
+#define CONSTANTS_RADIUS_OF_EARTH	6371000	/* meters (m)		*/
+
 
 /* lat/lon are in radians */
 // taken from the geo.c in PX4/Firmware
@@ -170,45 +172,7 @@ int globallocalconverter_toglobal(double x, double y, double z,  long double *la
     return 0;
 }
 
-void localPoseCallback(const geometry_msgs :: PoseStamped :: ConstPtr& msg)
-{
-    if(once)
-    {
-        real.x=msg ->pose.position.x;
-        real.y=msg ->pose.position.y;
-        real.z=msg ->pose.position.z;
-
-        errorX =  waypoints.poses[count].position.x - real.x;
-        errorY =  waypoints.poses[count].position.y - real.y;
-        errorZ =  waypoints.poses[count].position.z - real.z;
-
-        if ((fabs(errorX) < tolerance) && (fabs(errorY) < tolerance) && (fabs(errorZ) < tolerance))
-        {
-            count++;
-            if(count<waypoints.poses.size())
-            {
-                mavros_msgs::CommandTOL point;
-
-                point.request.latitude = globalWaypoints.poses[count].position.x;
-                point.request.longitude = globalWaypoints.poses[count].position.y;
-                point.request.altitude = globalWaypoints.poses[count].position.z;
-                bool result = takeoff.call(point);
-                std::cout<<"done ...> next"<<std::endl;
-
-            }
-
-        }
-    }
-
-}
-
-void globalPoseCallback(const sensor_msgs::NavSatFix :: ConstPtr& msg)
-{
-    ref_la=msg ->latitude;
-    ref_lo=msg ->longitude;
-
-}
-
+// taken from the geo.c in PX4/Firmware
 int map_projection_init_timestamped(struct map_projection_reference_s *ref, double lat_0, double lon_0,
         uint64_t timestamp) //lat_0, lon_0 are expected to be in correct format: -> 47.1234567 and not 471234567
 {
@@ -224,32 +188,98 @@ int map_projection_init_timestamped(struct map_projection_reference_s *ref, doub
     return 0;
 }
 
-int main(int argc, char **argv)
+// taken from the geo.c in PX4/Firmware
+int map_projection_project(const struct map_projection_reference_s *ref, double lat, double lon, double *x,
+                           double *y)
 {
-    ros::init(argc, argv, "offb_node");
-    ros::NodeHandle nh;
+    if (!map_projection_initialized(ref)) {
+        return -1;
+    }
+    std::setprecision(10);
+    double lat_rad = lat * M_PI / 180.0  ;
+    double lon_rad = lon * M_PI / 180.0;
 
+    double sin_lat = sin(lat_rad);
+    double cos_lat = cos(lat_rad);
+    double cos_d_lon = cos(lon_rad - ref->lon_rad);
 
-//    double lat_ref = 47.397742;
-//    double lon_ref =8.5455938;
-//    std_msgs::Float64 lat_ref1 = (std_msgs::Float64)47.397742;
-//    std_msgs::Float64 lon_ref1 =(std_msgs::Float64)8.5455938;
+    double arg = ref->sin_lat * sin_lat + ref->cos_lat * cos_lat * cos_d_lon;
 
+    if (arg > 1.0) {
+        arg = 1.0;
 
-
-    //read setpoints from file
-    std::string str1 = ros::package::getPath("kuri_mbzirc_sim")+"/config/con_2_100_GPU_arena_ch3.txt";
-    const char * filename1 = str1.c_str();
-
-    assert(filename1 != NULL);
-    filename1 = strdup(filename1);
-    FILE *file1 = fopen(filename1, "r");
-    if (!file1)
-    {
-        std::cout<<"\nCan not open File";
-        fclose(file1);
+    } else if (arg < -1.0) {
+        arg = -1.0;
     }
 
+    double c = acos(arg);
+    double k = (fabs(c) < DBL_EPSILON) ? 1.0 : (c / sin(c));
+
+    *x = k * (ref->cos_lat * sin_lat - ref->sin_lat * cos_lat * cos_d_lon) * CONSTANTS_RADIUS_OF_EARTH;
+    *y = k * cos_lat * sin(lon_rad - ref->lon_rad) * CONSTANTS_RADIUS_OF_EARTH;
+
+    return 0;
+}
+
+// taken from the geo.c in PX4/Firmware
+int map_projection_global_project(double lat, double lon, double *x, double *y)
+{
+    return map_projection_project(&mp_ref, lat, lon, x, y);
+
+}
+
+// taken from the geo.c in PX4/Firmware
+int globallocalconverter_tolocal(double lat, double lon, double alt, double *x, double *y, double *z)
+{
+    if (!map_projection_global_initialized()) {
+        return -1;
+    }
+
+    map_projection_global_project(lat, lon, x, y);
+    *z = gl_ref.alt - alt;
+
+    return 0;
+}
+
+
+void globalPoseCallback(const sensor_msgs::NavSatFix :: ConstPtr& msg)
+{
+
+
+    //check if it reached to the position (converting the current global position to local based on the map reference that the points were generated accroding to)
+    map_projection_init_timestamped(&mp_ref,lat_ref,lon_ref,1);
+    globallocalconverter_tolocal(msg ->latitude,msg ->longitude,-1*msg ->altitude,&real.y,&real.x,&real.z);
+
+
+    errorX =  waypoints.poses[count].position.x - real.x;
+    errorY =  waypoints.poses[count].position.y - real.y;
+    errorZ =  waypoints.poses[count].position.z - real.z;
+
+    //std::cout<<"LOCAL : "<<real.x<<" "<<real.y<<" "<<real.z<<std::endl;
+    //std::cout<<"error : "<<errorX<<" "<<errorY<<" "<<errorZ<<std::endl;
+    if ((fabs(errorX) < tolerance) && (fabs(errorY) < tolerance) && (fabs(errorZ) < tolerance))
+    {
+        count++;
+        if(count<waypoints.poses.size())
+        {
+            mavros_msgs::CommandTOL point;
+
+            point.request.latitude = globalWaypoints.poses[count].position.x;
+            point.request.longitude = globalWaypoints.poses[count].position.y;
+            point.request.altitude = globalWaypoints.poses[count].position.z;
+            bool result = takeoff.call(point);
+            std::cout<<"done ...> next"<<std::endl;
+
+        }else  std::cout<<"Finished exploration"<<std::endl;
+
+    }
+
+}
+
+int main(int argc, char **argv)
+{
+    ros::init(argc, argv, "takeoff_cmd");
+    ros::NodeHandle nh;
 
 
     ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>
@@ -264,8 +294,6 @@ int main(int argc, char **argv)
             ("/uav_1/mavros/cmd/takeoff");
     ros::ServiceClient set_mode_client = nh.serviceClient<mavros_msgs::SetMode>
             ("/uav_1/mavros/set_mode");
-    ros::Subscriber localPoseSub = nh.subscribe
-            ("/uav_1/mavros/local_position/pose", 1000, localPoseCallback);
     ros::Subscriber globalPoseSub = nh.subscribe
             ("/uav_1/mavros/global_position/global", 1000, globalPoseCallback);
 
@@ -279,6 +307,54 @@ int main(int argc, char **argv)
         rate.sleep();
     }
 
+
+    double locationx,locationy,locationz,qy;
+    geometry_msgs::Pose pose;
+    geometry_msgs::Pose globalPose;
+
+    //read setpoints from file
+    std::string str1 = ros::package::getPath("kuri_mbzirc_sim")+"/config/con_2_100_GPU_arena_ch3.txt";
+    const char * filename1 = str1.c_str();
+
+    assert(filename1 != NULL);
+    filename1 = strdup(filename1);
+    FILE *file1 = fopen(filename1, "r");
+    if (!file1)
+    {
+        std::cout<<"\nCan not open File";
+        fclose(file1);
+    }
+
+    //transfer exploration generated waypoints in terms of the reference that was chosen in creating the search space ( in simulation it is the world 0,0,0 which is represented as zurich 47.3977419 , 8.5455938
+    // but in the real experiments it should be based on one of the corners of the arena of the challenge
+    lat_ref = 47.397742;
+    lon_ref = 8.5455938;
+    std::cout<<(double)lat_ref<<" "<<(double)lon_ref<<std::endl;
+    map_projection_init_timestamped(&mp_ref,lat_ref,lon_ref,1);
+
+    while (!feof(file1))
+    {
+        fscanf(file1,"%lf %lf %lf %lf\n",&locationx,&locationy,&locationz,&qy);
+        pose.position.x = locationx;
+        pose.position.y = locationy;
+        pose.position.z = locationz;
+        pose.orientation.x = qy;
+        waypoints.poses.push_back(pose);
+
+        long double lat;
+        long double lon;
+        double alt;
+
+        globallocalconverter_toglobal(locationy,locationx,locationz,&lat,&lon,&alt);
+        globalPose.position.x = lat;
+        globalPose.position.y = lon;
+        globalPose.position.z = alt*-1;
+        std::cout<<"global : lat "<<lat<<" lon "<<lon<<" alt "<<alt<<std::endl;
+        std::cout<<"local : x "<<locationx<<" y "<<locationy<<" z "<<locationz<<std::endl;
+
+        globalWaypoints.poses.push_back(globalPose);
+
+    }
 
 
     mavros_msgs::SetMode offb_set_mode;
@@ -311,44 +387,8 @@ int main(int argc, char **argv)
             }
         }
 
-        if(!once && ref_la != 0 && ref_lo != 0)
-        {
-            double locationx,locationy,locationz,qy;
-            geometry_msgs::Pose pose;
-            geometry_msgs::Pose globalPose;
-
-            double lat_ref = ref_la;
-            double lon_ref = ref_lo;
-            std::cout<<(double)lat_ref<<" "<<(double)lon_ref<<std::endl;
-            map_projection_init_timestamped(&mp_ref,lat_ref,lon_ref,1);
-
-            while (!feof(file1))
-            {
-                fscanf(file1,"%lf %lf %lf %lf\n",&locationx,&locationy,&locationz,&qy);
-                pose.position.x = locationx;
-                pose.position.y = locationy;
-                pose.position.z = locationz;
-                pose.orientation.x = qy;
-                waypoints.poses.push_back(pose);
-
-                long double lat;
-                long double lon;
-                double alt;
-
-                globallocalconverter_toglobal(locationy,locationx,locationz,&lat,&lon,&alt);
-                globalPose.position.x = lat;
-                globalPose.position.y = lon;
-                globalPose.position.z = alt*-1;
-                std::cout<<"global : lat "<<lat<<" lon "<<lon<<" alt "<<alt<<std::endl;
-                std::cout<<"local : x "<<locationx<<" y "<<locationy<<" z "<<locationz<<std::endl;
-
-                globalWaypoints.poses.push_back(globalPose);
-
-            }
-            once=true;
-        }
-
-        if(!flag && once)
+        //just to takeoff to the first position (it is done once)
+        if(!flag )
         {
             mavros_msgs::CommandTOL point;
 

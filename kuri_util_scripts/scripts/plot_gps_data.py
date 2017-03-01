@@ -8,7 +8,7 @@ import rosbag
 
 import sys, struct, time, os
 import math
-import pygmaps 
+#import pygmaps 
 import datetime
 from tf.msg import tfMessage
 from argparse import ArgumentParser
