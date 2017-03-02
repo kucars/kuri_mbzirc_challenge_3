@@ -80,6 +80,9 @@ add_definitions(${PCL_DEFINITIONS})
 #    ${rviz_visual_tools_LIBRARIES}
 #    )
 
+add_library(geo SHARED src/geo.cpp)
+
+
 add_executable(pathplanner_action_server src/pathplanner_action_server.cpp src/pathgenerator.cpp include/pathgenerator.h)
 target_link_libraries(pathplanner_action_server SSPathPlanner
     -lgmp -lmpfr
@@ -105,10 +108,10 @@ target_link_libraries(uavs_initiator ${catkin_LIBRARIES})
 
 
 add_executable(gps_waypoints_local src/gps_waypoints_local.cpp)
-target_link_libraries(gps_waypoints_local ${catkin_LIBRARIES})
+target_link_libraries(gps_waypoints_local geo ${catkin_LIBRARIES})
 
 add_executable(gps_waypoints_srv src/gps_waypoints_srv.cpp)
-target_link_libraries(gps_waypoints_srv ${catkin_LIBRARIES})
+target_link_libraries(gps_waypoints_srv geo ${catkin_LIBRARIES})
 
 #add_executable(path_follower src/pathfollower.cpp)
 #target_link_libraries(path_follower SSPathPlanner
