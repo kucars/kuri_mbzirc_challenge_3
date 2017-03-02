@@ -14,3 +14,6 @@
 - git:
     local-name: kuri_mbzirc_challenge_3
     uri: https://github.com/kuri-kustar/kuri_mbzirc_challenge_3.git
+- git:
+    local-name: grid_map
+    uri: https://github.com/ethz-asl/grid_map
