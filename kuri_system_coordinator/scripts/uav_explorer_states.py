@@ -30,6 +30,7 @@ import actionlib
 from math import *
 from mavros.utils import *
 from geometry_msgs.msg import *
+from nav_msgs.msg import *
 from mavros import setpoint as SP
 from tf.transformations import quaternion_from_euler
 import smach
@@ -37,6 +38,8 @@ import smach_ros
 from kuri_msgs.msg import GenerateExplorationWaypointsAction, Task, NavTask,NavTasks, FollowPathAction,TrackingAction, MappingAction,Object,Objects
 from smach_ros import SimpleActionState
 from actionlib_msgs.msg import GoalStatus
+import random
+import rospkg 
 
 class GenerateWaypoints(smach_ros.SimpleActionState):
     """generates a set of waypoints for covering the entrire arena 
@@ -78,6 +81,54 @@ class GenerateWaypoints(smach_ros.SimpleActionState):
 	  return 'preempted'
 	else:
 	  return 'aborted'
+
+class ReadWaypoints(smach.State):
+    """generates a set of waypoints for covering the entrire arena 
+    Outcomes
+    --------
+        succeeded : generate the set of waypoints
+        preempted : a cancel request by the client occured
+        aborted : an error occured in the exploration waypoints action server
+   
+    input_keys
+    ----------
+	generate_waypoints_in : the starting location (gps or local)
+	
+    output_keys
+    ----------
+	generate_waypoints_out : a set of waypoints the UAV should pass to entirely map the arena
+    """
+    
+    def __init__(self):
+        smach.State.__init__(self, 
+			     outcomes=['succeeded','aborted'],
+			     input_keys=['generate_waypoints_in'], 
+			     output_keys=['generate_waypoints_out']
+			     
+			     )
+
+    def execute(self, userdata):
+	rospy.loginfo('Executing state reading waypoints\n\n')
+	rospack = rospkg.RosPack()
+	theFile = open(rospack.get_path('kuri_system_coordinator')+"/config/exploration_waypoints_50.txt", "r")
+	data = theFile.readlines()
+	p = Path()
+	for line in data:
+	    poses = line.split()
+	    pt = PoseStamped()
+	    pt.pose.position.x = float(poses[0])
+	    pt.pose.position.y = float(poses[1])
+	    pt.pose.position.z = float(poses[2])
+	    p.poses.append(pt)
+	
+	nav = NavTask()
+	task = Task()
+	task.uav_id = 1
+	nav.path = p
+	nav.task = task
+	userdata.generate_waypoints_out = nav
+	return 'succeeded'
+
 
 
 class Mapping(smach_ros.SimpleActionState):
@@ -202,20 +253,18 @@ class DetectingObjectsS(smach.State):
       rospy.loginfo('Executing state Detecting Objects (example)\n\n')
       self.addObjects(4) #example of 2 red objects
       self.objects_pub.publish(self.detectedObjects)
-      rospy.sleep(5)
+      rospy.sleep(10)
       return 'succeeded'
       return 'preempted'
       return 'aborted'
    
     def addObjects(self, numOfObjects):   
       i=0
-      j=-1
-      r=0
       c=0
       while i<numOfObjects:
 	pose = PoseWithCovariance()
-	pose.pose.position.x = i*j
-	pose.pose.position.y = 2+(r*j)
+	pose.pose.position.x = random.randrange(-45, 45, 2)
+	pose.pose.position.y = random.randrange(-30, 30, 1)
 	pose.pose.position.z = 10
 	print("object %i: x:%f, y:%f, z:%f" % (i,pose.pose.position.x,pose.pose.position.y,pose.pose.position.z))
 	newObject = Object()
@@ -234,6 +283,5 @@ class DetectingObjectsS(smach.State):
 	    c=0
 	self.detectedObjects.objects.append(newObject)
 	i=i+1
-	r=r+3
-	j=j*-1
+
 	

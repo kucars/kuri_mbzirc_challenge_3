@@ -1,24 +1,32 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(kuri_objects_mapping)
 
+set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+
 find_package(catkin REQUIRED COMPONENTS
   roscpp
   rospy
   std_msgs
   genmsg actionlib_msgs actionlib
-  geometry_msgs
   nav_msgs
-  sensor_msgs
   message_generation
   kuri_msgs
+  grid_map_msgs
+  grid_map_ros
+  grid_map_cv
+  geometry_msgs
+  sensor_msgs
+  cv_bridge
 )
 
 
-
 find_package(OpenCV REQUIRED)
+#find_package(Eigen REQUIRED)
+
+
 ## System dependencies are found with CMake's conventions
 find_package(Boost REQUIRED COMPONENTS system)
-set(CMAKE_CXX_FLAGS "-std=c++11 ${CMAKE_CXX_FLAGS}")
+
 
 
 
@@ -136,7 +144,7 @@ catkin_package(
 
 include_directories(include
   ${catkin_INCLUDE_DIRS}
-  ${Eigen_INCLUDE_DIRS}
+  ${EIGEN3_INCLUDE_DIR}
   ${mavlink_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
 )
@@ -153,7 +161,7 @@ include_directories(include
 
 add_executable(action_map_server src/action_server_occupancy_mapping.cpp  src/occupancy_mapping.cpp include/occupancy_mapping.h )
 add_dependencies(action_map_server  ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
-target_link_libraries(action_map_server  ${catkin_LIBRARIES} )
+target_link_libraries(action_map_server  ${catkin_LIBRARIES})
 
 
 ## target_link_libraries(camera ${catkin_LIBRARIES} )

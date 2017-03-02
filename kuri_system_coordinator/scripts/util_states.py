@@ -39,7 +39,7 @@ from nav_msgs.msg import *
 from kuri_msgs.msg import GenerateExplorationWaypointsAction, Task, NavTask,NavTasks, FollowPathAction,TrackingAction,GeneratePathsAction
 from smach_ros import SimpleActionState
 from actionlib_msgs.msg import GoalStatus
-
+import rospkg
 
 class InitTestingMode(smach.State):
     """ Initializes state machine running mode either in component testing or full scenario  

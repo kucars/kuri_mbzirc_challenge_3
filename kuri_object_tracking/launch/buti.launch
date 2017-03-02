@@ -63,7 +63,7 @@
       <arg name="enable_logging" value="$(arg enable_logging)" />
       <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
       <arg name="log_file" value="$(arg log_file)"/>
-      <arg name="x" value="65.0"/>
+      <arg name="x" value="15.0"/>
       <arg name="y" value="-28.0"/>
       <arg name="Y" value="3.14"/> 
       <arg name="name" value="uav_3"/>

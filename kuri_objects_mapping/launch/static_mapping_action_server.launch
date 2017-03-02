@@ -1,0 +1,15 @@
+<launch>
+
+  <!-- Launch the staic object mapping node -->
+    <node pkg="kuri_objects_mapping"   type="action_map_server"  name="Object_Mapping" />
+
+  <!-- Launch the grid map visualizer -->
+  <node pkg="grid_map_visualization" type="grid_map_visualization" name="grid_map_visualization" output="screen">
+    <rosparam command="load" file="$(find kuri_objects_mapping)/config/static_map.yaml" />
+  </node>
+
+  <!-- Launch RViz with the static map configuration -->
+
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find kuri_objects_mapping)/rviz/static_map.rviz" />
+
+</launch>

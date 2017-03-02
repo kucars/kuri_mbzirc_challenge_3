@@ -1,0 +1,12 @@
+grid_map_topic: /Grid_map
+grid_map_visualizations:
+  - name: map_points
+    type: point_cloud
+    params:
+     layer: static
+  - name: static_grid
+    type: occupancy_grid
+    params:
+     layer: static
+     data_min: 0
+     data_max: 1
