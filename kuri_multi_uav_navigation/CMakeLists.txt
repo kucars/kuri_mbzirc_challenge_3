@@ -91,6 +91,7 @@ target_link_libraries(pathplanner_action_server SSPathPlanner
     ${catkin_LIBRARIES}
     ${PCL_LIBRARIES}
     ${rviz_visual_tools_LIBRARIES}
+    geo
     )
 
 add_executable(navigation_action_server src/navigation_action_server.cpp src/navigator.cpp include/navigator.h)
@@ -101,6 +102,7 @@ target_link_libraries(navigation_action_server SSPathPlanner
     ${catkin_LIBRARIES}
     ${PCL_LIBRARIES}
     ${rviz_visual_tools_LIBRARIES}
+    geo
     )
 
 add_executable(uavs_initiator src/uavs_initiator.cpp)

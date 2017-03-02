@@ -140,12 +140,12 @@ int main(int argc, char **argv)
     pose1Copy.pose.position.y=0;
     pose1Copy.pose.position.z=10;
 
-    pose2Copy.pose.position.x=2;
-    pose2Copy.pose.position.y=2;
+    pose2Copy.pose.position.x=0;
+    pose2Copy.pose.position.y=0;
     pose2Copy.pose.position.z=10;
 
-    pose3Copy.pose.position.x=-2;
-    pose3Copy.pose.position.y=-2;
+    pose3Copy.pose.position.x=0;
+    pose3Copy.pose.position.y=0;
     pose3Copy.pose.position.z=10;
 
     mavros_msgs::SetMode offb_set_mode;

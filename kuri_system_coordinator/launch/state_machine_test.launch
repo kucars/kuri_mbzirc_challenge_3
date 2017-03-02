@@ -22,13 +22,16 @@
    
    <!-- launching the action servers for three different uavs to run in parallel -->   
   <group ns="uav_1" >
-    <node pkg="kuri_multi_agent_navigation" type="navigation_action_server" name="navigation_action_server" args="navigation_action_server1 1" output="screen"/> 
+    <node pkg="kuri_multi_agent_navigation" type="navigation_action_server" name="navigation_action_server" args="navigation_action_server1 1" output="screen"/>
+         <rosparam file="$(find kuri_multi_agent_navigation)/config/waypoints_map_ref.yaml"/>
    </group>    
   <group ns="uav_2" >
     <node pkg="kuri_multi_agent_navigation" type="navigation_action_server" name="navigation_action_server" args="navigation_action_server2 2" output="screen"/> 
+         <rosparam file="$(find kuri_multi_agent_navigation)/config/waypoints_map_ref.yaml"/>
    </group> 
   <group ns="uav_3" >
     <node pkg="kuri_multi_agent_navigation" type="navigation_action_server" name="navigation_action_server" args="navigation_action_server3 3" output="screen"/> 
+         <rosparam file="$(find kuri_multi_agent_navigation)/config/waypoints_map_ref.yaml"/>
    </group> 
 
 

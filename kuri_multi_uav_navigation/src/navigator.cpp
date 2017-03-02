@@ -45,6 +45,8 @@
 #include <mavros_msgs/CommandBool.h>
 #include <mavros_msgs/SetMode.h>
 #include <mavros_msgs/State.h>
+#include <sensor_msgs/NavSatFix.h>
+#include <geo.h>
 using namespace SSPP;
 
 
@@ -52,6 +54,7 @@ using namespace SSPP;
 Navigator::Navigator(int uav_id)
 {
     currentPoseSub = nh.subscribe("/uav_"+boost::lexical_cast<std::string>(uav_id)+"/mavros/local_position/pose", 1000, &Navigator::localPoseCallback, this);
+    currentGlobalPoseSub = nh.subscribe("/uav_"+boost::lexical_cast<std::string>(uav_id)+"/mavros/global_position/global", 1000, &Navigator::globalPoseCallback, this);
     flagPub = nh.advertise<geometry_msgs::Point> ("/uav_"+boost::lexical_cast<std::string>(uav_id)+"/flag", 10);
     // posePub        = nh.advertise<geometry_msgs::PoseStamped>("/uav_"+boost::lexical_cast<std::string>(uav_id)+"/waypoint", 10);
     stateSub = nh.subscribe<mavros_msgs::State> ("/uav_"+boost::lexical_cast<std::string>(uav_id)+"/mavros/state", 10, &Navigator::stateCallback, this);
@@ -70,11 +73,14 @@ Navigator::Navigator(int uav_id)
     errorX    = 0;
     errorY    = 0;
     errorZ    = 0;
-    uav_i     =uav_id;
+    uav_i     = uav_id;
     //flag to indicate that the path following finished or not
     flag.x    = 0;
     flag.y    = 0;
     flag.z    = 0;
+
+    homePoseFlag = false;
+    transformFlag = false;
 }
 
 
@@ -95,12 +101,15 @@ void Navigator::localPoseCallback(const geometry_msgs :: PoseStamped :: ConstPtr
     if ((fabs(errorX) < tolerance) && (fabs(errorY) < tolerance) && (fabs(errorZ) < tolerance))
     {
         count++;
-        if(count<waypoints.poses.size())
+        if(count<newLocalWaypoints.poses.size())
         {
-            ROS_INFO("UAV %i : Sending a New WayPoint(x,y,z):(%g,%g,%g)",uav_i,waypoints.poses[count].position.x,waypoints.poses[count].position.y,waypoints.poses[count].position.z);
-            goalPose.pose.position.x = waypoints.poses[count].position.x;
-            goalPose.pose.position.y = waypoints.poses[count].position.y;
-            goalPose.pose.position.z = waypoints.poses[count].position.z;
+            ROS_INFO("UAV %i : Sending a New main local WayPoint(x,y,z):(%g,%g,%g)",uav_i,waypoints.poses[count].position.x,waypoints.poses[count].position.y,waypoints.poses[count].position.z);
+            ROS_INFO("UAV %i : Sending a New uav local WayPoint(x,y,z):(%g,%g,%g)",uav_i,newLocalWaypoints.poses[count].position.x,newLocalWaypoints.poses[count].position.y,newLocalWaypoints.poses[count].position.z);
+            ROS_INFO("UAV %i : Sending a New uav global WayPoint(x,y,z):(%g,%g,%g)",uav_i,globalWaypoints.poses[count].position.x,globalWaypoints.poses[count].position.y,globalWaypoints.poses[count].position.z);
+
+            goalPose.pose.position.x = newLocalWaypoints.poses[count].position.x;
+            goalPose.pose.position.y = newLocalWaypoints.poses[count].position.y;
+            goalPose.pose.position.z = newLocalWaypoints.poses[count].position.z;
 
             if(count != waypoints.poses.size()-1)
             {
@@ -128,6 +137,27 @@ void Navigator::localPoseCallback(const geometry_msgs :: PoseStamped :: ConstPtr
 }
 
 
+void Navigator::globalPoseCallback(const sensor_msgs::NavSatFix:: ConstPtr& msg)
+{
+    double lat,lon,alt;
+    lat=msg->latitude;
+    lon=msg->longitude;
+    alt=msg->altitude;
+
+    if(!homePoseFlag)
+    {
+        if(lat != 0 && lon != 0)
+        {
+            lat_ref = lat;
+            lon_ref = lon;
+            homePoseFlag=true;
+        }
+
+    }
+
+}
+
+
 void Navigator::navigate(actionlib::SimpleActionServer<kuri_msgs::FollowPathAction> *actionServer,
                          kuri_msgs::FollowPathFeedback feedback,
                          kuri_msgs::FollowPathResult   result,
@@ -147,14 +177,28 @@ void Navigator::navigate(actionlib::SimpleActionServer<kuri_msgs::FollowPathActi
         return;
     }
 
+    double wpt_lat_ref,wpt_lon_ref;
+    ros::param::param("~ref_lat", wpt_lat_ref, 47.3977419);
+    ros::param::param("~ref_lon", wpt_lon_ref, 8.5455938);
+
+    std::cout<<" The local waypoints map reference: "<<(double)wpt_lat_ref<<" "<<(double)wpt_lon_ref<<std::endl;
+    map_projection_global_init(wpt_lat_ref, wpt_lon_ref,1);
+
     for(int i=0;i<=(path.poses.size()-1);i++)
     {
         waypoints.poses.push_back(path.poses[i].pose);
+
+        double lat;
+        double lon;
+        float alt;
+
+        globallocalconverter_toglobal(path.poses[i].pose.position.y,path.poses[i].pose.position.x,path.poses[i].pose.position.z,&lat,&lon,&alt);
+        globalPose.position.x = lat;
+        globalPose.position.y = lon;
+        globalPose.position.z = alt*-1;
+        globalWaypoints.poses.push_back(globalPose);
     }
 
-    goalPose.pose.position.x = waypoints.poses[count].position.x;
-    goalPose.pose.position.y = waypoints.poses[count].position.y;
-    goalPose.pose.position.z = waypoints.poses[count].position.z;
 
 
     offbSetMode.request.custom_mode = "OFFBOARD";
@@ -163,10 +207,6 @@ void Navigator::navigate(actionlib::SimpleActionServer<kuri_msgs::FollowPathActi
     ros::Time lastRequest = ros::Time::now();
     ros::Time statusUpdate = ros::Time::now();
 
-    //    flag.x = 0;
-    //    flag.y = 0;
-    //    flag.z = 0;
-    bool flagOnce= true;
     while(ros::ok())
     {
         //>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -215,7 +255,7 @@ void Navigator::navigate(actionlib::SimpleActionServer<kuri_msgs::FollowPathActi
             result.success = false;
             break;
         }
-        std::cout<<"uav "<<uav_i<<" count : "<<count<<" path: "<<path.poses.size()-1<<std::endl;
+        //std::cout<<"uav "<<uav_i<<" count : "<<count<<" path: "<<path.poses.size()-1<<std::endl;
         if(count>(path.poses.size()-1))
         {
             ROS_INFO("%s: Succeeded", actionName.c_str());
@@ -231,36 +271,63 @@ void Navigator::navigate(actionlib::SimpleActionServer<kuri_msgs::FollowPathActi
             for(int i = 0 ; i<10; i++)
                 flagPub.publish(flag);
             //Problem : FCU Failsaif mode turns on when the code  break
+            transformFlag = false;
             break;
         }
-        if(pathTrail.poses.size()!=0 && (pathTrail.poses[wayPointIndex-1].pose.position.x != goalPose.pose.position.x ||
-                                         pathTrail.poses[wayPointIndex-1].pose.position.y != goalPose.pose.position.y ||
-                                         pathTrail.poses[wayPointIndex-1].pose.position.z != goalPose.pose.position.z) )
+
+        //should be done once to transform the global waypoints to local in terms of the home position
+        if(homePoseFlag && !transformFlag)
         {
-            pathTrail.poses.push_back(path.poses[wayPointIndex++]);
-        }
-        else if(pathTrail.poses.size()==0)
-        {
-            pathTrail.poses.push_back(path.poses[wayPointIndex++]);
+            map_projection_global_init(lat_ref, lon_ref,1);
+            for(int j = 0 ; j<=globalWaypoints.poses.size()-1;j++)
+            {
+                float p_x,p_y,p_z;
+                globallocalconverter_tolocal(globalWaypoints.poses[j].position.x,globalWaypoints.poses[j].position.y, -1*globalWaypoints.poses[j].position.z,&p_y,&p_x,&p_z);
+                geometry_msgs::Pose p;
+                p.position.x = p_x;
+                p.position.y = p_y;
+                p.position.z = p_z;
+
+                newLocalWaypoints.poses.push_back(p);
+            }
+
+            goalPose.pose.position.x = newLocalWaypoints.poses[count].position.x;
+            goalPose.pose.position.y = newLocalWaypoints.poses[count].position.y;
+            goalPose.pose.position.z = newLocalWaypoints.poses[count].position.z;
+            flagOnce=true;
+            transformFlag = true;
         }
 
-        posePub.publish(goalPose);
-        if(flagOnce)
+        if(transformFlag)
         {
-            flag.x = goalPose.pose.position.x;
-            flag.y = goalPose.pose.position.y;
-            flag.z = goalPose.pose.position.z;
-            flagOnce=false;
-        }else
-        {
-            flag.x=0;
-            flag.y=0;
-            flag.z=0;
+            /*if(pathTrail.poses.size()!=0 && (pathTrail.poses[wayPointIndex-1].pose.position.x != goalPose.pose.position.x ||
+                                             pathTrail.poses[wayPointIndex-1].pose.position.y != goalPose.pose.position.y ||
+                                             pathTrail.poses[wayPointIndex-1].pose.position.z != goalPose.pose.position.z) )
+            {
+                pathTrail.poses.push_back(path.poses[wayPointIndex++]);
+            }
+            else if(pathTrail.poses.size()==0)
+            {
+                pathTrail.poses.push_back(path.poses[wayPointIndex++]);
+            }*/
+
+            posePub.publish(goalPose);
+            if(flagOnce)
+            {
+                flag.x = goalPose.pose.position.x;
+                flag.y = goalPose.pose.position.y;
+                flag.z = goalPose.pose.position.z;
+                flagOnce=false;
+            }else
+            {
+                flag.x=0;
+                flag.y=0;
+                flag.z=0;
+            }
+
+            flagPub.publish(flag);
+            ROS_INFO("UAV %i :Published Pose x:%f y:%f z:%f",uav_i,path.poses[count].pose.position.x,path.poses[count].pose.position.y,path.poses[count].pose.position.z);
         }
-
-        flagPub.publish(flag);
-        ROS_INFO("UAV %i :Published Pose x:%f y:%f z:%f",uav_i,path.poses[count].pose.position.x,path.poses[count].pose.position.y,path.poses[count].pose.position.z);
-
         ros::spinOnce();
         loopRate.sleep();
     }

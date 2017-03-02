@@ -49,6 +49,8 @@
 #include <mavros_msgs/CommandBool.h>
 #include <mavros_msgs/SetMode.h>
 #include <mavros_msgs/State.h>
+#include <geo.h>
+#include <sensor_msgs/NavSatFix.h>
 
 namespace SSPP
 {
@@ -60,6 +62,7 @@ public:
     ros::Publisher  posePub;
     ros::Publisher  flagPub;
     ros::Subscriber currentPoseSub;
+    ros::Subscriber currentGlobalPoseSub;
     ros::Subscriber stateSub;
     ros::ServiceClient armingClient;
     ros::ServiceClient setModeClient;
@@ -85,7 +88,10 @@ public:
     kuri_msgs::Tasks tasks;
 
     geometry_msgs::Point        real;
+    geometry_msgs::Pose         globalPose;
     geometry_msgs::PoseArray    waypoints;
+    geometry_msgs::PoseArray    globalWaypoints;
+    geometry_msgs::PoseArray    newLocalWaypoints;
     geometry_msgs::PoseStamped  goalPose;
 
     int count;
@@ -94,11 +100,17 @@ public:
     float errorY;
     float errorZ;
     int uav_i;
+    double lat_ref;
+    double lon_ref;
+    bool homePoseFlag;
+    bool transformFlag;
+    bool flagOnce;
     geometry_msgs::Point flag;
 
     void navTasksCallback(const kuri_msgs::Tasks newtasks);
     void stateCallback(const mavros_msgs::State::ConstPtr& msg);
     void localPoseCallback(const geometry_msgs :: PoseStamped :: ConstPtr& msg);
+    void globalPoseCallback(const sensor_msgs::NavSatFix:: ConstPtr& msg);
     //nav_msgs::Path navigate(const kuri_msgs::Tasks newtasks);
     Navigator(int uav_id);
     void navigate(actionlib::SimpleActionServer<kuri_msgs::FollowPathAction> *actionServer,
