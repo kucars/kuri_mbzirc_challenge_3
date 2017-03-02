@@ -7,11 +7,12 @@ Challenge 3 related tasks implementation
 In order run the simulation environment the following Packages are needed: 
 
 - ROS
-- RotorS rotor_simulator    
 - mavros     
 - Firmware     
-- mbzirc simulation environment    
-- Challenge 3 specific environment    
+- sitl_gazebo
+- kuri mbzirc simulation environment    
+- kuri mbzirc msgs
+- Challenge 3 specific environment
 
 # Installing using rosinstall
 ```
@@ -21,7 +22,11 @@ $ wstool set -t src kuri_mbzirc_challenge_3 https://github.com/kuri-kustar/kuri_
 $ wstool merge -t src https://raw.githubusercontent.com/kuri-kustar/kuri_mbzirc_challenge_3/master/mbzirc_challenge3.rosinstall
 $ wstool update -t src
 $ rosdep install -y -r --from-paths src --ignore-src --rosdistro $ROS_DISTRO
-$ catkin_make --cmake-args -DCONFIG=ros_sitl_simple
+$ catkin_make --cmake-args -DCONFIG=posix_sitl_default
+$ cd <catkin_ws>/src/Firmware
+$ source Tools/setup_gazebo.bash $(pwd) $(pwd)/build_posix_sitl_default
+$ export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:$(pwd)
+$ export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:$(pwd)/Tools/sitl_gazebo
 ```
 
  Basic Usage
