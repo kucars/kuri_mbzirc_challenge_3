@@ -45,7 +45,7 @@ include_directories(include ${catkin_INCLUDE_DIRS}
 
 add_executable(object_detection src/ActionServerInterface.cpp src/AerialManipulationControl.cpp include/AerialManipulationControl.h)
 target_link_libraries(object_detection ${catkin_LIBRARIES}  ${OpenCV_LIBRARIES})
-add_dependencies(object_detection ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp)
+add_dependencies(object_detection ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp kuri_msgs_generate_messages_cpp)
 
 #############
 ## Testing ##
