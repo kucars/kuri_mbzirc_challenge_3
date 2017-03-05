@@ -187,7 +187,21 @@ class object_tracking:
             if self.nearEdge2(ob) != True:
                 new_tracker = object_tracker(ob[0] - ob[2]/2, ob[1] - ob[3] / 2, ob[2], ob[3], self.object_number)
                 self.tracked_objects.append(new_tracker)
-                self.addObject(self.pose, 0, ob[2], ob[3], 'red')
+                cX = ob[0] + 5
+                cY = ob[1] + 5
+                #print cX, cY, ob[0], ob[1]
+                color = img[cY, cX]                
+                c = 'color'
+                B = color[0]
+                G = color[1]
+                R = color[2]
+                if B >= G and B >= R:
+                    c = 'BLUE';
+                if G >= R and G >= B:
+                    c = 'GREEN';
+                if R >= G and R >= B:
+                    c = 'RED';
+                self.addObject(self.pose, 0, ob[2], ob[3], c)
                 self.object_number = self.object_number + 1
             
     

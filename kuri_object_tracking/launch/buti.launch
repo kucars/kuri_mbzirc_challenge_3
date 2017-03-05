@@ -1,5 +1,11 @@
 <?xml version="1.0"?>
 <launch>
+  <param name="statistics_window_max_elements" value="100" /> <!-- 100 / 3 -->
+  <param name="statistics_window_min_elements" value="10" /> <!-- 10  / 2-->
+  <param name="statistics_window_max_size" value="64" />     <!-- 64  / 5-->
+  <param name="statistics_window_min_size" value="4" />     <!-- 4   / 1-->
+  <param name="enable_statistics" value="false" />
+
   <arg name="paused" default="false"/>
   <arg name="debug" default="false"/>
   <arg name="gui" default="true" />
@@ -23,8 +29,8 @@
       <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
       <arg name="log_file" value="$(arg log_file)"/>
       <arg name="x" value="65.0"/>
-      <arg name="y" value="-22.0"/>
-      <arg name="Y" value="3.14"/> 
+      <arg name="y" value="-28.0"/>
+      <arg name="Y" value="3.14"/>
       <arg name="name" value="uav_1"/>
     </include>
     <arg name="fcu_url" default="udp://localhost:14560@localhost:14565" />
@@ -63,9 +69,9 @@
       <arg name="enable_logging" value="$(arg enable_logging)" />
       <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
       <arg name="log_file" value="$(arg log_file)"/>
-      <arg name="x" value="15.0"/>
-      <arg name="y" value="-28.0"/>
-      <arg name="Y" value="3.14"/> 
+      <arg name="x" value="0.0"/>
+      <arg name="y" value="0.0"/>
+      <arg name="Y" value="3.14"/>
       <arg name="name" value="uav_3"/>
     </include>
     <arg name="fcu_url" default="udp://localhost:14580@localhost:14585" />
@@ -80,11 +86,10 @@
   
   <arg name="run_demo" default="true" />
   <group if="$(arg run_demo)" >
-<!--
-    <node pkg="kuri_mbzirc_challenge_3" type="uav_1.py" name="uav_1_move" />
-    <node pkg="kuri_mbzirc_challenge_3" type="uav_2.py" name="uav_2_move" />
--->
-    <node pkg="kuri_object_tracking" type="uav_3.py" name="uav_3_move" />
+    <node pkg="kuri_arena_exploration" type="explore_action_server.py"  name="exploration" />
+    <node pkg="kuri_objects_mapping"   type="mapping_action_server.py"  name="objects_mapping" />
+    <node pkg="kuri_object_tracking"   type="tracking_action_server.py" name="object_tracking" />
+    <!--node pkg="kuri_mbzirc_challenge_3" type="uav_3.py" name="uav_3_move" /-->
   </group>
 
   <group unless="$(arg headless)" >
