@@ -57,15 +57,16 @@ class ObjectsMapping:
         client.wait_for_result() 
         print "Result:",client.get_result()        
         
-        self.sub = rospy.Subscriber("TrackingAction/feedback",Objects, self.callback)
+        self.sub = rospy.Subscriber("TrackingAction/feedback",Object, self.callback)
 
-    def callback(self, objects):
-        print 'Recieving Tracked Objects', objects
-        for obj in objects.feedback.tracked_objects.objects:
+    def callback(self, actionServer):
+        print 'Mapping: Recieving Tracked Objects --deprecated', actionServer
+        #for obj in objects.feedback.tracked_objects.objects:
             ## TODO: Check and process objects
-            self.objects.append(obj)
-        self.objects_map.objects = self.objects;
-        self.objects_map.map = OccupancyGrid()
+        #    self.objects.append(obj)
+	#self.objects.append(actionServer.feedback.new_object)
+        #self.objects_map.objects = self.objects;
+        #self.objects_map.map = OccupancyGrid()
         
 #        if self.actionServer.hasGoal:
 #            self.actionServer.update(self.objects_map)
