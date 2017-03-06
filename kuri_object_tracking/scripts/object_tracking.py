@@ -104,7 +104,7 @@ class object_tracking:
         self.ts = message_filters.TimeSynchronizer([self.image_sub, self.info_sub], 10)
         self.ts.registerCallback(self.callback_right)
         
-        mavros.set_namespace('/uav_3/mavros')
+        mavros.set_namespace('/uav_'+str(goal.uav_id)+'/mavros')
         self.currentPoseX = -1
         self.currentPoseY = -1
         self.currentPoseZ = -1
@@ -283,6 +283,10 @@ class object_tracking:
             ObjectList.append(obstacle)
             self.objects_count = self.objects_count + 1
             if self.actionServer.hasGoal:
+                coords = self.imageToWorld(obstacle.cx,obstacle.cy)
+                obstacle.wx = coords[0]
+                obstacle.wy = coords[1]
+                obstacle.wz = coords[2]
                 self.actionServer.update(obstacle.getAsObject())
             else:
                 self.obstacles = Objects()
