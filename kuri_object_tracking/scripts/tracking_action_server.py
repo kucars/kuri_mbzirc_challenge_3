@@ -71,6 +71,7 @@ class TrackingServer:
          rospy.loginfo('TrackingAction: Failed')
      
    def update(self, new_object):
+       print new_object
        self._feedback.new_object = new_object
        self.server.publish_feedback(self._feedback)
        rospy.loginfo('TrackingAction: Sending Objects Feedback')
