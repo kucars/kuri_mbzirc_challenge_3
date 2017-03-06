@@ -78,6 +78,10 @@ VidOutput = True
 
 ObjectList = []
 
+##Detection Interval, run detection every N frames
+interval_small = 3
+interval_big = 4
+
 class object_tracking:
 
     def __init__(self, actionServer, goal):
@@ -119,6 +123,7 @@ class object_tracking:
         self.samples = np.reshape(self.data_small, (-1, 7))
         self.samples_big = np.reshape(self.data_big, (-1, 7))
         self.objects_count = 0
+        self.frame = 0
 
 	#self.video = cv2.VideoWriter('detection.avi', cv2.cv.CV_FOURCC(*'XVID'), 3, (1280,720))
         #if VidOutput == True:
@@ -338,9 +343,48 @@ class object_tracking:
         
     def detect_objects(self, img, c):
         gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-        contours, hierarchy = cv2.findContours(gray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv2.findContours(gray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_L1 )
         #m1 = [[  0.790115  ], [  3.16737453], [  4.66246158], [  7.23488413], [-13.65758756], [ -9.15648336], [ 13.2095227 ]]        
         
+#        samples = []
+#        for cnt in contours:
+#            x,y,w,h = cv2.boundingRect(cnt)
+#            if w < 15 or h < 15:
+#                continue
+#            if w > 100 or h > 100:
+#                continue
+#            cx = x+w/2
+#            cy = y+h/2
+#            pixel = img[cy, cx]
+#            a = cv2.HuMoments(cv2.moments(cnt))
+#            m = -np.sign(a)*np.log10(np.abs(a))
+#            m = np.array([m[0][0], m[1][0], m[2][0], m[3][0], m[4][0], m[5][0], m[6][0], cx, cy, pixel[0], pixel[1], pixel[2]])   
+#            samples.append(m)
+#        
+#        for obj in ObjectList:   
+#            if obj.color == c or c == 'all':
+#                a = cv2.HuMoments(cv2.moments(obj.contour))
+#                b = -np.sign(a)*np.log10(np.abs(a))
+#                b = np.array([b[0][0], b[1][0], b[2][0], b[3][0], b[4][0], b[5][0], b[6][0], obj.cx, obj.cy, obj.pixel[0], obj.pixel[1], obj.pixel[2]])
+#                dst = float("inf")
+#                min_cnt = None
+#                min_pixel = None
+#                for m in samples:
+#                    d = sum(abs(m - b))
+#                    if d < dst:
+#                        dst = d
+#                        min_cnt = cnt
+#                        min_pixel = pixel
+#                #print 'MIN_DST', dst
+#                if dst < 300 and dst >= 0:
+#                    obj.update(min_cnt, min_pixel)
+#                    coords = self.imageToWorld(obj.cx,obj.cy)
+#                    obj.wx = coords[0]
+#                    obj.wy = coords[1]
+#                    obj.wz = coords[2]
+#                    cv2.putText(self.right_image, '#'+str(obj.object_id)+'|pos:'+str(coords[0])+','+str(coords[1]), (obj.cx,obj.cy), cv2.FONT_HERSHEY_PLAIN, 1.0, (255,0,0), thickness = 1)
+#        
+
         for obj in ObjectList:   
             if obj.color == c or c == 'all':
                 a = cv2.HuMoments(cv2.moments(obj.contour))
@@ -369,7 +413,11 @@ class object_tracking:
                     obj.wx = coords[0]
                     obj.wy = coords[1]
                     obj.wz = coords[2]
-                    cv2.putText(self.right_image, '#'+str(obj.object_id)+'|pos:'+str(coords[0])+','+str(coords[1]), (obj.cx,obj.cy), cv2.FONT_HERSHEY_PLAIN, 1.0, (255,0,0), thickness = 1)
+                    cv2.putText(self.right_image, '#'+str(obj.object_id)+'|pos:'+str(coords[0])+','+str(coords[1]), (obj.cx,obj.cy), cv2.FONT_HERSHEY_PLAIN, 1.0, (255,0,0), thickness = 1)        
+        
+        if self.frame % interval_small:
+            return        
+        
         for cnt in contours:
 	    x,y,w,h = cv2.boundingRect(cnt)
 	    if w < 15 or h < 15:
@@ -379,7 +427,6 @@ class object_tracking:
             a = cv2.HuMoments(cv2.moments(cnt))
             m = -np.sign(a)*np.log10(np.abs(a))
             m = [m[0][0], m[1][0], m[2][0], m[3][0], m[4][0], m[5][0], m[6][0]]
-	    M = cv2.moments(cnt)
 	    cX = x + (w/2)
 	    cY = y + (h/2)
 	    #print cX, cY
@@ -422,9 +469,11 @@ class object_tracking:
 #               		cv2.drawContours(self.right_image, [cnt], 0, (255,255,255), 2)
 	
             
-    def detect_big_objects(self, img):
+    def detect_big_objects(self, img):        
+        if self.frame % interval_big:
+            return
         gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
-        contours, hierarchy = cv2.findContours(gray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv2.findContours(gray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_L1 )
 
         for cnt in contours:
 	    x,y,w,h = cv2.boundingRect(cnt)
@@ -465,8 +514,6 @@ class object_tracking:
         #image_np = cv2.imdecode(np_arr, cv2.CV_LOAD_IMAGE_COLOR)
         cvImage = self.bridge.imgmsg_to_cv2(ros_data, "bgr8")
         image_np = cvImage.copy()
-        image_np = cv2.resize(image_np, (0,0), fx=image_rescale, fy=image_rescale) 
-        self.right_image = image_np;
         #self.track_objects()
         red_mask = self.redFilter(image_np)
         blue_mask = self.blueFilter(image_np)
@@ -476,6 +523,12 @@ class object_tracking:
         black = cv2.bitwise_and(image_np,image_np,mask = black_mask)
         filtered = cv2.bitwise_or(red, blue)
         filtered = cv2.bitwise_or(filtered, black)
+        
+        filtered = cv2.resize(filtered, (0,0), fx=image_rescale, fy=image_rescale) 
+        red = cv2.resize(red, (0,0), fx=image_rescale, fy=image_rescale) 
+        image_np = cv2.resize(image_np, (0,0), fx=image_rescale, fy=image_rescale) 
+        self.right_image = image_np;        
+        
         self.detect_objects(filtered, 'all')
         #self.detect_objects(red, 'red')
         #self.detect_objects(blue, 'blue')
@@ -483,12 +536,14 @@ class object_tracking:
         self.detect_big_objects(red)
         #self.process()
         #cv2.imshow('filtered', filtered)
+        self.frame = self.frame + 1
         
-        cv2.waitKey(2)    
         if VidOutput == True:    
+            cv2.waitKey(2)    
             label = "POS" +  "(" + ("%.2fm" % self.currentPoseX) + "," + ("%.2fm" % self.currentPoseY) + "," + ("%.2fm" % self.currentPoseZ) + ")"
             cv2.putText(self.right_image,label, (50,50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-            cv2.imshow('object_tracking', self.right_image)
+            disp = cv2.resize(self.right_image, (0,0), fx=1/image_rescale, fy=1/image_rescale) 
+            cv2.imshow('object_tracking', disp)
             
         #cv2.imwrite('right.png',image_np)   
         #if self.objects_count > 0:
