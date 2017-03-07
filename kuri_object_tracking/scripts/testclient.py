@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 #Copyright (c) 2016, Buti Al Delail
 #All rights reserved.
 #
@@ -50,7 +52,7 @@ if __name__ == '__main__':
     sub = rospy.Subscriber("TrackingAction/feedback",Int32, callback)
     print "Waiting for server"
     goal = TrackingGoal()
-    goal.uav_id = 3
+    goal.uav_id = 1
     client.send_goal(goal)
     print "Waiting for result"
     client.wait_for_result() 

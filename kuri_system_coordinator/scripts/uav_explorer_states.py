@@ -243,7 +243,7 @@ class DetectingObjectsS(smach.State):
                                        'preempted']
                              )
 	self.detectedObjects = Objects()		     
-	self.objects_pub = rospy.Publisher("/TrackingAction/feedback",Objects, queue_size=10)
+	self.objects_pub = rospy.Publisher("/TrackingAction/NewObjects",Objects, queue_size=10)
 
     def execute(self, userdata):
       rospy.loginfo('Executing state Detecting Objects (example)\n\n')
@@ -270,13 +270,13 @@ class DetectingObjectsS(smach.State):
 	newObject.width = 100
 	newObject.height = 100
 	if(c==0):
-	    newObject.color = 'red'
+	    newObject.color = 'RED'
 	    c=1
 	elif(c==1):
-	    newObject.color = 'green'
+	    newObject.color = 'GREEN'
 	    c=2
 	else:
-	    newObject.color = 'blue'
+	    newObject.color = 'BLUE'
 	    c=0
 	self.detectedObjects.objects.append(newObject)
 	i=i+1

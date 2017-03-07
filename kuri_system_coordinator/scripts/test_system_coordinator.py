@@ -270,7 +270,7 @@ def main(testing_mode):
 	#TODO: add latch after the publish
 	#TODO: objects detector should return a list of objects and return an objects list even if it was one
 	with detection_sm:
-	  smach.StateMachine.add('TRACKING', DetectingObjectsS(),
+	  smach.StateMachine.add('TRACKING', DetectingObjects(),
                               transitions={
                                             'succeeded':'TRACKING',
                                             'aborted':'tracker_failed',

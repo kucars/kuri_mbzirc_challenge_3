@@ -34,7 +34,7 @@ def callbackLogic(data, uav1Pose, uav2Pose, uav3Pose):
 
     # Just to make picking random colors and types easier
     WeightOfObject = 1  # Later below I will replace this with the score of the object to calculated weighted distances
-    Color = ['red', 'green', 'blue', 'yellow', 'orange'] ######$$$$$$$ The colours scoring
+    Color = ['RED', 'GREEN', 'BLUE', 'YELLOW', 'ORANGE'] ######$$$$$$$ The colours scoring
     Type = ['Large', 'Small', 'Accelerating']
 
     # Extract the content I want from the Kuri-message format and insert it into a global array

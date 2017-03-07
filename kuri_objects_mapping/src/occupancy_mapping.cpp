@@ -6,7 +6,7 @@ Object_mapping::Object_mapping(void){
 
     map_pub = ph.advertise<grid_map_msgs::GridMap>("/Grid_map", 100 , true);
     map_pub1 = ph.advertise<std_msgs::Bool>("/Map_to_TaskAllocator_flag", 100);
-    map_sub = ph.subscribe("/TrackingAction/feedback", 100, &Object_mapping::mapcallback, this);
+    map_sub = ph.subscribe("/TrackingAction/NewObjects", 100, &Object_mapping::mapcallback, this);
     map_sub1 = ph.subscribe("/RemovedObjects", 100, &Object_mapping::ObjectsRemovalcallback, this);
 
   // ----------------------------

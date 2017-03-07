@@ -1,0 +1,19 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="output" default="log"/>
+
+  
+   <!-- launching the action servers -->
+  <arg name="run_explorer" default="true" />
+  <group if="$(arg run_explorer)" >
+    <node pkg="kuri_object_tracking" type="tracking_action_server.py" name="tracking_action_server" />
+    <node pkg="kuri_object_tracking" type="testclient.py" name="trackingclient" output="$(arg output)" />  
+    <node pkg="kuri_multi_agent_navigation" type="exploration_testclient.py" name="explorationclient" output="$(arg output)" />      
+   </group> 
+  <group ns="uav_1" >
+    <node pkg="kuri_multi_agent_navigation" type="navigation_action_server" name="navigation_action_server" args="navigation_action_server1 1" output="screen"/>
+         <rosparam file="$(find kuri_multi_agent_navigation)/config/waypoints_map_ref.yaml"/>
+   </group>  
+
+  
+</launch>
