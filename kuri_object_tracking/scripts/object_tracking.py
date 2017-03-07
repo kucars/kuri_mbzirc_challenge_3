@@ -31,6 +31,7 @@
 #roslib.load_manifest('mbzirc_challenge3_image_analysis')
 import sys
 import os
+import time
 # numpy and scipy
 import numpy as np
 # OpenCV
@@ -56,11 +57,15 @@ from geometry_msgs.msg import *
 from Obstacle import Obstacle
 import rospkg
 import yaml
+#Test Dropzone
+import thread
+import threading
+
 
 VERBOSE=False
 
 threshold = 0.40
-kernel5 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(20,20))
+kernel5 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(5,5))
 x_co = 0
 y_co = 0
 hsv = None
@@ -74,6 +79,7 @@ tracking_timeout = 10 ##Seconds until tracking lost
 image_rescale = 2.5
 
 VidOutput = True
+TestDropZone = True
 
 ObjectList = []
 
@@ -103,18 +109,29 @@ class object_tracking:
                 self.V_green = config_yaml.get('V_green')
             except yaml.YAMLError as exc:
                 print(exc)
+        try:
+            self.mode = goal.mode
+        except:
+            self.mode = 1
+            print('tracking mode not provided, using search mode as default')
+        self.navigate_started = False
         self.bridge = CvBridge()
         self.actionServer = actionServer
         self.obstacles = Objects()
         self.image_sub = message_filters.Subscriber('/uav_'+str(goal.uav_id)+'/downward_cam/camera/image', Image)
         self.info_sub = message_filters.Subscriber('/uav_'+str(goal.uav_id)+'/downward_cam/camera/camera_info', CameraInfo)
+        #self.outpub = rospy.Publisher('/uav_'+str(goal.uav_id)+'/downward_cam/camera/detection_image',Image, queue_size=100, latch=True)
         self.ts = message_filters.TimeSynchronizer([self.image_sub, self.info_sub], 10)
         self.ts.registerCallback(self.callback_right)
         
         mavros.set_namespace('/uav_'+str(goal.uav_id)+'/mavros')
+        self.x = 0.0
+        self.y = 0.0
+        self.z = 0.0
         self.currentPoseX = -1
         self.currentPoseY = -1
         self.currentPoseZ = -1
+        self.pub = SP.get_pub_position_local(queue_size=10)
         self.sub = rospy.Subscriber(mavros.get_topic('local_position', 'pose'), SP.PoseStamped, self.updatePosition)
         
         self.image = None
@@ -123,30 +140,113 @@ class object_tracking:
 
         self.data_small = np.genfromtxt(packagePath+'/config/small.dat', np.float32, delimiter=',')
         self.data_big = np.genfromtxt(packagePath+'/config/big.dat', np.float32, delimiter=',')
+        self.data_dropzone = np.genfromtxt(packagePath+'/config/dropzone.dat', np.float32, delimiter=',')
         self.samples = np.reshape(self.data_small, (-1, 7))
         self.samples_big = np.reshape(self.data_big, (-1, 7))
+        self.samples_dropzone = np.reshape(self.data_dropzone, (-1, 7))
         self.objects_count = 0
         self.frame = 0
         self.new_objects = Objects()
         self.new_objects_count = 0
-
-	#self.video = cv2.VideoWriter('detection.avi', cv2.cv.CV_FOURCC(*'XVID'), 3, (1280,720))
-        #if VidOutput == True:
-        #    self.video = cv2.VideoWriter("tester.avi", cv2.cv.CV_FOURCC('M','J','P','G'), 10.0,(1228, 1027),True)
-        #print self.samples
-        #self.objects_hist = []
-        #self.objects_roi = []         
+        self.navigating = False
+        self.done = False       
         
         self.edgeThresholdSize = 0.1
         self.width = 1600
         self.height = 1200
+        
+            #self.setPose(0,0,7,5)
+    ###Testing dropzone navigation
+    def navigate(self):
+        rate = rospy.Rate(40)   # 10hz
+        
+        msg = SP.PoseStamped(
+            header=SP.Header(
+                frame_id="base_footprint",  # no matter, plugin don't use TF
+                stamp=rospy.Time.now()),    # stamp should update
+        )
+        
+        while not rospy.is_shutdown():
+            msg.pose.position.x = self.x
+            msg.pose.position.y = self.y
+            msg.pose.position.z = self.z
+
+            # For demo purposes we will lock yaw/heading to north.
+            yaw_degrees = 0  # North
+            yaw = radians(yaw_degrees)
+            quaternion = quaternion_from_euler(0, 0, yaw)
+            msg.pose.orientation = SP.Quaternion(*quaternion)
+
+            for obj in ObjectList:
+                if obj.color == 'DROP_ZONE':
+                    print 'Moving to Drop zone', self.currentPoseX-obj.wx, self.currentPoseY-obj.wy, obj.wx, obj.wy
+                    if fabs(obj.wx) < 0.2:
+                        print 'Moving Y'
+                        self.setPose(self.x, self.currentPoseY+obj.wy*2, self.z, 0 , False)
+                    else:
+                        print 'Moving X'
+                        self.setPose(self.currentPoseX-obj.wx*2, self.y, self.z, 0 , False)
+                    if fabs(obj.wy) < 0.2 and fabs(obj.wy) < 0.2 and self.z > 2:
+                        print 'Moving Z'
+                        land = 0.5
+                        if self.z <= 3:
+                            land = 0.2
+                        self.setPose(self.x, self.y, self.z - land, 5, False)
+            self.pub.publish(msg)
+            #time.sleep(5)
+            rate.sleep()
+
+    def setPose(self, x, y, z, delay=0, wait=True):
+        self.done = False
+        self.x = x
+        self.y = y
+        self.z = z
+        self.navigating = True
+        if wait:
+            rate = rospy.Rate(5)
+            while not self.done and not rospy.is_shutdown():
+                rate.sleep()
+        time.sleep(delay)    
+    
+    def takeoff(self, z, delay=0, wait=True):
+        diff = z - self.currentPoseZ
+        while not abs(diff)<0.2:
+            diff = z - self.currentPoseZ
+            if diff>0:
+                self.setPose(self.currentPoseX,self.currentPoseY,self.currentPoseZ + 0.5 ,2)
+            else:
+                self.setPose(self.currentPoseX,self.currentPoseY,self.currentPoseZ - 0.5 ,2)
     
     def updatePosition(self, topic):
+        def is_near(msg, x, y, d):
+            rospy.logdebug("Position %s: local: %d, target: %d, abs diff: %d",
+                           msg, x, y, abs(x - y))
+            return abs(x - y) < d
         self.pose = PoseWithCovariance()
         self.pose.pose = topic.pose
         self.currentPoseX = topic.pose.position.x 
         self.currentPoseY = topic.pose.position.y
-        self.currentPoseZ = topic.pose.position.z    
+        self.currentPoseZ = topic.pose.position.z  
+        
+        ###Testing dropzone navigation
+        if TestDropZone == True and self.mode == 2 and self.navigate_started == False:
+            try:
+                print 'Navigating'
+                self.navigate_started = True
+                thread.start_new_thread(self.navigate, ())
+                thread.start_new_thread(self.takeoff, (8, 0, True))
+            except:
+                fault("Error: Unable to start thread")
+            #self.takeoff(7, 2, False)
+        
+        if is_near('X', topic.pose.position.x, self.x, 0.2) and \
+           is_near('Y', topic.pose.position.y, self.y, 0.2) and \
+           is_near('Z', topic.pose.position.z, self.z, 1):
+            if  self.navigating:
+                self.done = True
+                self.navigating = False
+            
+        
         #print 'Updating Pos', self.currentPoseX, self.currentPoseY, self.currentPoseZ
     
     def process(self):
@@ -240,6 +340,24 @@ class object_tracking:
         mask = cv2.inRange(hsv, min_color, max_color)
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel5)        
         return mask
+        
+    def whiteFilter(self, img):
+        #H = 72 #69
+        #S = 211 #208
+        #V = 246 #255
+        
+        ##SIMULATOR VALUES
+        self.H_white = 0
+        self.S_white = 0
+        self.V_white = 255
+        
+        src = cv2.blur(img, (10,10))
+        hsv = cv2.cvtColor(src, cv2.COLOR_BGR2HSV)
+        min_color = np.array([self.H_white-thr_H,self.S_white-thr_S,self.V_white-thr_V])
+        max_color = np.array([self.H_white+thr_H,self.S_white+thr_S,self.V_white+thr_V])
+        mask = cv2.inRange(hsv, min_color, max_color)
+        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel5)        
+        return mask        
         
     def overlap(self, a, b):  # returns None if rectangles don't intersect
         dx = min(a[2], b[2]) - max(a[0], b[0])
@@ -418,7 +536,7 @@ class object_tracking:
                         min_cnt = cnt
                         min_pixel = pixel
                 #print 'MIN_DST', dst
-                if dst < 300 and dst >= 0:
+                if dst < 300 and dst >= 0 or (obj.color == 'DROP_ZONE'):
                     obj.update(min_cnt, min_pixel)
                     coords = self.imageToWorld(obj.cx,obj.cy)
                     obj.wx = coords[0]
@@ -512,9 +630,41 @@ class object_tracking:
                 cv2.drawContours(self.right_image, [cnt], 0, (255,255,255), 2)
                 
 	
-        
+    def detect_drop_zone(self, img):        
+        #if self.frame % interval_big:
+         #   return
+        gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
+        contours, hierarchy = cv2.findContours(gray, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_TC89_L1 )
+
+        for cnt in contours:
+	    x,y,w,h = cv2.boundingRect(cnt)
+	    if w < 100 and h < 100:
+		continue
+	    if w > 600 and h > 600:
+		continue
+            a = cv2.HuMoments(cv2.moments(cnt))
+            m = -np.sign(a)*np.log10(np.abs(a))
+            m = [m[0][0], m[1][0], m[2][0], m[3][0], m[4][0], m[5][0], m[6][0]]
+	    M = cv2.moments(cnt)
+	    cX = x + (w/2)
+	    cY = y + (h/2)
+	    #print cX, cY
+	    color = img[cY, cX]
+            dst = float("inf")
+	    for sample in self.samples_dropzone:
+		d = sum(abs(m - sample))
+		if d < dst:
+			dst = d
+            
+            cv2.putText(self.right_image,"dst:"+str(dst.astype(int)), (x,y-10), cv2.FONT_HERSHEY_PLAIN, 1.0, (255,255,255), thickness = 1)
+            #print dst        
+            if dst < 45:
+                cv2.putText(self.right_image,"DROP_ZONE", (x+w,y), cv2.FONT_HERSHEY_PLAIN, 1.0, (0,255,0), thickness = 2)
+                self.object_detected(cnt, 'DROP_ZONE')
+                cv2.drawContours(self.right_image, [cnt], 0, (255,0,0), 2)
 
     def callback_right(self, ros_data, camera_info):
+        #return
         #print camera_info
         self.new_objects = Objects()
         self.new_objects_count = 0
@@ -527,26 +677,35 @@ class object_tracking:
         #image_np = cv2.imdecode(np_arr, cv2.CV_LOAD_IMAGE_COLOR)
         cvImage = self.bridge.imgmsg_to_cv2(ros_data, "bgr8")
         image_np = cvImage.copy()
+        #image_np = cv2.resize(image_np, (0,0), fx=0.5, fy=0.5) 
         #self.track_objects()
         red_mask = self.redFilter(image_np)
         blue_mask = self.blueFilter(image_np)
         black_mask = self.greenFilter(image_np)
+        white_mask = self.whiteFilter(image_np)
         red = cv2.bitwise_and(image_np,image_np,mask = red_mask)
         blue = cv2.bitwise_and(image_np,image_np,mask = blue_mask)
         black = cv2.bitwise_and(image_np,image_np,mask = black_mask)
+        white = cv2.bitwise_and(image_np,image_np,mask = white_mask)
         filtered = cv2.bitwise_or(red, blue)
         filtered = cv2.bitwise_or(filtered, black)
+        filtered = cv2.bitwise_or(filtered, white)
         
         filtered = cv2.resize(filtered, (0,0), fx=image_rescale, fy=image_rescale) 
         red = cv2.resize(red, (0,0), fx=image_rescale, fy=image_rescale) 
+        white = cv2.resize(white, (0,0), fx=image_rescale, fy=image_rescale) 
         image_np = cv2.resize(image_np, (0,0), fx=image_rescale, fy=image_rescale) 
         self.right_image = image_np;        
         
-        self.detect_objects(filtered, 'all')
-        #self.detect_objects(red, 'red')
-        #self.detect_objects(blue, 'blue')
-        #self.detect_objects(black, 'green')
-        self.detect_big_objects(red)
+        try:
+            self.detect_objects(filtered, 'all')
+            #self.detect_objects(red, 'red')
+            #self.detect_objects(blue, 'blue')
+            #self.detect_objects(black, 'green')
+            self.detect_big_objects(red)
+            self.detect_drop_zone(white)
+        except:
+            print('Error Detecting Objects')
         #self.process()
         #cv2.imshow('filtered', filtered)
         self.frame = self.frame + 1
@@ -556,6 +715,8 @@ class object_tracking:
             label = "POS" +  "(" + ("%.2fm" % self.currentPoseX) + "," + ("%.2fm" % self.currentPoseY) + "," + ("%.2fm" % self.currentPoseZ) + ")"
             cv2.putText(self.right_image,label, (50,50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
             disp = cv2.resize(self.right_image, (0,0), fx=1/image_rescale, fy=1/image_rescale) 
+            #disp = self.right_image 
+            #self.outpub.publish(self.bridge.cv2_to_imgmsg(disp, "bgr8"))
             cv2.imshow('object_tracking', disp)
             
         #cv2.imwrite('right.png',image_np)   
@@ -568,6 +729,18 @@ class object_tracking:
         ##Update list to remove lost objects
         if ObjectList.count > 0:
             ObjectList[:] = [x for x in ObjectList if not x.islost(tracking_timeout)]
+            
+#        for obj in ObjectList:
+#            if obj.color == 'DROP_ZONE':
+#                print 'Moving to Drop zone', self.currentPoseX-obj.wx, self.currentPoseY-obj.wy, obj.wx, obj.wy
+#                if fabs(obj.wx) < 0.2:
+#                    print 'Moving Y'
+#                    self.setPose(self.x, self.currentPoseY+obj.wy*2, self.z)
+#                else:
+#                    print 'Moving X'
+#                    self.setPose(self.currentPoseX-obj.wx*2, self.y, self.z)
+#                if fabs(obj.wy) < 0.2 and fabs(obj.wy) < 0.2 and self.z > 1.5:
+#                    self.setPose(self.x, self.currentPoseY-obj.wy, self.z - 0.5)
 
         
     def callback(self, ros_data):

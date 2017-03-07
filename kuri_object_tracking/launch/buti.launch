@@ -89,11 +89,7 @@
     <node pkg="kuri_arena_exploration" type="explore_action_server.py"  name="exploration" />
     <node pkg="kuri_objects_mapping"   type="mapping_action_server.py"  name="objects_mapping" />
     <node pkg="kuri_object_tracking"   type="tracking_action_server.py" name="object_tracking" />
-    <!--node pkg="kuri_mbzirc_challenge_3" type="uav_3.py" name="uav_3_move" /-->
-  </group>
-
-  <group unless="$(arg headless)" >
-    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find kuri_mbzirc_challenge_3)/config/challenge_3.rviz"/>
+    <node pkg="kuri_arena_exploration" type="testclient.py" name="uav_3_move" />
   </group>
   
 </launch>
