@@ -19,8 +19,8 @@ from mavros import setpoint as SP
 import rospkg
 
 
-def callbackLogic(data):
-
+def callbackLogic(data, uav1Pose, uav2Pose, uav3Pose):
+      
     def printing(seq):
         i = 0
         for obj in seq:
@@ -136,7 +136,9 @@ def callbackLogic(data):
         # get the file path for rospy_tutorials
         packagePath = rospack.get_path('kuri_task_allocation')
         # Getting the color scores from a file, I don't use this effectivly yet
-        with open("/home/fire/Documents/backup_of_challenge_3/kuri_mbzirc_challenge_3/kuri_task_allocation/config/weight.yaml", 'r') as stream:
+        rospack = rospkg.RosPack()
+        
+        with open(rospack.get_path('kuri_task_allocation')+"/config/weight.yaml", 'r') as stream:
             try:
                 scores = yaml.load(stream)
                 # print scores
@@ -194,9 +196,16 @@ def callbackLogic(data):
     # UAV locations were random but now I set them to what I expect to be the general shape of the setup
     # locationOfUAVs  #use this to put the data in
     
-    UAV1 = numpy.array((random.randint(0,1000), random.randint(0,1000), 500))  ##$$$$$$$ replace with the subscriber location UAV
-    UAV2 = numpy.array((random.randint(0,1000), random.randint(0,1000), 500))
-    UAV3 = numpy.array((random.randint(0,1000), random.randint(0,1000), 500))
+    UAV1 = numpy.array((uav1Pose.position.x, uav1Pose.position.y, uav1Pose.position.z))  ##$$$$$$$ replace with the subscriber location UAV
+    UAV2 = numpy.array((uav2Pose.position.x, uav2Pose.position.y, uav2Pose.position.z))
+    UAV3 = numpy.array((uav3Pose.position.x, uav3Pose.position.y, uav3Pose.position.z))
+    print("*******************************************************************")
+    print("uav1 location x:%f , y:%f, z:%f" % (uav1Pose.position.x,uav1Pose.position.y,uav1Pose.position.z))
+    print("uav2 location x:%f , y:%f, z:%f" % (uav2Pose.position.x,uav2Pose.position.y,uav2Pose.position.z))
+    print("uav3 location x:%f , y:%f, z:%f" % (uav3Pose.position.x,uav3Pose.position.y,uav3Pose.position.z))
+    print("*******************************************************************")
+
+    #not used variable
     GOAL = numpy.array((0, 0, 100))
 
     # Target object, contains an ID, location, color and a type
@@ -307,14 +316,14 @@ def callbackLogic(data):
 
 
     #### Computing 2d distance of all objects to UAV2
-
+    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> OBJECTS %f" % (len(data.objects)))
     for obj in data.objects:
         location_obj = numpy.array(
             (obj.pose.pose.position.x, obj.pose.pose.position.y, obj.pose.pose.position.z))
 
         if obj.velocity.linear.x != 0 or obj.velocity.linear.y != 0 or obj.velocity.linear.z != 0:
             print "object is in motion"
-            print "current distance of UAV1 from object is ", dist
+            print "current distance of UAV2 from object is ", dist
             print "current x ", obj.pose.pose.position.x
             print "current y ", obj.pose.pose.position.y
 
@@ -325,7 +334,7 @@ def callbackLogic(data):
 
         else:
             dist = numpy.linalg.norm(UAV2 - location_obj)
-            print "distance of UAV1 from object is ", dist
+            print "distance of UAV2 from object is ", dist
             print "x ", obj.pose.pose.position.x
             print "y ", obj.pose.pose.position.y
 
@@ -347,7 +356,7 @@ def callbackLogic(data):
 
         if obj.velocity.linear.x != 0 or obj.velocity.linear.y != 0 or obj.velocity.linear.z != 0:
             print "object is in motion"
-            print "current distance of UAV1 from object is ", dist
+            print "current distance of UAV3 from object is ", dist
             print "current x ", obj.pose.pose.position.x
             print "current y ", obj.pose.pose.position.y
 
@@ -358,7 +367,7 @@ def callbackLogic(data):
 
         else:
             dist = numpy.linalg.norm(UAV3 - location_obj)
-            print "distance of UAV1 from object is ", dist
+            print "distance of UAV3 from object is ", dist
             print "x ", obj.pose.pose.position.x
             print "y ", obj.pose.pose.position.y
 
@@ -392,6 +401,7 @@ def callbackLogic(data):
 
     NavigationTasks = reconstructKuriMsg(FinalRanking2)
     #print NavigationTasks
+    print(">>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>> NAVIGATION Tasks %f" % (len(NavigationTasks.tasks)))
 
     #NavigationTasks = clearedset2(NavigationTasks)
     #print NavigationTasks
@@ -484,120 +494,120 @@ def callbackLogic(data):
 
     # colors = [1] * 20
 
-    colours.append("y")  # now the 21th item is UAV1
+    #colours.append("y")  # now the 21th item is UAV1
 
-    colours.append('c')  # now the 22th item is UAV2
+    #colours.append('c')  # now the 22th item is UAV2
 
-    colours.append('k')  # now the 23rd item is UAV3
+    #colours.append('k')  # now the 23rd item is UAV3
 
-    area.append(70)  # setting the size of the drone
+    #area.append(70)  # setting the size of the drone
 
-    area.append(70)
+    #area.append(70)
 
-    area.append(70)
+    #area.append(70)
 
-    def onpick(event):
-        ind = event.ind
-        print 'onpick3 scatter:', ind, numpy.take(x, ind), numpy.take(y, ind)
+    #def onpick(event):
+        #ind = event.ind
+        #print 'onpick3 scatter:', ind, numpy.take(x, ind), numpy.take(y, ind)
 
-    plt.close("all")
-    fig = plt.figure()
-    fig2 = plt.figure()
+    #plt.close("all")
+    #fig = plt.figure()
+    #fig2 = plt.figure()
     # fig.canvas.mpl_connect('pick_event', onpick)
-    UAVx = [x[-3], x[-2], x[-1]]
-    UAVy = [y[-3], y[-2], y[-1]]
-    UAVz = [z[-3], z[-2], z[-1]]
+    #UAVx = [x[-3], x[-2], x[-1]]
+    #UAVy = [y[-3], y[-2], y[-1]]
+    #UAVz = [z[-3], z[-2], z[-1]]
     # plt.plot(x[1], x[0], '-o')
     # plt.plot([x[0], x[1], x[2]], [y[0], y[1], y[2]], '-o')
 
 
-    ax3 = fig2.add_subplot(111, projection = '3d')
+    #ax3 = fig2.add_subplot(111, projection = '3d')
 
-    ax2 = fig.add_subplot(111)
+    #ax2 = fig.add_subplot(111)
 
     #print NavigationTasks
 
     # Ultra lazy mode, fix this later..
     # Basically just graphing the UAV going to one of these points. Check which UAV has the task and plot a line
     # First task
-    if NavigationTasks.tasks[0].uav_name == "UAV1":
-        xx = [UAVx[0], NavigationTasks.tasks[0].object.pose.pose.position.x]
-        yy = [UAVy[0], NavigationTasks.tasks[0].object.pose.pose.position.y]
-        zz = [UAVz[0], NavigationTasks.tasks[0].object.pose.pose.position.z]
-        ax2.plot(xx, yy, '-y')
-        ax3.plot(xx, yy, zz, c = 'y')
+    #if NavigationTasks.tasks[0].uav_name == "UAV1":
+        #xx = [UAVx[0], NavigationTasks.tasks[0].object.pose.pose.position.x]
+        #yy = [UAVy[0], NavigationTasks.tasks[0].object.pose.pose.position.y]
+        #zz = [UAVz[0], NavigationTasks.tasks[0].object.pose.pose.position.z]
+        #ax2.plot(xx, yy, '-y')
+        #ax3.plot(xx, yy, zz, c = 'y')
 
 
-    if NavigationTasks.tasks[0].uav_name == "UAV2":
-        xx = [UAVx[1], NavigationTasks.tasks[0].object.pose.pose.position.x]
-        yy = [UAVy[1], NavigationTasks.tasks[0].object.pose.pose.position.y]
-        zz = [UAVz[1], NavigationTasks.tasks[0].object.pose.pose.position.z]
+    #if NavigationTasks.tasks[0].uav_name == "UAV2":
+        #xx = [UAVx[1], NavigationTasks.tasks[0].object.pose.pose.position.x]
+        #yy = [UAVy[1], NavigationTasks.tasks[0].object.pose.pose.position.y]
+        #zz = [UAVz[1], NavigationTasks.tasks[0].object.pose.pose.position.z]
 
-        ax2.plot(xx, yy, '-c')
-        ax3.plot(xx, yy, zz, c = 'c')
+        #ax2.plot(xx, yy, '-c')
+        #ax3.plot(xx, yy, zz, c = 'c')
 
-    if NavigationTasks.tasks[0].uav_name == "UAV3":
-        xx = [UAVx[2], NavigationTasks.tasks[0].object.pose.pose.position.x]
-        yy = [UAVy[2], NavigationTasks.tasks[0].object.pose.pose.position.y]
-        zz = [UAVz[2], NavigationTasks.tasks[0].object.pose.pose.position.z]
+    #if NavigationTasks.tasks[0].uav_name == "UAV3":
+        #xx = [UAVx[2], NavigationTasks.tasks[0].object.pose.pose.position.x]
+        #yy = [UAVy[2], NavigationTasks.tasks[0].object.pose.pose.position.y]
+        #zz = [UAVz[2], NavigationTasks.tasks[0].object.pose.pose.position.z]
 
-        ax2.plot(xx, yy, '-k')
-        ax3.plot(xx, yy, zz, c = 'k')
+        #ax2.plot(xx, yy, '-k')
+        #ax3.plot(xx, yy, zz, c = 'k')
 
     # Second Task
-    if NavigationTasks.tasks[1].uav_name == "UAV1":
-        xx = [UAVx[0], NavigationTasks.tasks[1].object.pose.pose.position.x]
-        yy = [UAVy[0], NavigationTasks.tasks[1].object.pose.pose.position.y]
-        ax2.plot(xx, yy, '-y')
-        ax3.plot(xx, yy, zz)
+    #if NavigationTasks.tasks[1].uav_name == "UAV1":
+        #xx = [UAVx[0], NavigationTasks.tasks[1].object.pose.pose.position.x]
+        #yy = [UAVy[0], NavigationTasks.tasks[1].object.pose.pose.position.y]
+        #ax2.plot(xx, yy, '-y')
+        #ax3.plot(xx, yy, zz)
 
 
-    if NavigationTasks.tasks[1].uav_name == "UAV2":
-        xx = [UAVx[1], NavigationTasks.tasks[1].object.pose.pose.position.x]
-        yy = [UAVy[1], NavigationTasks.tasks[1].object.pose.pose.position.y]
-        ax2.plot(xx, yy, '-c')
-        ax3.plot(xx, yy, zz, c = "c")
+    #if NavigationTasks.tasks[1].uav_name == "UAV2":
+        #xx = [UAVx[1], NavigationTasks.tasks[1].object.pose.pose.position.x]
+        #yy = [UAVy[1], NavigationTasks.tasks[1].object.pose.pose.position.y]
+        #ax2.plot(xx, yy, '-c')
+        #ax3.plot(xx, yy, zz, c = "c")
 
 
-    if NavigationTasks.tasks[1].uav_name == "UAV3":
-        xx = [UAVx[2], NavigationTasks.tasks[1].object.pose.pose.position.x]
-        yy = [UAVy[2], NavigationTasks.tasks[1].object.pose.pose.position.y]
-        ax2.plot(xx, yy, '-k')
-        ax3.plot(xx, yy, zz, c = "k")
+    #if NavigationTasks.tasks[1].uav_name == "UAV3":
+        #xx = [UAVx[2], NavigationTasks.tasks[1].object.pose.pose.position.x]
+        #yy = [UAVy[2], NavigationTasks.tasks[1].object.pose.pose.position.y]
+        #ax2.plot(xx, yy, '-k')
+        #ax3.plot(xx, yy, zz, c = "k")
 
     # Third task
-    if NavigationTasks.tasks[2].uav_name == "UAV1":
-        xx = [UAVx[0], NavigationTasks.tasks[2].object.pose.pose.position.x]
-        yy = [UAVy[0], NavigationTasks.tasks[2].object.pose.pose.position.y]
-        ax2.plot(xx, yy, '-y')
-        ax3.plot(xx, yy, zz, c = "y")
+    #if NavigationTasks.tasks[2].uav_name == "UAV1":
+        #xx = [UAVx[0], NavigationTasks.tasks[2].object.pose.pose.position.x]
+        #yy = [UAVy[0], NavigationTasks.tasks[2].object.pose.pose.position.y]
+        #ax2.plot(xx, yy, '-y')
+        #ax3.plot(xx, yy, zz, c = "y")
 
 
-    if NavigationTasks.tasks[2].uav_name == "UAV2":
-        xx = [UAVx[1], NavigationTasks.tasks[2].object.pose.pose.position.x]
-        yy = [UAVy[1], NavigationTasks.tasks[2].object.pose.pose.position.y]
-        ax2.plot(xx, yy, '-c')
-        ax3.plot(xx, yy, zz, c = "c")
+    #if NavigationTasks.tasks[2].uav_name == "UAV2":
+        #xx = [UAVx[1], NavigationTasks.tasks[2].object.pose.pose.position.x]
+        #yy = [UAVy[1], NavigationTasks.tasks[2].object.pose.pose.position.y]
+        #ax2.plot(xx, yy, '-c')
+        #ax3.plot(xx, yy, zz, c = "c")
 
 
-    if NavigationTasks.tasks[2].uav_name == "UAV3":
-        xx = [UAVx[2], NavigationTasks.tasks[2].object.pose.pose.position.x]
-        yy = [UAVy[2], NavigationTasks.tasks[2].object.pose.pose.position.y]
-        ax2.plot(xx, yy, '-k')
-        ax3.plot(xx, yy, zz, c = "k")
+    #if NavigationTasks.tasks[2].uav_name == "UAV3":
+        #xx = [UAVx[2], NavigationTasks.tasks[2].object.pose.pose.position.x]
+        #yy = [UAVy[2], NavigationTasks.tasks[2].object.pose.pose.position.y]
+        #ax2.plot(xx, yy, '-k')
+        #ax3.plot(xx, yy, zz, c = "k")
 
 
-    labels = []
-    for obj in data.objects:
-        labels.append("Object")
+    #labels = []
+    #for obj in data.objects:
+        #labels.append("Object")
 
-    labels.append("UAV1")
-    labels.append("UAV2")
-    labels.append("UAV3")
+    #labels.append("UAV1")
+    #labels.append("UAV2")
+    #labels.append("UAV3")
 
 
-    ax1 = fig.add_subplot(111)
-    ii = 0
+    #ax1 = fig.add_subplot(111)
+    #ii = 0
 
 
 #    for label in labels:
@@ -608,32 +618,32 @@ def callbackLogic(data):
 #            bbox=dict(boxstyle='round,pad=0.5', fc='yellow', alpha=0.5),
 #            arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0'))
 #        ii += 1
-    ii=0
+    #ii=0
 
 
 
-    for label in labels:
-                ax1.annotate(
-                    label,
-                    xy=(x[ii], y[ii]), xytext=(-20, 20),
-                    textcoords='offset points', ha='right', va='bottom',
-                    bbox=dict(boxstyle='round,pad=0.5', fc='yellow', alpha=0.5),
-                    arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0'))
-                ii+=1
+    #for label in labels:
+                #ax1.annotate(
+                    #label,
+                    #xy=(x[ii], y[ii]), xytext=(-20, 20),
+                    #textcoords='offset points', ha='right', va='bottom',
+                    #bbox=dict(boxstyle='round,pad=0.5', fc='yellow', alpha=0.5),
+                    #arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0'))
+                #ii+=1
 
-    col = ax1.scatter(x, y, area, colours, picker=True)
-    fig.show()
+    #col = ax1.scatter(x, y, area, colours, picker=True)
+    #fig.show()
 
 
-    col = ax3.scatter(x, y, z, c = colours, s=area, picker=True, marker="o")
+    #col = ax3.scatter(x, y, z, c = colours, s=area, picker=True, marker="o")
 
     # fig.canvas.mpl_connect('pick_event', onpick)
 
-    fig2.show()
+    #fig2.show()
 
     # pub.publish(NavigationTasks)
     #print "################################# Returned ###################################"
-    print NavigationTasks
+    #print NavigationTasks
     #print "################################# Ended    ###################################"
 
     return NavigationTasks

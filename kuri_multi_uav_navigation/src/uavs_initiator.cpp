@@ -138,7 +138,7 @@ int main(int argc, char **argv)
 
     pose1Copy.pose.position.x=0;
     pose1Copy.pose.position.y=0;
-    pose1Copy.pose.position.z=10;
+    pose1Copy.pose.position.z=20;
 
     pose2Copy.pose.position.x=0;
     pose2Copy.pose.position.y=0;

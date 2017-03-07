@@ -74,6 +74,7 @@ class TrackingServer:
        print new_object
        self._feedback.new_object = new_object
        self.server.publish_feedback(self._feedback)
+
        rospy.loginfo('TrackingAction: Sending Objects Feedback')
        
    #def newObjectPublish(self, newObject):

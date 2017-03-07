@@ -38,53 +38,7 @@ from util_states import *
 from uav_worker_states import *
 from kuri_msgs.msg import GenerateExplorationWaypointsAction, Task
 from smach_ros import SimpleActionState
-
-def explorer_cc_cb(outcome_map):
-   if outcome_map['DETECTING_OBJECTS'] == 'succeeded' and outcome_map['MAPPING'] == 'succeeded':
-      return 'finished'
-   elif outcome_map['MAPPING'] == 'preempted':
-     return 'mapping_preempted'
-   elif outcome_map['MAPPING'] == 'aborted':
-     return 'mapping_aborted'
-   elif (outcome_map['DETECTING_OBJECTS'] == 'aborted') or (outcome_map['DETECTING_OBJECTS'] == 'aborted'):
-      return 'detection_aborted'    
-   elif (outcome_map['DETECTING_OBJECTS'] == 'preempted'):
-      return 'detection_preempted'
-   elif (outcome_map['DETECTING_OBJECTS'] == 'aborted' and outcome_map['MAPPING'] == 'aborted'):
-      return 'aborted'
-   elif ( outcome_map['DETECTING_OBJECTS'] == 'preempted' and outcome_map['MAPPING'] == 'preempted' ):
-      return 'preempted'
-    
-
-def workers_cc_cb(outcome_map):
-   if outcome_map['UAV_Worker1'] == 'workerDone' and outcome_map['UAV_Worker2'] == 'workerDone' :
-      return 'workersFinished'
-   elif outcome_map['UAV_Worker1'] == 'objectFellFailure' and outcome_map['UAV_Worker2'] == 'workerDone' :
-      return 'uav1Failed'
-   elif outcome_map['UAV_Worker1'] == 'uav1NavigationPreempted' and outcome_map['UAV_Worker2'] == 'workerDone' :
-      return 'uav1Preempted' 
-   elif outcome_map['UAV_Worker1'] == 'uav1NavigationFailed' and outcome_map['UAV_Worker2'] == 'workerDone' :
-      return 'uav1Failed'    
-   elif outcome_map['UAV_Worker1'] == 'workerDone' and outcome_map['UAV_Worker2'] == 'objectFellFailure' :
-      return 'uav2Failed'
-   elif outcome_map['UAV_Worker1'] == 'uav1NavigationPreempted' and outcome_map['UAV_Worker2'] == 'objectFellFailure' :
-      return 'uav2Failed'    
-   elif outcome_map['UAV_Worker1'] == 'uav1NavigationFailed' and outcome_map['UAV_Worker2'] == 'objectFellFailure' :
-      return 'uav1Failed'
-   elif outcome_map['UAV_Worker1'] == 'objectFellFailure' and outcome_map['UAV_Worker2'] == 'uav2NavigationPreempted' :
-      return 'uav1Failed'    
-   elif outcome_map['UAV_Worker1'] == 'objectFellFailure' and outcome_map['UAV_Worker2'] == 'uav2NavigationFailed' :
-      return 'uav2Failed'      
-   elif outcome_map['UAV_Worker1'] == 'workerDone' and outcome_map['UAV_Worker2'] == 'uav2NavigationPreempted' :
-      return 'uav1Preempted'
-   elif outcome_map['UAV_Worker1'] == 'workerDone' and outcome_map['UAV_Worker2'] == 'uav2NavigationFailed' :
-      return 'uav2Failed'
-   elif outcome_map['UAV_Worker1'] == 'uav1NavigationPreempted' and outcome_map['UAV_Worker2'] == 'uav2NavigationFailed' :
-      return 'uav2Failed'     
-   elif outcome_map['UAV_Worker1'] == 'uav1NavigationFailed' and outcome_map['UAV_Worker2'] == 'uav2NavigationFailed' :
-      return 'uavsFailed'     
-   elif outcome_map['UAV_Worker1'] == 'uav1NavigationPreempted' and outcome_map['UAV_Worker2'] == 'uav2NavigationPreempted' :
-      return 'uavsPreempted'    
+   
 
 def main_cc_term_cb(outcome_map):
   if(outcome_map['STATUS_CHECKING']=='theEnd'):
@@ -98,7 +52,6 @@ def main_cc_cb(outcome_map):
   else:
     return 'working'  
     
-    
 def main(testing_mode):
     rospy.init_node('kuri_mbzirc_challenge3_state_machine')
     start= rospy.get_time()   # stamp should update
@@ -111,6 +64,7 @@ def main(testing_mode):
 				)
     with main_sm:
 	"""
+	#TODO testing modes are deleted (only choose normal run) --> later we will return them back
 	********************************************************************
 	* choose one of these modes:					   *
 	*  1- normalRun 		: runs the normal scenario         *
@@ -121,35 +75,23 @@ def main(testing_mode):
 	"""
 	main_sm.userdata.testing_type = testing_mode
       
-	### Explorer UAV
-	uav_exlorer_sm = smach.StateMachine(outcomes=['finally',
-						      'detect_exp_failed',
-						      'detect_exp_preempted',
-						      'object_tracking_preempted', 
-						      'object_tracking_failed',
-						      'arena_mapping_failed',
-						      'arena_mapping_preempted'
-						      ], 
-					    #input_keys=['explorer_in'],
-					    output_keys=['explorer_objects_out'] 
-					   )
 	
-	### detection and exploration and mapping (to running continously)
+	### exploration
 	exploration_sm = smach.StateMachine(outcomes=['exp_failed','exp_preempted'],
 					      input_keys=['exploration_sm_in']
 					   )	
+	### detection and tracking 
+	detection_sm = smach.StateMachine(outcomes=['tracker_failed','tracker_preempted']  )
 
-	detection_sm = smach.StateMachine(outcomes=['tracker_failed','tracker_preempted']  )		
+	### mapping 	
 	mapping_sm = smach.StateMachine(outcomes=['mapping_failed','mapping_preempted']  )	
 
 	### task allocator 
 	task_allocator_sm = smach.StateMachine(outcomes=['tasksReady','allocationPreempted','allocationFailed'],
-					      input_keys=['task_allocator_in'],
 					      output_keys=['task_allocator_out1','task_allocator_out2'] 
 					      )	
 	
-	
-	
+
 	### Worker1 UAV				    	
 	uav_worker1_sm = smach.StateMachine(outcomes=['workerDone','objectFellFailure','uav1NavigationPreempted','uav1NavigationFailed'], 
 					    input_keys=['uav_worker1_sm_in'],
@@ -163,13 +105,14 @@ def main(testing_mode):
 	
 	
 	
-	###state 1 in the main sm --> initialization 	       	
+	###state 1 in the main sm --> initialization 	
+	#TODO return back the testing modes ( it was removed since everything is running parallel)
         smach.StateMachine.add('INITIALIZATION', InitTestingMode(),
 				    transitions={
-						  'normalRun' : 'STARTING',
-						  'testExplorer' : 'TEST_GENERATING_WAYPOINTS',
-						  'tastTaskAllocator' : 'TEST_TASK_ALLOCATOR',
-						  'testUAVWorkers' : 'TEST_UAV_WORKERS'
+						  'normalRun' : 'STARTING'
+						  #'testExplorer' : 'TEST_GENERATING_WAYPOINTS',
+						  #'tastTaskAllocator' : 'TEST_TASK_ALLOCATOR',
+						  #'testUAVWorkers' : 'TEST_UAV_WORKERS'
 						 },
 				    remapping={
 						'testing_type_in' : 'testing_type',
@@ -213,8 +156,10 @@ def main(testing_mode):
 						'generate_waypoints_out':'waypoints'
 					      }
 			      )					    
+	#global 	taskAllocFlag    
+	#taskAllocFlag = ['False']    
 
-	###state 4 in the main sm --> generating waypoints 	       						    
+	###state 4 in the main sm --> concurruncy	       						    
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	explorer_allocator_workers_cc = smach.Concurrence(outcomes=['comp_done','working'],
 					   default_outcome='working',
@@ -233,12 +178,18 @@ def main(testing_mode):
 			        )   			        
            smach.Concurrence.add('DETECT', detection_sm
 					       
-				)	  
-           smach.Concurrence.add('MAP', mapping_sm
+				)
+	   
+	   smach.Concurrence.add('MAP', mapping_sm
 					       
-				)	  
-				    
+				)
+	   
+	   #if (taskAllocFlag[0] == 'True'):
+	   smach.Concurrence.add('TASKALLOCATION', task_allocator_sm	       
+				)				    
 	
+	
+	#THE BIG CONCURRUNCY THAT YOU WILL EVER SEE IN YOUR LIFE >_<
         smach.StateMachine.add('All_CC', explorer_allocator_workers_cc,
 				    transitions={
 						 'comp_done':'mission_accomplished',
@@ -252,121 +203,50 @@ def main(testing_mode):
 	  
 	  
 	  
-	#TODO TO BE checked and replaced
-	# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>remove me when you check concurrence (TO BE checked and replaced)	
-	#state 4 in the main sm --> task allocation
-	smach.StateMachine.add('TASK_ALLOCATION', task_allocator_sm,
-				    transitions={'tasksReady':'UAV_WORKERS_CC',
-						 'allocationFailed' : 'mission_incomplete',
-						 'allocationPreempted' : 'mission_incomplete'
-						},
-				    remapping={
-						'task_allocator_in':'objects_locations',
-						'task_allocator_out1':'uav1_task',
-						'task_allocator_out2':'uav2_task'
-					      }			        
-			      )
 			    
 	#TODO TO BE checked and replaced	
 	# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>remove me when you check concurrence (TO BE checked and replaced)		
 	#for now, UAVFailed corresponds to object fail failure until we add other failures types
-	uav_workers_cc = smach.Concurrence(outcomes=['workersFinished','uav1Failed','uav2Failed','uav1Preempted','uav2Preempted','uavsFailed','uavsPreempted'],
-					   default_outcome='workersFinished',
-					   outcome_cb = workers_cc_cb,
-					   input_keys=['uav_worker1_cc_in','uav_worker2_cc_in']
-					  )				    
-	#state 5 in the main sm--> workers concurruncy 			    
-        smach.StateMachine.add('UAV_WORKERS_CC', uav_workers_cc,
-				    transitions={
-						 'workersFinished':'mission_accomplished',
-						 'uav1Failed':'TASK_ALLOCATION',
-						 'uav2Failed':'TASK_ALLOCATION',
-						 'uavsFailed':'TASK_ALLOCATION',						 
-						 'uav1Preempted':'mission_incomplete',
-						 'uav2Preempted':'mission_incomplete',	
-						 'uavsPreempted':'mission_incomplete'						 
-						}, 
-				    remapping={
-						'uav_worker1_cc_in':'uav1_task',
-						'uav_worker2_cc_in':'uav2_task'
-					      }
-			      )
+	#uav_workers_cc = smach.Concurrence(outcomes=['workersFinished','uav1Failed','uav2Failed','uav1Preempted','uav2Preempted','uavsFailed','uavsPreempted'],
+					   #default_outcome='workersFinished',
+					   #outcome_cb = workers_cc_cb,
+					   #input_keys=['uav_worker1_cc_in','uav_worker2_cc_in']
+					  #)				    
+	##state 5 in the main sm--> workers concurruncy 			    
+        #smach.StateMachine.add('UAV_WORKERS_CC', uav_workers_cc,
+				    #transitions={
+						 #'workersFinished':'mission_accomplished',
+						 #'uav1Failed':'TASK_ALLOCATION',
+						 #'uav2Failed':'TASK_ALLOCATION',
+						 #'uavsFailed':'TASK_ALLOCATION',						 
+						 #'uav1Preempted':'mission_incomplete',
+						 #'uav2Preempted':'mission_incomplete',	
+						 #'uavsPreempted':'mission_incomplete'						 
+						#}, 
+				    #remapping={
+						#'uav_worker1_cc_in':'uav1_task',
+						#'uav_worker2_cc_in':'uav2_task'
+					      #}
+			      #)
 
-	#*************************************
-	# Define the uav_workers concurruncy	
-	with uav_workers_cc:
-            smach.Concurrence.add('UAV_Worker1', uav_worker1_sm,
-				    remapping={
-						'uav_worker1_sm_in':'uav_worker1_cc_in'
-					      }					       
+	##*************************************
+	## Define the uav_workers concurruncy	
+	#with uav_workers_cc:
+            #smach.Concurrence.add('UAV_Worker1', uav_worker1_sm,
+				    #remapping={
+						#'uav_worker1_sm_in':'uav_worker1_cc_in'
+					      #}					       
 				  
-				 )
-            smach.Concurrence.add('UAV_Worker2', uav_worker2_sm,
-				    remapping={
-						'uav_worker2_sm_in':'uav_worker2_cc_in'
-					      }					  
-				 )
-	# End uav_workers concurruncy  
-	#************************************			    
+				 #)
+            #smach.Concurrence.add('UAV_Worker2', uav_worker2_sm,
+				    #remapping={
+						#'uav_worker2_sm_in':'uav_worker2_cc_in'
+					      #}					  
+				 #)
+	## End uav_workers concurruncy  
+	##************************************			    
 	
 	
-	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	# testing states
-	#TODO: modify testing states when you progress
-	
-	smach.StateMachine.add('TEST_GENERATING_WAYPOINTS',  GenerateWaypoints(), 
-				    transitions={
-						  'succeeded':'TEST_UAV_EXPLORER',
-						  'aborted':'test_failed',
-						  'preempted':'test_failed'
-						},
-				    remapping={
-						'generate_waypoints_out':'waypoints'
-					      }
-			      )		
-	
-        smach.StateMachine.add('TEST_UAV_EXPLORER', uav_exlorer_sm,
-				transitions={
-					      'finally':'test_succeeded',
-					      'object_tracking_preempted':'test_failed',
-					      'object_tracking_failed':'test_failed',
-					      'detect_exp_failed':'test_failed',
-					      'detect_exp_preempted':'test_failed',
-					      'arena_mapping_failed':'test_failed',
-					      'arena_mapping_preempted':'test_failed'
-					   }			       
-			      )
-
-        smach.StateMachine.add('TEST_TASK_ALLOCATOR', task_allocator_sm,
-                               transitions={
-					    'tasksReady' : 'TEST_UAV_WORKERS',
-                                            'allocationPreempted' : 'test_failed',
-                                            'allocationFailed' : 'test_failed'
-                                           },
-				remapping={
-					    'task_allocator_out1':'uav1_nav_path',
-					    'task_allocator_out2':'uav2_nav_path'
-					  }			       
-			      )
-
-
-        smach.StateMachine.add('TEST_UAV_WORKERS', uav_workers_cc,
-                               transitions={
-					      'workersFinished':'test_succeeded',
-					      'uav1Failed':'test_failed',
-					      'uav2Failed':'test_failed',
-					      'uavsFailed':'test_failed',						 
-					      'uav1Preempted':'test_failed',
-					      'uav2Preempted':'test_failed',	
-					      'uavsPreempted':'test_failed'
-					   },
-			      remapping={
-					 'uav_worker1_cc_in':'uav1_nav_path',
-					 'uav_worker2_cc_in':'uav2_nav_path'
-					}			       
-			      )
-	# END of define testing states		       
-	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 		    
 
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -381,101 +261,47 @@ def main(testing_mode):
 			       remapping={
 					  'navigation_task':'exploration_sm_in',
 					 }
-			      ) 	  
+				) 	  
 
 
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Define the detection machine
 	with detection_sm:
-	  smach.StateMachine.add('TRACKING', DetectingObjectsS(),
+	  smach.StateMachine.add('TRACKING', DetectingObjects(),
                               transitions={
                                             'succeeded':'TRACKING',
                                             'aborted':'tracker_failed',
                                             'preempted':'tracker_preempted'
 					   }			
-			      ) 
+				) 
 			      
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Define the mapping machine
 	with mapping_sm:
-	  smach.StateMachine.add('MAPPING_TASK', Mapping(),
+	  smach.StateMachine.add('MAPPING', Mapping(),
                               transitions={
-                                            'succeeded':'MAPPING_TASK',
+                                            'succeeded':'MAPPING',
                                             'aborted':'mapping_failed',
                                             'preempted':'mapping_preempted'
 					   }			
-			      )				    
-				    
-				    
-        #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	# Define the explorer state machine
-	with uav_exlorer_sm:	
-			        
-			        
-	  #'exploring_aborted','exploring_preempted'     
-	  explore_detect_cc = smach.Concurrence(outcomes=['finished','detection_aborted','detection_preempted','mapping_aborted','mapping_preempted','aborted','preempted'],
-						default_outcome='aborted',
-						outcome_cb = explorer_cc_cb
-						#input_keys=['explore_detect_cc_in'],
-						#output_keys=['explore_detect_cc_out']
-						)		       
-	  smach.StateMachine.add('EXPLORE_DETECT_CC', explore_detect_cc,
-			           transitions={
-						'finished':'finally',
-						'aborted':'detect_exp_failed',
-						'preempted':'detect_exp_preempted',
-						#'exploring_aborted':'path_follow_failed',
-						#'exploring_preempted':'path_follow_preempted',
-						'detection_aborted':'object_tracking_failed',
-						'detection_preempted':'object_tracking_preempted',
-						'mapping_aborted':'arena_mapping_failed',
-						'mapping_preempted':'arena_mapping_preempted'
-					       },
-				   remapping={
-					      #'explore_detect_cc_in':'explorer_in',
-					      #'explore_detect_cc_out':'explorer_objects_out'
-					     }
 				)
-
-
-	  #*************************************
-	  # Define the explor_detect concurruncy
-	  with explore_detect_cc:
-	   #smach.Concurrence.add('EXPLORING', Exploring('/uav_1/navigation_action_server1'),
-			       #remapping={
-					  #'navigation_task':'explore_detect_cc_in',
-					 #}
-			        #)
-	   smach.Concurrence.add('DETECTING_OBJECTS', DetectingObjectsS(), #DetectingObjects()
-			       remapping={
-					  #'detecting_objects_out':'explore_detect_cc_out'
-					 }
-			        )
-	   smach.Concurrence.add('MAPPING', Mapping()			  
-				)			       
-	  # End explore_detect conccuruncy  
-	  #************************************
-	# End uav_explorer state machine  
-	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	
-	
-	
-	
+				    
+				    
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Define the task_allocator state machine	
 	with task_allocator_sm:
-	  smach.StateMachine.add('ALLOCATING_TASKS', AllocatingTasks(),
-				    transitions={
-						 'succeeded':'GENERATING_NAVPATHS',
-						 'aborted' : 'allocationFailed',
-						 'preempted':'allocationPreempted'
-						}, 
-				    remapping={
-						'objects_map':'task_allocator_in',
-						'allocating_tasks_out':'uavs_tasks'
-					      }
-			        )				    
-	  smach.StateMachine.add('GENERATING_NAVPATHS', GeneratePaths(),
+	    smach.StateMachine.add('ALLOCATING_TASKS', AllocatingTasks(),
+				      transitions={
+						  'succeeded':'GENERATING_NAVPATHS',
+						  'aborted' : 'allocationFailed',
+						  'preempted':'allocationPreempted'
+						  }, 
+				      remapping={
+						  'allocating_tasks_out':'uavs_tasks'
+						}
+				  )
+	    #taskAllocFlag[0]= 'False'			      
+	    smach.StateMachine.add('GENERATING_NAVPATHS', GeneratePaths(),
 				transitions={
 				  	    'succeeded':'tasksReady',
 					    'preempted':'allocationFailed',
@@ -486,7 +312,7 @@ def main(testing_mode):
 					    'generating_navpaths_uav1_out':'task_allocator_out1',
 					    'generating_navpaths_uav2_out':'task_allocator_out2'
 					  }
-			       )		
+				  )		
 	# End task_allocator state machine  
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	
@@ -543,7 +369,7 @@ def main(testing_mode):
 					    'canSee':'PICKING_OBJECT',
 					    'cannotSee':'objectFellFailure'
 					    }
-			      )			
+				)			
 				
 	# End uav_worker1 state machine  
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>

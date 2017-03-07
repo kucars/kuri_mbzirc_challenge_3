@@ -149,7 +149,6 @@ class Mapping(smach_ros.SimpleActionState):
 						  goal_cb=self.goal_callback,
 						  result_cb=self.result_callback
 					    )  
-	
     def goal_callback(self, userdata, goal):
         rospy.loginfo('Executing state Mapping\n\n')
 	task = Task(uav_id=1)
@@ -210,8 +209,8 @@ class DetectingObjects(smach_ros.SimpleActionState):
         smach_ros.SimpleActionState.__init__(self, 'TrackingAction',
 						    TrackingAction,
 						    goal_cb=self.goal_callback,
-						    result_cb=self.result_callback,
-						    output_keys=['detecting_objects_out']  
+						    result_cb=self.result_callback
+						   # output_keys=['detecting_objects_out']  
 					    )
 	
     def goal_callback(self, userdata, goal):
@@ -221,7 +220,7 @@ class DetectingObjects(smach_ros.SimpleActionState):
       
     def result_callback(self, userdata, status, result):
 	if status == GoalStatus.SUCCEEDED:
-	  userdata.detecting_objects_out = result.total_objects_tracked
+	  #userdata.detecting_objects_out = result.total_objects_tracked
           return 'succeeded'
 	elif status == GoalStatus.PREEMPTED:
 	  return 'preempted'
@@ -236,9 +235,6 @@ class DetectingObjectsS(smach.State):
         preempted : a cancel request by the client occured
         aborted : an error occured in the tracker action server
 	
-    output_keys
-    ----------
-	detecting_objects_out : detected objects locations
     """  
     def __init__(self):
         smach.State.__init__(self,
@@ -251,8 +247,9 @@ class DetectingObjectsS(smach.State):
 
     def execute(self, userdata):
       rospy.loginfo('Executing state Detecting Objects (example)\n\n')
-      self.addObjects(4) #example of 2 red objects
+      self.addObjects(2) #example of 2 red objects
       self.objects_pub.publish(self.detectedObjects)
+      del self.detectedObjects.objects[:]
       rospy.sleep(10)
       return 'succeeded'
       return 'preempted'

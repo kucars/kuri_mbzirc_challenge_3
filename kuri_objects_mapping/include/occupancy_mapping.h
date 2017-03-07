@@ -30,7 +30,7 @@ class Object_mapping
 
 public:
     Object_mapping();
-    void mapcallback(const  kuri_msgs::Objects objects);
+    void mapcallback(const kuri_msgs::Object object);
     void ObjectsRemovalcallback(const kuri_msgs::Objects objectsR);
     void UpdateMap(const kuri_msgs::Objects objects,int objectsNum , int Add_Remove);
     void StoreMap(actionlib::SimpleActionServer<kuri_msgs::MappingAction> *actionServer,kuri_msgs::MappingResult result);
@@ -49,6 +49,7 @@ private:
     int vertex;
     std::mutex m;
     bool flag_success;
+    kuri_msgs::Objects newObjects;
 
 };
 

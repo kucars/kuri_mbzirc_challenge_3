@@ -39,7 +39,9 @@ from nav_msgs.msg import *
 from kuri_msgs.msg import GenerateExplorationWaypointsAction, Task, NavTask,NavTasks, FollowPathAction,TrackingAction,GeneratePathsAction
 from smach_ros import SimpleActionState
 from actionlib_msgs.msg import GoalStatus
+from grid_map_msgs.msg import GridMap
 import rospkg
+from std_msgs.msg import Bool
 
 class InitTestingMode(smach.State):
     """ Initializes state machine running mode either in component testing or full scenario  
@@ -66,10 +68,11 @@ class InitTestingMode(smach.State):
 
     def __init__(self):
         smach.State.__init__(self,
-                             outcomes=['normalRun',
-                                       'testExplorer',
-                                       'tastTaskAllocator',
-                                       'testUAVWorkers'],
+                             outcomes=['normalRun'
+                                       #'testExplorer',
+                                       #'tastTaskAllocator',
+                                       #'testUAVWorkers'
+                                       ],
                              input_keys=['testing_type_in'],
                              output_keys=[
 					  'waypoint_generator_test_in',
@@ -218,9 +221,6 @@ class AllocatingTasks(smach_ros.SimpleActionState):
         preempted : a cancel request by the client occured
         aborted : an error occured in the task allocation action server
 
-    input_keys
-    ----------
-	allocating_tasks_in : detected objects locations (local/gps)
 	
     output_keys
     ----------
@@ -229,14 +229,28 @@ class AllocatingTasks(smach_ros.SimpleActionState):
     def __init__(self):
 	smach_ros.SimpleActionState.__init__(self,'actionAllocationServ',
 						  AllocateTasksAction,
-						  #goal_cb=self.goal_callback,
 						  result_cb=self.result_callback,
-						  goal_slots=['objects_map'],
-						  input_keys=['objects_map'], 
+						  goal_cb = self.goal_callback, 
 						  output_keys=['allocating_tasks_out']
 					    )      
+	self.sub = rospy.Subscriber("/create_map/result", ObjectsMap, self.map_callback)
+	self.objects_map = ObjectsMap()	
 
-      
+    def map_callback(self, topic):
+      	del self.objects_map.objects[:]
+	self.objects_map.map = topic.result.objects_map.map
+	self.objects_map.objects = topic.result.objects_map.objects
+	print("********number of mapped objects %f ************" % (len(topic.result.objects_map.objects)))
+      	print("********number of mapped objects %f ************" % (len(self.objects_map.objects)))
+
+    def goal_callback(self, userdata, goal):
+      while(True):
+        if( len(self.objects_map.objects) != 0):
+	  goal = kuri_msgs.msg.AllocateTasksGoal(objects_map=self.objects_map)
+	  print("********number of goal objects %f ************" % (len(goal.objects_map.objects)))
+	  return goal
+
+	
     def result_callback(self, userdata, status, result):
       	rospy.loginfo('Executing state AllocatingTasks\n\n')
 	if status == GoalStatus.SUCCEEDED:

@@ -38,9 +38,28 @@ class actionAllocator(object):
         self._as = actionlib.SimpleActionServer(self._action_name, kuri_msgs.msg.AllocateTasksAction,
                                                 execute_cb=self.execute_cb, auto_start=False)
         self._as.start()
+        self.sub_uav1 = rospy.Subscriber("/uav_1/mavros/local_position/pose", SP.PoseStamped, self.updatePosition1)
+        self.sub_uav2 = rospy.Subscriber("/uav_2/mavros/local_position/pose", SP.PoseStamped, self.updatePosition2)
+        self.sub_uav3 = rospy.Subscriber("/uav_3/mavros/local_position/pose", SP.PoseStamped, self.updatePosition3)
 
+	self.uav1CurrentPose = Pose()
+	self.uav2CurrentPose = Pose()
+	self.uav3CurrentPose = Pose()
 
+    def updatePosition1(self, topic):
+      self.uav1CurrentPose.position.x = topic.pose.position.x 
+      self.uav1CurrentPose.position.y = topic.pose.position.y
+      self.uav1CurrentPose.position.z = topic.pose.position.z
 
+    def updatePosition2(self, topic):
+      self.uav2CurrentPose.position.x = topic.pose.position.x 
+      self.uav2CurrentPose.position.y = topic.pose.position.y
+      self.uav2CurrentPose.position.z = topic.pose.position.z
+
+    def updatePosition3(self, topic):
+      self.uav3CurrentPose.position.x = topic.pose.position.x 
+      self.uav3CurrentPose.position.y = topic.pose.position.y
+      self.uav3CurrentPose.position.z = topic.pose.position.z      
 
     def callbackloc(data2):
 
@@ -50,8 +69,9 @@ class actionAllocator(object):
     def execute_cb(self, goal):
         global locationOfUAVs
         data = goal.objects_map
-
-        callback5 = callbackLogic(data)
+	print("[RANDA] goal objects %f" % (len(goal.objects_map.objects)))
+	print("[RANDA] data objects %f" % (len(data.objects)))	
+        callback5 = callbackLogic(data,self.uav1CurrentPose,self.uav2CurrentPose, self.uav3CurrentPose)
 
         callbackreturns = callback5
         success = True

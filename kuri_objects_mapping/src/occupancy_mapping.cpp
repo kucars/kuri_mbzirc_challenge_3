@@ -12,7 +12,7 @@ Object_mapping::Object_mapping(void){
   // ----------------------------
   // ---< Create grid map >------
   // ----------------------------
-   
+
     map.add({"static"});
     map.setFrameId("map");
     map.setGeometry(Length(90, 60), 1);
@@ -21,8 +21,11 @@ Object_mapping::Object_mapping(void){
 }
 
 
-void Object_mapping::mapcallback(const kuri_msgs::Objects objects){
+void Object_mapping::mapcallback(const kuri_msgs::Object object){
+    kuri_msgs::Objects objects;
+    objects.objects.push_back(object);
     int objectsNum= objects.objects.size();
+    std::cout<<"################ number of objects : "<<objectsNum<<std::endl;
     std::thread update1(&Object_mapping::UpdateMap,this,objects,objectsNum,0); // last elemet ,0, is for adding object to map
     update1.join();
     publishMap();
@@ -43,7 +46,7 @@ void Object_mapping::UpdateMap(const kuri_msgs::Objects objects,int objectsNum ,
 {
   // ------------------------------------------------------------------
   // ---<  add or remove objects based on Add_Remove flag value >------
-  // ------------------------------------------------------------------ 
+  // ------------------------------------------------------------------
 
     std::lock_guard<std::mutex> lock(m); // lock the thread to avoid adding and removing objects simultaneoulsy
     Position position;
@@ -54,10 +57,11 @@ void Object_mapping::UpdateMap(const kuri_msgs::Objects objects,int objectsNum ,
     for (int i=0;i<objectsNum;i++){
     position [0] = objects.objects[i].pose.pose.position.x;
     position [1] = objects.objects[i].pose.pose.position.y;
+    newObjects.objects.push_back(objects.objects[i]);
     map.getIndex(position,index);
-    std::cout << objectsNum << std::endl; 	
-    std::cout << position << std::endl; 	
-    std::cout << index.transpose() << std::endl; 	
+    std::cout << objectsNum << std::endl;
+    std::cout << position << std::endl;
+    std::cout << index.transpose() << std::endl;
             if (Add_Remove ==0)  map.at("static", index) = 1;
             else if (Add_Remove ==1) map.at("static", index) = 0;
 
@@ -84,10 +88,15 @@ void Object_mapping::StoreMap(actionlib::SimpleActionServer<kuri_msgs::MappingAc
         if(flag_success)
         {
             GridMapRosConverter::toMessage(map,result.objects_map.map);
+            for(int j=0; j<newObjects.objects.size();j++)
+                result.objects_map.objects.push_back(newObjects.objects[j]);
+
+            newObjects.objects.erase(newObjects.objects.begin(), newObjects.objects.end());
             flag_success=false;
-//          actionServer->setSucceeded(result); //it should run continously
+            publishMap();
+            actionServer->setSucceeded(result); //it should run continously
         }
-        publishMap();
+//        publishMap();
         if (actionServer->isPreemptRequested()) {
             ROS_INFO("%s: Preempted", actionName.c_str());
             actionServer->setPreempted();
