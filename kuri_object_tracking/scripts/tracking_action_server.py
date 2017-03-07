@@ -37,7 +37,7 @@ class TrackingServer:
 
    def __init__(self):
      print 'Starting TrackingServer'
-     #self.newObjectPub = rospy.Publisher("TrackingAction/NewObject",Object, queue_size=10)
+     self.newObjectPub = rospy.Publisher("/TrackingAction/NewObjects",Objects, queue_size=100, latch=True)
      self.server = actionlib.SimpleActionServer('TrackingAction', TrackingAction, self.execute, False)
      self._feedback = TrackingFeedback()
      self._result   = TrackingResult()
@@ -58,7 +58,7 @@ class TrackingServer:
          return
      if self.tracking == None:
 	 self.tracking = object_tracking(self,goal)
-     self._feedback.new_object = Object()
+     self._feedback.new_objects = Objects()
      #self._feedback.new_object = self.tracking.obstacles #self.total_objects
      # publish the feedback
      #self.server.publish_feedback(self._feedback)
@@ -70,10 +70,11 @@ class TrackingServer:
      else:
          rospy.loginfo('TrackingAction: Failed')
      
-   def update(self, new_object):
-       print new_object
-       self._feedback.new_object = new_object
+   def update(self, new_objects):
+       #print new_objects
+       self._feedback.new_objects = new_objects
        self.server.publish_feedback(self._feedback)
+       self.newObjectPub.publish(new_objects)
 
        rospy.loginfo('TrackingAction: Sending Objects Feedback')
        

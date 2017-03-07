@@ -55,6 +55,7 @@ from geometry_msgs.msg import *
 # from cv_bridge import CvBridge, CvBridgeError
 from Obstacle import Obstacle
 import rospkg
+import yaml
 
 VERBOSE=False
 
@@ -63,9 +64,7 @@ kernel5 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(20,20))
 x_co = 0
 y_co = 0
 hsv = None
-H = 0
-S = 0
-V = 0
+
 thr_H = 180*threshold
 thr_S = 255*threshold
 thr_V = 255*threshold
@@ -82,23 +81,31 @@ ObjectList = []
 interval_small = 3
 interval_big = 4
 
+config_yaml = None
+
 class object_tracking:
 
     def __init__(self, actionServer, goal):
-    #def __init__(self):
         '''Initialize ros publisher, ros subscriber'''
-        # topic where we publish
-        #self.image_pub = rospy.Publisher("/output/image_raw/compressed",
-        #    CompressedImage)
+        rospack = rospkg.RosPack()
+        packagePath = rospack.get_path('kuri_object_tracking')
+        with open(packagePath+'/config/simulator.yaml', 'r') as stream:
+            try:
+                config_yaml = yaml.load(stream)
+                self.H_red = config_yaml.get('H_red')
+                self.S_red = config_yaml.get('S_red')
+                self.V_red = config_yaml.get('V_red')
+                self.H_blue = config_yaml.get('H_blue')
+                self.S_blue = config_yaml.get('S_blue')
+                self.V_blue = config_yaml.get('V_blue')
+                self.H_green = config_yaml.get('H_green')
+                self.S_green = config_yaml.get('S_green')
+                self.V_green = config_yaml.get('V_green')
+            except yaml.YAMLError as exc:
+                print(exc)
         self.bridge = CvBridge()
         self.actionServer = actionServer
         self.obstacles = Objects()
-        # subscribed Topic
-        #self.subscriber = rospy.Subscriber("/zed_camera/rgb/image_rect_color/compressed", CompressedImage, self.callback,  queue_size = 1)
-        #self.left = rospy.Subscriber("/zed_camera/left/image_rect_color/compressed", CompressedImage, self.callback_left,  queue_size = 1)
-        #self.right = rospy.Subscriber("/zed_camera/right/image_rect_color/compressed", CompressedImage, self.callback_right,  queue_size = 1)
-        #self.right = rospy.Subscriber("/image_raw/compressed", CompressedImage, self.callback_right,  queue_size = 1)
-        #self.right = rospy.Subscriber("/uav_3/downward_cam/camera/image",Image,self.callback_right)
         self.image_sub = message_filters.Subscriber('/uav_'+str(goal.uav_id)+'/downward_cam/camera/image', Image)
         self.info_sub = message_filters.Subscriber('/uav_'+str(goal.uav_id)+'/downward_cam/camera/camera_info', CameraInfo)
         self.ts = message_filters.TimeSynchronizer([self.image_sub, self.info_sub], 10)
@@ -113,17 +120,15 @@ class object_tracking:
         self.image = None
         self.left_image = None
         self.right_image = None
-        #self.data_small = np.genfromtxt('../config/small.dat', np.float32, delimiter=',')
-        #self.data_big = np.genfromtxt('../config/big.dat', np.float32, delimiter=',')
-        rospack = rospkg.RosPack()
-        packagePath = rospack.get_path('kuri_object_tracking')
-        print packagePath
+
         self.data_small = np.genfromtxt(packagePath+'/config/small.dat', np.float32, delimiter=',')
         self.data_big = np.genfromtxt(packagePath+'/config/big.dat', np.float32, delimiter=',')
         self.samples = np.reshape(self.data_small, (-1, 7))
         self.samples_big = np.reshape(self.data_big, (-1, 7))
         self.objects_count = 0
         self.frame = 0
+        self.new_objects = Objects()
+        self.new_objects_count = 0
 
 	#self.video = cv2.VideoWriter('detection.avi', cv2.cv.CV_FOURCC(*'XVID'), 3, (1280,720))
         #if VidOutput == True:
@@ -189,14 +194,14 @@ class object_tracking:
         #S = 161
         #V = 255
         ##SIMULATOR VALUES
-        H = 0
-        S = 255
-        V = 135        
+        #H = 0
+        #S = 255
+        #V = 135        
         
         src = cv2.blur(img, (10,10))
         hsv = cv2.cvtColor(src, cv2.COLOR_BGR2HSV)
-        min_color = np.array([H-thr_H,S-thr_S,V-thr_V])
-        max_color = np.array([H+thr_H,S+thr_S,V+thr_V])
+        min_color = np.array([self.H_red-thr_H,self.S_red-thr_S,self.V_red-thr_V])
+        max_color = np.array([self.H_red+thr_H,self.S_red+thr_S,self.V_red+thr_V])
         mask = cv2.inRange(hsv, min_color, max_color)
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel5)        
         return mask
@@ -206,14 +211,14 @@ class object_tracking:
         #S = 170
         #V = 251
         ##SIMULATOR VALUES
-        H = 120
-        S = 177
-        V = 156
+        #H = 120
+        #S = 177
+        #V = 156
         
         src = cv2.blur(img, (10,10))
         hsv = cv2.cvtColor(src, cv2.COLOR_BGR2HSV)
-        min_color = np.array([H-thr_H,S-thr_S,V-thr_V])
-        max_color = np.array([H+thr_H,S+thr_S,V+thr_V])
+        min_color = np.array([self.H_blue-thr_H,self.S_blue-thr_S,self.V_blue-thr_V])
+        max_color = np.array([self.H_blue+thr_H,self.S_blue+thr_S,self.V_blue+thr_V])
         mask = cv2.inRange(hsv, min_color, max_color)
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel5)        
         return mask
@@ -224,14 +229,14 @@ class object_tracking:
         #V = 246 #255
         
         ##SIMULATOR VALUES
-        H = 60
-        S = 255
-        V = 177
+        #H = 60
+        #S = 255
+        #V = 177
         
         src = cv2.blur(img, (10,10))
         hsv = cv2.cvtColor(src, cv2.COLOR_BGR2HSV)
-        min_color = np.array([H-thr_H,S-thr_S,V-thr_V])
-        max_color = np.array([H+thr_H,S+thr_S,V+thr_V])
+        min_color = np.array([self.H_green-thr_H,self.S_green-thr_S,self.V_green-thr_V])
+        max_color = np.array([self.H_green+thr_H,self.S_green+thr_S,self.V_green+thr_V])
         mask = cv2.inRange(hsv, min_color, max_color)
         mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel5)        
         return mask
@@ -287,7 +292,9 @@ class object_tracking:
                 obstacle.wx = coords[0]
                 obstacle.wy = coords[1]
                 obstacle.wz = coords[2]
-                self.actionServer.update(obstacle.getAsObject())
+                self.new_objects.objects.append(obstacle.getAsObject())
+                self.new_objects_count = self.new_objects_count + 1
+                #self.actionServer.update(obstacle.getAsObject())
             else:
                 self.obstacles = Objects()
                 for obj in ObjectList:
@@ -509,6 +516,8 @@ class object_tracking:
 
     def callback_right(self, ros_data, camera_info):
         #print camera_info
+        self.new_objects = Objects()
+        self.new_objects_count = 0
         self.img_proc = image_geometry.PinholeCameraModel()
         self.img_proc.fromCameraInfo(camera_info)
         #n = self.img_proc.projectPixelTo3dRay((900,30))
@@ -552,6 +561,10 @@ class object_tracking:
         #cv2.imwrite('right.png',image_np)   
         #if self.objects_count > 0:
             #os._exit(1)
+            
+        ##Publish new Objects
+        if self.actionServer.hasGoal and self.new_objects_count > 0:
+            self.actionServer.update(self.new_objects)
         ##Update list to remove lost objects
         if ObjectList.count > 0:
             ObjectList[:] = [x for x in ObjectList if not x.islost(tracking_timeout)]

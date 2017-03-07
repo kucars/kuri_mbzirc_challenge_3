@@ -1,0 +1,13 @@
+H_red: 0
+S_red: 255
+V_red: 135
+H_blue: 120
+S_blue: 177
+V_blue: 156
+H_green: 60
+S_green: 255
+V_green: 177
+threshold: 0.40
+tracking_timeout: 10
+image_rescale: 2.5
+VidOutput: 1
