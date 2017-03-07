@@ -21,11 +21,8 @@ Object_mapping::Object_mapping(void){
 }
 
 
-void Object_mapping::mapcallback(const kuri_msgs::Object object){
-    kuri_msgs::Objects objects;
-    objects.objects.push_back(object);
+void Object_mapping::mapcallback(const kuri_msgs::Objects objects){
     int objectsNum= objects.objects.size();
-    std::cout<<"################ number of objects : "<<objectsNum<<std::endl;
     std::thread update1(&Object_mapping::UpdateMap,this,objects,objectsNum,0); // last elemet ,0, is for adding object to map
     update1.join();
     publishMap();

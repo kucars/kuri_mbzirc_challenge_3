@@ -156,8 +156,7 @@ def main(testing_mode):
 						'generate_waypoints_out':'waypoints'
 					      }
 			      )					    
-	#global 	taskAllocFlag    
-	#taskAllocFlag = ['False']    
+
 
 	###state 4 in the main sm --> concurruncy	       						    
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
@@ -251,6 +250,8 @@ def main(testing_mode):
 
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Define the exploreration machine
+	#TODO: assign namespaces for each physical drone
+	#TODO: confirm that after gps homming the local position is set to 0,0,0 (in real experiments)
 	with exploration_sm:
 	  smach.StateMachine.add('EXPLORING', Exploring('/uav_1/navigation_action_server1'),
                               transitions={
@@ -266,8 +267,10 @@ def main(testing_mode):
 
         #>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Define the detection machine
+	#TODO: add latch after the publish
+	#TODO: objects detector should return a list of objects and return an objects list even if it was one
 	with detection_sm:
-	  smach.StateMachine.add('TRACKING', DetectingObjects(),
+	  smach.StateMachine.add('TRACKING', DetectingObjectsS(),
                               transitions={
                                             'succeeded':'TRACKING',
                                             'aborted':'tracker_failed',
@@ -288,7 +291,9 @@ def main(testing_mode):
 				    
 				    
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
-	# Define the task_allocator state machine	
+	# Define the task_allocator state machine
+	#TODO: it should genarate new tasks only if the workers are not performing a task
+	#TODO: it should be deployed in one system (centralized system, ground station) --> task allocator, path generator, and statemachine
 	with task_allocator_sm:
 	    smach.StateMachine.add('ALLOCATING_TASKS', AllocatingTasks(),
 				      transitions={
@@ -300,7 +305,6 @@ def main(testing_mode):
 						  'allocating_tasks_out':'uavs_tasks'
 						}
 				  )
-	    #taskAllocFlag[0]= 'False'			      
 	    smach.StateMachine.add('GENERATING_NAVPATHS', GeneratePaths(),
 				transitions={
 				  	    'succeeded':'tasksReady',
@@ -322,6 +326,9 @@ def main(testing_mode):
 	
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Define the uav_worker1 state machine
+	#TODO: landing : develop object picking controller (probably use butti object tracking)
+	#TODO: service call to check if the object is attached or not 
+	#TODO: dropping : developing object dropping controller (butti drop box tracker)
 	with uav_worker1_sm:
 	  #smach.StateMachine.add('LOOPING_NAVTASKS', NavTasksLoop(),
 				#transitions={
@@ -343,6 +350,7 @@ def main(testing_mode):
 					    'navigation_task':'uav_worker1_sm_in'
 					  }
 				)
+	  #TODO link the picking object to aerial manipulation action server
 	  smach.StateMachine.add('PICKING_OBJECT', PickingObject(0.5),
 				transitions={
 					    'descending':'PICKING_OBJECT',
@@ -379,6 +387,9 @@ def main(testing_mode):
 
 	#>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
 	# Define the uav_worker2 state machine
+	#TODO: landing : develop object picking controller (probably use butti object tracking)
+	#TODO: service call to check if the object is attached or not 
+	#TODO: dropping : developing object dropping controller (butti drop box tracker)	
 	with uav_worker2_sm:
 	  #smach.StateMachine.add('LOOPING_NAVTASKS', NavTasksLoop(),
 				#transitions={
@@ -400,6 +411,7 @@ def main(testing_mode):
 					    'navigation_task':'uav_worker2_sm_in'
 					  }
 				)
+	  #TODO link the picking object to aerial manipulation action server
 	  smach.StateMachine.add('PICKING_OBJECT', PickingObject(0.5),
 				transitions={
 					    'descending':'PICKING_OBJECT',
