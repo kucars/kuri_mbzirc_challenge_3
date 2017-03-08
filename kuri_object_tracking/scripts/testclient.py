@@ -53,7 +53,7 @@ if __name__ == '__main__':
     print "Waiting for server"
     goal = TrackingGoal()
     goal.uav_id = 1
-    goal.mode = 1 ##Search = 1, Drop_zone = 2, ..
+    #goal.mode = 1 ##Search = 1, Drop_zone = 2, ..
     client.send_goal(goal)
     print "Waiting for result"
     client.wait_for_result() 

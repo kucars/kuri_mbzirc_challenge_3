@@ -42,6 +42,7 @@ from actionlib_msgs.msg import GoalStatus
 from grid_map_msgs.msg import GridMap
 import rospkg
 from std_msgs.msg import Bool
+import os
 
 class InitTestingMode(smach.State):
     """ Initializes state machine running mode either in component testing or full scenario  
@@ -192,25 +193,33 @@ class StatusChecking(smach.State):
     """ check the time, objects that has been picked and dropped, and UAV power :D
     Outcomes
     --------
-        checking : waiting the gps to get fixed
-         theEnd: the competition ended, objects collected, or power problem
+        theEnd: the competition ended, objects collected, or power problem
 
     """  
     def __init__(self,currentTime,startTime):
         smach.State.__init__(self, 
 			     outcomes=['checking','theEnd'])
-	self.currentTime = currentTime
-	self.compTime = 15*60
+	self.currentTime = float(str(currentTime))
 	self.startTime = startTime
+	self.compTime = 15*60 #comp time in minutes* (sec/min)
 	
     def execute(self, userdata):
         rospy.loginfo('Status Checking\n\n')
-        elapsed = self.currentTime - self.startTime 
-        if elapsed <= self.compTime:
-            return 'checking'
-        else:
-            return 'theEnd'
+        print("time consumed from start till status checking : %f" % (self.currentTime - self.startTime))
+        print("start time : %f" % (self.startTime))
+        print("current time : %f" % (self.currentTime))
 
+	while(True):	  
+	  elapsed = self.currentTime - self.startTime
+	  self.currentTime = float(str(time.time()))#rospy.get_time()
+	  #print(">>>>>>>>>>>>>>>>>>> elapsed : %f" % (elapsed) )
+	  if elapsed > self.compTime:
+	      #TODO: I'm killing the uavs_initiator to make the uavs land (using failsafe mode), we could later use land service (it requires lat, lon)
+	      os.system("killall -9 navigation_action_server uavs_initiator grid_map_visualization")
+	      os.system("killall -9 object_detection action_map_server rviz pathplanner_action_server exploration_waypoints_action_server")
+	      os.system("pkill -9 -f tracking_action_server.py")
+	      os.system("pkill -9 -f task_allocator_action_server.py")
+	      return 'theEnd'
 	  
 	  
 class AllocatingTasks(smach_ros.SimpleActionState):
