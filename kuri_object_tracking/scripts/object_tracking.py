@@ -430,7 +430,10 @@ class object_tracking:
                 cv2.drawContours(self.right_image, [cnt], 0, (255,255,255), 2)
                 
 	
-    def detect_drop_zone(self, img):        
+    def detect_drop_zone(self, img):     
+        for obj in ObjectList:##Already have drop zone
+            if obj.color == 'DROP_ZONE':
+                return
         #if self.frame % interval_big:
          #   return
         gray = cv2.cvtColor(img,cv2.COLOR_BGR2GRAY)
