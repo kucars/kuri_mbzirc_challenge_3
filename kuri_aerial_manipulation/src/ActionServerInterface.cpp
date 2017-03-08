@@ -51,7 +51,6 @@
 #include <sensor_msgs/Image.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/PointCloud2.h>
-
 #include <nav_msgs/Odometry.h>
 #include <iostream>
 
@@ -66,78 +65,61 @@
 #include "kuri_msgs/PickObjectAction.h"
 #include "AerialManipulationControl.h"
 
-
-
 class AerialManipulationAction
 {
-    typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::CameraInfo, nav_msgs::Odometry> MySyncPolicy;
+  typedef message_filters::sync_policies::ApproximateTime<sensor_msgs::Image, sensor_msgs::CameraInfo, nav_msgs::Odometry> MySyncPolicy;
 public:
+  AerialManipulationAction(std::string name) :
+    actionServer(nh_, name, false),
+    actionName(name)
+  {
+    //register the goal and feeback callbacks
+    actionServer.registerGoalCallback(boost::bind(&AerialManipulationAction::goalCB, this));
+    actionServer.registerPreemptCallback(boost::bind(&AerialManipulationAction::preemptCB, this));
+    actionServer.start();
+    ROS_INFO("Action name %s" , actionName.c_str()) ;
+  }
 
-    AerialManipulationAction(std::string name) :
-        actionServer(nh_, name, false),
-        actionName(name)
-    {
-        //register the goal and feeback callbacks
-        actionServer.registerGoalCallback(boost::bind(&AerialManipulationAction::goalCB, this));
-        actionServer.registerPreemptCallback(boost::bind(&AerialManipulationAction::preemptCB, this));
-        actionServer.start();
-        ROS_INFO("Action name %s" , actionName.c_str()) ;
-    }
+  ~AerialManipulationAction(void)
+  {
+  }
 
+  void goalCB()
+  {
+    // accept the new goal
+    goal = actionServer.acceptNewGoal()->object_2_pick;
+    std::cout << "goal recived" << std::endl << std::flush ;
+    result.success = aerialManipulationController.waitforResults(goal) ;
+    std::cout << "Object 2 created " << result.success << std::endl << std::flush ;
+    actionServer.setSucceeded(result);
+  }
 
-    ~AerialManipulationAction(void)
-    {
-    }
-
-
-    void goalCB()
-    {
-        // accept the new goal
-        goal = actionServer.acceptNewGoal()->object_2_pick;
-	std::cout << "goal recived" << std::endl << std::flush ; 
-
-	result.success = controlSerial.waitforResults(goal) ; 
-	std::cout << "Object 2 created " << result.success << std::endl << std::flush ; 
-	//bool r = false ; 
-	//if(r){
-       //result.success = r  ;
-       actionServer.setSucceeded(result);
-
-	//}
-
-    }
-
-    void preemptCB()
-    {
-        ROS_INFO("%s: Preempted", actionName.c_str());
-        // set the action state to preempted
-        actionServer.setPreempted();
-    }
-
+  void preemptCB()
+  {
+    ROS_INFO("%s: Preempted", actionName.c_str());
+    // set the action state to preempted
+    actionServer.setPreempted();
+  }
 
 protected:
-
-    ros::NodeHandle nh_;
-    actionlib::SimpleActionServer<kuri_msgs::PickObjectAction> actionServer;
-    std::string actionName;
-    kuri_msgs::Object goal;
-    kuri_msgs::PickObjectFeedback feedback;
-    kuri_msgs::PickObjectResult   result;
-    AerialManipulationControl controlSerial;
-
-
+  ros::NodeHandle nh_;
+  actionlib::SimpleActionServer<kuri_msgs::PickObjectAction> actionServer;
+  std::string actionName;
+  kuri_msgs::Object goal;
+  kuri_msgs::PickObjectFeedback feedback;
+  kuri_msgs::PickObjectResult   result;
+  AerialManipulationControl     aerialManipulationController;
 
 #define Ground_Z 0.0
-    //test
-    tf::TransformBroadcaster br;
+  //test
+  tf::TransformBroadcaster br;
 };
-
 
 int main(int argc, char** argv)
 {
-    ros::init(argc, argv, "aerialAction");
-    AerialManipulationAction aerialManipulationObject(ros::this_node::getName());
-    ros::spin();
-    return 0;
+  ros::init(argc, argv, "aerialAction");
+  AerialManipulationAction aerialManipulationObject(ros::this_node::getName());
+  ros::spin();
+  return 0;
 }
 
