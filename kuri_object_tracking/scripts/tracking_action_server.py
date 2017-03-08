@@ -43,6 +43,7 @@ class TrackingServer:
      self._result   = TrackingResult()
      self.tracking = None
      self.hasGoal = False
+     self.obstacles = Objects()
      self.server.start()
 
 
@@ -55,10 +56,10 @@ class TrackingServer:
          rospy.loginfo('TrackingAction: Preempted')
          self.server.set_preempted()
          success = False
-         return
+         #return
      if self.tracking == None:
 	 self.tracking = object_tracking(self,goal)
-     self._feedback.new_objects = Objects()
+     #self._feedback.new_objects = Objects()
      #self._feedback.new_object = self.tracking.obstacles #self.total_objects
      # publish the feedback
      #self.server.publish_feedback(self._feedback)
@@ -69,7 +70,7 @@ class TrackingServer:
          self.server.set_succeeded(self._result)
      else:
          rospy.loginfo('TrackingAction: Failed')
-     
+
    def update(self, new_objects):
        #print new_objects
        #self._feedback.new_objects = new_objects

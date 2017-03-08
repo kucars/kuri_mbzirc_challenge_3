@@ -28,8 +28,8 @@
       <arg name="enable_logging" value="$(arg enable_logging)" />
       <arg name="enable_ground_truth" value="$(arg enable_ground_truth)" />
       <arg name="log_file" value="$(arg log_file)"/>
-      <arg name="x" value="-20.0"/>
-      <arg name="y" value="-1.0"/>
+      <arg name="x" value="-19.0"/>
+      <arg name="y" value="-3.0"/>
       <arg name="Y" value="3.14"/>
       <arg name="name" value="uav_1"/>
     </include>
@@ -45,7 +45,7 @@
   <arg name="run_demo" default="true" />
   <group if="$(arg run_demo)" >
     <node pkg="kuri_object_tracking"   type="tracking_action_server.py" name="object_tracking" />
-    <node pkg="kuri_object_tracking"   type="testdropzone.py" name="Client" />
+    <node pkg="kuri_object_tracking"   type="dropzone_landing.py" name="dropzone_landing" />
   </group>
 
   
