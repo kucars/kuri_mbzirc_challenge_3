@@ -217,7 +217,7 @@ class DetectingObjects(smach_ros.SimpleActionState):
       	rospy.loginfo('Executing state Detecting Objects\n\n')
 	goal = kuri_msgs.msg.TrackingGoal()
 	goal.uav_id = 1
-	goal.mode = 1
+	#goal.mode = 1
         return goal	
       
     def result_callback(self, userdata, status, result):

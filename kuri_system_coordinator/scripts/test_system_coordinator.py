@@ -54,7 +54,8 @@ def main_cc_cb(outcome_map):
     
 def main(testing_mode):
     rospy.init_node('kuri_mbzirc_challenge3_state_machine')
-    start= rospy.get_time()   # stamp should update
+    start= float(str(time.time()))#rospy.get_time()   # stamp should update
+    rospy.loginfo(">>>>>>>>>>>>>>>>>>>>>>>>>>>start time : %f" , (start))
 
     ### MAIN
     main_sm = smach.StateMachine(outcomes=['mission_accomplished',
