@@ -432,7 +432,7 @@ class object_tracking:
 	
     def detect_drop_zone(self, img):     
         for obj in ObjectList:##Already have drop zone
-            if obj.color == 'DROP_ZONE':
+            if obj.color == 'DROP_ZONE' and obj.islost(timeout) == False:
                 return
         #if self.frame % interval_big:
          #   return
