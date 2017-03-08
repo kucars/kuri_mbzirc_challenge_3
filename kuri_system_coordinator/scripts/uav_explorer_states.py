@@ -35,6 +35,7 @@ from mavros import setpoint as SP
 from tf.transformations import quaternion_from_euler
 import smach
 import smach_ros
+from kuri_msgs.msg import *
 from kuri_msgs.msg import GenerateExplorationWaypointsAction, Task, NavTask,NavTasks, FollowPathAction,TrackingAction, MappingAction,Object,Objects
 from smach_ros import SimpleActionState
 from actionlib_msgs.msg import GoalStatus
@@ -70,8 +71,9 @@ class GenerateWaypoints(smach_ros.SimpleActionState):
 
     def goal_callback(self, userdata, goal):
 	rospy.loginfo('Executing state generating waypoints\n\n')
-	task = Task(uav_id=1)
-        return task
+	goal = kuri_msgs.msg.GenerateExplorationWaypointsGoal()
+	goal.uav_id = 1
+        return goal
       
     def result_callback(self, userdata, status, result):
 	if status == GoalStatus.SUCCEEDED:
@@ -138,10 +140,7 @@ class Mapping(smach_ros.SimpleActionState):
         succeeded : mapping arena is done
         preempted :  map is preempted by client request
         aborted : an error occured in the mapping action server
-	
-    output_keys
-    ----------	
-	mapping_out : object map (map + objects) it should be published    
+	 
     """  
     def __init__(self):
 	smach_ros.SimpleActionState.__init__(self,'create_map',
@@ -151,8 +150,9 @@ class Mapping(smach_ros.SimpleActionState):
 					    )  
     def goal_callback(self, userdata, goal):
         rospy.loginfo('Executing state Mapping\n\n')
-	task = Task(uav_id=1)
-        return task
+        goal = kuri_msgs.msg.MappingGoal()
+	goal.uav_id = 1
+        return goal
       
     def result_callback(self, userdata, status, result):
 	if status == GoalStatus.SUCCEEDED:
@@ -203,7 +203,7 @@ class DetectingObjects(smach_ros.SimpleActionState):
 	
     output_keys
     ----------
-	detecting_objects_out : detected objects locations
+	detecting_objects_out : number of detected objects 
     """  
     def __init__(self):
         smach_ros.SimpleActionState.__init__(self, 'TrackingAction',
@@ -215,8 +215,10 @@ class DetectingObjects(smach_ros.SimpleActionState):
 	
     def goal_callback(self, userdata, goal):
       	rospy.loginfo('Executing state Detecting Objects\n\n')
-	task = Task(uav_id=1)
-        return task	
+	goal = kuri_msgs.msg.TrackingGoal()
+	goal.uav_id = 1
+	goal.mode = 1
+        return goal	
       
     def result_callback(self, userdata, status, result):
 	if status == GoalStatus.SUCCEEDED:

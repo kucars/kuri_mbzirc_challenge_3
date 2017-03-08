@@ -350,12 +350,12 @@ def main(testing_mode):
 					    'navigation_task':'uav_worker1_sm_in'
 					  }
 				)
-	  #TODO link the picking object to aerial manipulation action server
-	  smach.StateMachine.add('PICKING_OBJECT', PickingObject(0.5),
+	  #TODO link the picking object to aerial manipulation action server [DONE]
+	  smach.StateMachine.add('PICKING_OBJECT', PickingObject(),
 				transitions={
-					    'descending':'PICKING_OBJECT',
-					    'picked':'NAVIGATING_2_DROPZONE',
-					    'pickFail':'OBJECT_FELL' 
+					    'succeeded':'NAVIGATING_2_DROPZONE',
+					    'preempted':'OBJECT_FELL',
+					    'aborted':'OBJECT_FELL' 
 					    }
 				)
 	  smach.StateMachine.add('NAVIGATING_2_DROPZONE', Navigating2DropZone(0.5),
@@ -411,12 +411,12 @@ def main(testing_mode):
 					    'navigation_task':'uav_worker2_sm_in'
 					  }
 				)
-	  #TODO link the picking object to aerial manipulation action server
-	  smach.StateMachine.add('PICKING_OBJECT', PickingObject(0.5),
+	  #TODO link the picking object to aerial manipulation action server [DONE]
+	  smach.StateMachine.add('PICKING_OBJECT', PickingObject(),
 				transitions={
-					    'descending':'PICKING_OBJECT',
-					    'picked':'NAVIGATING_2_DROPZONE',
-					    'pickFail':'OBJECT_FELL' 
+					    'succeeded':'NAVIGATING_2_DROPZONE',
+					    'preempted':'OBJECT_FELL',
+					    'aborted':'OBJECT_FELL' 
 					    }
 				)
 	  smach.StateMachine.add('NAVIGATING_2_DROPZONE', Navigating2DropZone(0.5),

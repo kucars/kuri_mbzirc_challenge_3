@@ -34,6 +34,7 @@ from mavros.utils import *
 from geometry_msgs.msg import *
 from mavros import setpoint as SP
 from tf.transformations import quaternion_from_euler
+from kuri_msgs.msg import *
 from kuri_msgs.msg import GenerateExplorationWaypointsAction, Task, NavTask,NavTasks, FollowPathAction,TrackingAction, GeneratePathsAction
 from smach_ros import SimpleActionState
 from actionlib_msgs.msg import GoalStatus
@@ -142,32 +143,39 @@ class Navigating2Object(smach_ros.SimpleActionState):
 	else:
 	  return 'aborted'	
 
-class PickingObject(smach.State):
+#TODO: aerial manipulation code integrated [DONE]
+class PickingObject(smach_ros.SimpleActionState):
     """ picking object at the reached hovering location 
     Outcomes
     --------
-        descending : uav is descending to pick the object
-        picked : the object is picked 
-	object_fell : the object fell from the uav while picking it
+        succeeded : the object is picked 
+        preempted : a cancel request by the client occured
+	aborted : the object fell from the uav while picking it ( the action server should return the error or we could later make it a preemption request depending on the implementation)
     """
     
-    def __init__(self,sleep_t):
-        smach.State.__init__(self, 
-			     outcomes=['descending','picked','pickFail']
-			    )
-        self.counter = 0
-	self.sleep_t=sleep_t
+    def __init__(self):
+	smach_ros.SimpleActionState.__init__(self,'aerialAction',
+						  PickObjectAction,
+						  goal_cb=self.goal_callback,
+						  result_cb=self.result_callback
+					    )
 	
-    def execute(self, userdata):
-        rospy.loginfo('Executing state PickingObject\n\n')
-        rospy.sleep(self.sleep_t)
-        
-        if self.counter < 3:
-            self.counter += 1
-            return 'descending'
+    def goal_callback(self, userdata, goal):
+	rospy.loginfo('Executing picking object\n\n')
+	goal = kuri_msgs.msg.PickObjectGoal()
+	#TODO: modify this object to be taken as input from the previous state
+	# it is an empty object for now (place it with an object example when we are going to test)
+	obj = Object()
+	goal.object_2_pick = obj
+        return goal
+      
+    def result_callback(self, userdata, status, result):
+	if status == GoalStatus.SUCCEEDED:
+          return 'succeeded'
+	elif status == GoalStatus.PREEMPTED:
+	  return 'preempted'
 	else:
-	    return 'picked'
-	return 'pickFail'  
+	  return 'aborted'  
 	  
 class Navigating2DropZone(smach.State):
     """ navigating to the drop zone  
