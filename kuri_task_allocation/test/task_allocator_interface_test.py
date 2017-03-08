@@ -58,53 +58,53 @@ class ObjectsAllocated(unittest.TestCase):
         obj = Object()
         obj.width = 100
         obj.height = 200
-        obj.pose.pose.position.x = 400
-        obj.pose.pose.position.y = 800
-        obj.pose.pose.position.z = 100
-        obj.color = "R"
+        obj.pose.pose.position.x = 4
+        obj.pose.pose.position.y = 8
+        obj.pose.pose.position.z = 10
+        obj.color = "RED"
         # obj.pose.pose.position = gm.Point(0, 0, 10.0)
 
         obj2 = Object()
         obj2.width = 100
         obj2.height = 200
-        obj2.pose.pose.position.x = 1000
-        obj2.pose.pose.position.y = 1000
-        obj2.pose.pose.position.z = 100
-        obj2.color = "R"
+        obj2.pose.pose.position.x = 10
+        obj2.pose.pose.position.y = 10
+        obj2.pose.pose.position.z = 10
+        obj2.color = "RED"
         #    obj2.pose.pose.position = gm.Point(0, 0, 10.0)
 
         obj3 = Object()
         obj3.width = 100
         obj3.height = 200
-        obj3.pose.pose.position.x = 80
-        obj3.pose.pose.position.y = 80
-        obj3.pose.pose.position.z = 100
-        obj3.color = "B"
-        obj3.velocity.linear.x = 3
-        obj3.velocity.linear.y = 4
-        obj3.velocity.linear.z = 0
+        obj3.pose.pose.position.x = 8
+        obj3.pose.pose.position.y = 8
+        obj3.pose.pose.position.z = 10
+        obj3.color = "YELLOW"
+        #obj3.velocity.linear.x = 3
+        #obj3.velocity.linear.y = 4
+        #obj3.velocity.linear.z = 0
 
         # obj3.pose.pose.position = gm.Point(0, 0, 10.0)
 
         obj4 = Object()
         obj4.width = 100
         obj4.height = 200
-        obj4.pose.pose.position.x = 900
-        obj4.pose.pose.position.y = 150
-        obj4.pose.pose.position.z = 100
-        obj4.color = "B"
+        obj4.pose.pose.position.x = 9
+        obj4.pose.pose.position.y = 15
+        obj4.pose.pose.position.z = 10
+        obj4.color = "ORANGE"
 
 
         obj6 = Object()
         obj6.width = 100
         obj6.height = 200
-        obj6.pose.pose.position.x = 790
-        obj6.pose.pose.position.y = 140
-        obj6.pose.pose.position.z = 100
-        obj6.color = "B"
-        obj6.velocity.linear.x = 3
-        obj6.velocity.linear.y = 4
-        obj6.velocity.linear.z = 0
+        obj6.pose.pose.position.x = 7
+        obj6.pose.pose.position.y = 14
+        obj6.pose.pose.position.z = 10
+        obj6.color = "BLUE"
+        #obj6.velocity.linear.x = 3
+        #obj6.velocity.linear.y = 4
+        #obj6.velocity.linear.z = 0
 
 
         # obj4.pose.pose.position = gm.Point(0, 0, 10.0)
@@ -112,10 +112,10 @@ class ObjectsAllocated(unittest.TestCase):
         obj5 = Object()
         obj5.width = 100
         obj5.height = 200
-        obj5.pose.pose.position.x = 600
-        obj5.pose.pose.position.y = 200
-        obj5.pose.pose.position.z = 100
-        obj5.color = "B"
+        obj5.pose.pose.position.x = 6
+        obj5.pose.pose.position.y = 2
+        obj5.pose.pose.position.z = 10
+        obj5.color = "BLUE"
 
 
         objs = Objects()

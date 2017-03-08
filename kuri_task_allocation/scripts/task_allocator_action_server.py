@@ -69,8 +69,8 @@ class actionAllocator(object):
     def execute_cb(self, goal):
         global locationOfUAVs
         data = goal.objects_map
-	print("[RANDA] goal objects %f" % (len(goal.objects_map.objects)))
-	print("[RANDA] data objects %f" % (len(data.objects)))	
+	print("[DEBUG] goal objects %f" % (len(goal.objects_map.objects)))
+	print("[DEBUG] data objects %f" % (len(data.objects)))	
         callback5 = callbackLogic(data,self.uav1CurrentPose,self.uav2CurrentPose, self.uav3CurrentPose)
 
         callbackreturns = callback5

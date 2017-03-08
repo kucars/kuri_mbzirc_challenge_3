@@ -61,6 +61,7 @@ public:
     ros::NodeHandle nh;
     ros::Publisher  posePub;
     ros::Publisher  flagPub;
+    ros::Publisher homeGlobalPub;
     ros::Subscriber currentPoseSub;
     ros::Subscriber currentGlobalPoseSub;
     ros::Subscriber stateSub;

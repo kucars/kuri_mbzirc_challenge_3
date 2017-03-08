@@ -57,8 +57,8 @@ public:
         actionServer.registerGoalCallback(boost::bind(&Navigation_action_server::goalCB, this));
         actionServer.registerPreemptCallback(boost::bind(&Navigation_action_server::preemptCB, this));
          ROS_INFO("set subscriber");
-        currentPoseSub = nh.subscribe("/uav_1/mavros/local_position/pose", 1, &Navigation_action_server::startPositionCallback, this);
-        posePub        = nh.advertise<geometry_msgs::PoseStamped>("/uav_1/mavros/setpoint_position/local", 10);
+        //currentPoseSub = nh.subscribe("/uav_1/mavros/local_position/pose", 1, &Navigation_action_server::startPositionCallback, this);
+        //posePub        = nh.advertise<geometry_msgs::PoseStamped>("/uav_1/mavros/setpoint_position/local", 10);
         visualTools.reset(new rviz_visual_tools::RvizVisualTools("map","/path_following_visualisation"));
         visualTools->deleteAllMarkers();
         visualTools->setLifetime(0.2);
@@ -75,10 +75,10 @@ public:
     {
     }
 
-    void startPositionCallback(const geometry_msgs::PoseStamped& msg)
-    {
-        currentPose = msg.pose;
-    }
+    //    void startPositionCallback(const geometry_msgs::PoseStamped& msg)
+    //    {
+    //        currentPose = msg.pose;
+    //    }
 
     void goalCB()
     {
@@ -181,8 +181,8 @@ protected:
 
     ros::NodeHandle nh;
     actionlib::SimpleActionServer<kuri_msgs::FollowPathAction> actionServer;
-    ros::Publisher  posePub;
-    ros::Subscriber currentPoseSub;
+    //ros::Publisher  posePub;
+    //ros::Subscriber currentPoseSub;
     std::string actionName;
     float progressCount;
     kuri_msgs::NavTask goal;
