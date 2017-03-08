@@ -84,7 +84,7 @@ class dropzone_landing:
             fault("Error: Unable to start thread")
 
     def navigate(self):
-        rate = rospy.Rate(10)   # 10hz
+        rate = rospy.Rate(40)   # 10hz
 
         msg = SP.PoseStamped(
             header=SP.Header(
@@ -123,9 +123,9 @@ class dropzone_landing:
         while not abs(diff)<0.2:
             diff = z - self.currentPoseZ
             if diff>0:
-                self.setPose(self.currentPoseX,self.currentPoseY,self.currentPoseZ + 0.5 ,2)
+                self.setPose(self.currentPoseX,self.currentPoseY,self.currentPoseZ + 1, 0, False)
             else:
-                self.setPose(self.currentPoseX,self.currentPoseY,self.currentPoseZ - 0.5 ,2)
+                self.setPose(self.currentPoseX,self.currentPoseY,self.currentPoseZ - 0.1, 0, False)
     
     def land(self, delay=0, wait=True):
         altitude = self.currentPoseZ
@@ -162,12 +162,12 @@ class dropzone_landing:
                     time.sleep(1)
                     rospy.loginfo("Climb")
                     self.progress += 0.1
-                    self.takeoff(7)
+                    self.takeoff(5)
                     self.progress += 0.1
                     rospy.loginfo("Moving to Red_Object")
                     self.reached_object = False
                     red_object_id = -1
-                    xspeed = 3
+                    xspeed = 5
                     while self.reached_object == False:
                         self.client.send_goal(self.goal)
                         self.client.wait_for_result()
@@ -179,33 +179,42 @@ class dropzone_landing:
                             if obj.object_id == red_object_id:
                                 islost = False
                                 print 'Moving to Drop zone', self.currentPoseX-obj.pose.pose.position.x, self.currentPoseY-obj.pose.pose.position.y, obj.pose.pose.position.x, obj.pose.pose.position.y
-                                if fabs(obj.pose.pose.position.x) < 0.1 and fabs(obj.pose.pose.position.y) > 0.1:
+                                if fabs(obj.pose.pose.position.x) < 0.01 and fabs(obj.pose.pose.position.y) > 0.01:
                                     print 'Moving Y'
                                     self.setPose(self.x, self.currentPoseY+obj.pose.pose.position.y*xspeed, self.z, 0 , False)
-                                elif fabs(obj.pose.pose.position.y) < 0.1 and fabs(obj.pose.pose.position.x) > 0.1:
+                                elif fabs(obj.pose.pose.position.y) < 0.01 and fabs(obj.pose.pose.position.x) > 0.01:
                                     print 'Moving X'
                                     self.setPose(self.currentPoseX-obj.pose.pose.position.x*xspeed, self.y, self.z, 0 , False)
                                 else:
                                     print 'Moving XY'
                                     self.setPose(self.currentPoseX-obj.pose.pose.position.x*xspeed, self.currentPoseY+obj.pose.pose.position.y*xspeed, self.z, 0 , True)
-                                if fabs(obj.pose.pose.position.x) < 0.3 and fabs(obj.pose.pose.position.y) < 0.3 and self.z > 0.2:
+                                if fabs(obj.pose.pose.position.x) < 0.3 and fabs(obj.pose.pose.position.y) < 0.3 and self.z > 0.0:
                                     print 'Moving Z'
-                                    land = 0.5
+                                    land = 0.2
                                     if self.z <= 3:
-                                        land = 0.2
-                                    if self.z <= 1:
-                                        xspeed = 0.5                                  
-                                    self.setPose(self.x, self.y, self.z - land, 1, False)
-                                    if self.z < 0.3:
+                                        xspeed = 1
+                                    if self.z <= 1.5:
+                                        xspeed = 0.5
+                                    if self.z < 0.5:
+                                        land = 0.05
+                                    self.setPose(self.x, self.y, self.z - land * xspeed, 1, False)
+                                    if self.z <= 0.4:
                                         self.reached_object = True
                         if islost == True:
                             red_object_id = -1
                         if red_object_id == -1:
                             rospy.loginfo("No object in sight, exploring")
-                            self.setPose(self.x, self.y - 5, self.z, 1, True)
-                        rate.sleep()                    
+                            #self.setPose(self.x, self.y - 5, self.z, 1, True)
+                        rate.sleep()   
+                    time.sleep(10)                    
                     rospy.loginfo("Picked Object, climb")
+                    self.takeoff(1)
+                    self.takeoff(2)
+                    self.takeoff(3)
+                    self.takeoff(4)
                     self.takeoff(5)
+                    #self.setPose(self.x, self.y, self.z)
+                    time.sleep(10)
                     rospy.loginfo("Moving to DropZone")
                     self.setPose(1, -21, 5) ##Go near dropzone
                     self.progress += 0.1
@@ -234,7 +243,7 @@ class dropzone_landing:
                                     if self.z <= 3:
                                         land = 0.2
                                         xspeed = 0.5
-                                    self.setPose(self.x, self.y, self.z - land, 5, True)
+                                    self.setPose(self.x, self.y, self.z - land, 1, False)
                                     if self.z < 1.5:
                                         self.reached_dropzone = True
                         rate.sleep()
