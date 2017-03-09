@@ -167,7 +167,7 @@ class dropzone_landing:
                     rospy.loginfo("Moving to Red_Object")
                     self.reached_object = False
                     red_object_id = -1
-                    xspeed = 5
+                    xspeed = 1
                     while self.reached_object == False:
                         self.client.send_goal(self.goal)
                         self.client.wait_for_result()
@@ -178,17 +178,17 @@ class dropzone_landing:
                                 red_object_id = obj.object_id
                             if obj.object_id == red_object_id:
                                 islost = False
-                                print 'Moving to Drop zone', self.currentPoseX-obj.pose.pose.position.x, self.currentPoseY-obj.pose.pose.position.y, obj.pose.pose.position.x, obj.pose.pose.position.y
-                                if fabs(obj.pose.pose.position.x) < 0.01 and fabs(obj.pose.pose.position.y) > 0.01:
+                                print 'Moving to Drop zone', self.currentPoseX-obj.pose2.pose.position.x, self.currentPoseY-obj.pose2.pose.position.y, obj.pose.pose.position.x, obj.pose.pose.position.y
+                                if fabs(obj.pose2.pose.position.x) < 0.01 and fabs(obj.pose2.pose.position.y) > 0.01:
                                     print 'Moving Y'
-                                    self.setPose(self.x, self.currentPoseY+obj.pose.pose.position.y*xspeed, self.z, 0 , False)
-                                elif fabs(obj.pose.pose.position.y) < 0.01 and fabs(obj.pose.pose.position.x) > 0.01:
+                                    self.setPose(self.x, self.currentPoseY+obj.pose2.pose.position.y*xspeed, self.z, 0 , False)
+                                elif fabs(obj.pose2.pose.position.y) < 0.01 and fabs(obj.pose2.pose.position.x) > 0.01:
                                     print 'Moving X'
-                                    self.setPose(self.currentPoseX-obj.pose.pose.position.x*xspeed, self.y, self.z, 0 , False)
+                                    self.setPose(self.currentPoseX-obj.pose2.pose.position.x*xspeed, self.y, self.z, 0 , False)
                                 else:
                                     print 'Moving XY'
-                                    self.setPose(self.currentPoseX-obj.pose.pose.position.x*xspeed, self.currentPoseY+obj.pose.pose.position.y*xspeed, self.z, 0 , True)
-                                if fabs(obj.pose.pose.position.x) < 0.3 and fabs(obj.pose.pose.position.y) < 0.3 and self.z > 0.0:
+                                    self.setPose(self.currentPoseX-obj.pose2.pose.position.x*xspeed, self.currentPoseY+obj.pose2.pose.position.y*xspeed, self.z, 0 , True)
+                                if fabs(obj.pose2.pose.position.x) < 0.3 and fabs(obj.pose2.pose.position.y) < 0.3 and self.z > 0.0:
                                     print 'Moving Z'
                                     land = 0.2
                                     if self.z <= 3:
@@ -227,17 +227,17 @@ class dropzone_landing:
             
                         for obj in self.objects:
                             if obj.color == 'DROP_ZONE':
-                                print 'Moving to Drop zone', self.currentPoseX-obj.pose.pose.position.x, self.currentPoseY-obj.pose.pose.position.y, obj.pose.pose.position.x, obj.pose.pose.position.y
-                                if fabs(obj.pose.pose.position.x) < 0.1 and fabs(obj.pose.pose.position.y) > 0.1:
+                                print 'Moving to Drop zone', self.currentPoseX-obj.pose2.pose.position.x, self.currentPoseY-obj.pose2.pose.position.y, obj.pose.pose.position.x, obj.pose.pose.position.y
+                                if fabs(obj.pose2.pose.position.x) < 0.1 and fabs(obj.pose2.pose.position.y) > 0.1:
                                     print 'Moving Y'
-                                    self.setPose(self.x, self.currentPoseY+obj.pose.pose.position.y*xspeed, self.z, 0 , False)
-                                elif fabs(obj.pose.pose.position.y) < 0.1 and fabs(obj.pose.pose.position.x) > 0.1:
+                                    self.setPose(self.x, self.currentPoseY+obj.pose2.pose.position.y*xspeed, self.z, 0 , False)
+                                elif fabs(obj.pose2.pose.position.y) < 0.1 and fabs(obj.pose2.pose.position.x) > 0.1:
                                     print 'Moving X'
-                                    self.setPose(self.currentPoseX-obj.pose.pose.position.x*xspeed, self.y, self.z, 0 , False)
+                                    self.setPose(self.currentPoseX-obj.pose2.pose.position.x*xspeed, self.y, self.z, 0 , False)
                                 else:
                                     print 'Moving XY'
-                                    self.setPose(self.currentPoseX-obj.pose.pose.position.x*xspeed, self.currentPoseY+obj.pose.pose.position.y*xspeed, self.z, 0 , True)
-                                if fabs(obj.pose.pose.position.x) < 0.3 and fabs(obj.pose.pose.position.y) < 0.3 and self.z > 1:
+                                    self.setPose(self.currentPoseX-obj.pose2.pose.position.x*xspeed, self.currentPoseY+obj.pose2.pose.position.y*xspeed, self.z, 0 , True)
+                                if fabs(obj.pose2.pose.position.x) < 0.3 and fabs(obj.pose2.pose.position.y) < 0.3 and self.z > 1:
                                     print 'Moving Z'
                                     land = 0.5
                                     if self.z <= 3:

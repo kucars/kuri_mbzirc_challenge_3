@@ -119,10 +119,12 @@ class object_tracking:
         self.ts = message_filters.TimeSynchronizer([self.image_sub, self.info_sub], 10)
         self.ts.registerCallback(self.callback)
         
-        #mavros.set_namespace('/uav_'+str(goal.uav_id)+'/mavros')
-
-        #self.pub = SP.get_pub_position_local(queue_size=10)
-        #self.sub = rospy.Subscriber(mavros.get_topic('local_position', 'pose'), SP.PoseStamped, self.updatePosition)
+        mavros.set_namespace('/uav_'+str(goal.uav_id)+'/mavros')
+        self.currentPoseX = -1
+        self.currentPoseY = -1
+        self.currentPoseZ = -1
+        self.pub = SP.get_pub_position_local(queue_size=10)
+        self.sub = rospy.Subscriber(mavros.get_topic('local_position', 'pose'), SP.PoseStamped, self.updatePosition)
         
         self.image = None
         self.left_image = None
@@ -144,6 +146,13 @@ class object_tracking:
         self.edgeThresholdSize = 0.1
         self.width = 1600
         self.height = 1200
+        
+    def updatePosition(self, topic):
+        self.pose = PoseWithCovariance()
+        self.pose.pose = topic.pose
+        self.currentPoseX = topic.pose.position.x 
+        self.currentPoseY = topic.pose.position.y
+        self.currentPoseZ = topic.pose.position.z         
         
     def redFilter(self, img):
         #H = 12
@@ -260,9 +269,13 @@ class object_tracking:
             self.objects_count = self.objects_count + 1
             if self.actionServer.hasGoal:
                 coords = self.imageToWorld(obstacle.cx,obstacle.cy)
-                obstacle.wx = coords[0]
-                obstacle.wy = coords[1]
-                obstacle.wz = coords[2]
+                ##Not sure about this
+                obstacle.wx = self.currentPoseX + coords[0]
+                obstacle.wy = self.currentPoseY - coords[1]
+                obstacle.wz = self.currentPoseZ - coords[2]
+                obstacle.camx = coords[0]
+                obstacle.camy = coords[1]
+                obstacle.camz = coords[2]
                 self.new_objects.objects.append(obstacle.getAsObject())
                 self.new_objects_count = self.new_objects_count + 1
                 #self.actionServer.update(obstacle.getAsObject())
@@ -350,9 +363,12 @@ class object_tracking:
                 if dst < 300 and dst >= 0 or (obj.color == 'DROP_ZONE'):
                     obj.update(min_cnt, min_pixel)
                     coords = self.imageToWorld(obj.cx,obj.cy)
-                    obj.wx = coords[0]
-                    obj.wy = coords[1]
-                    obj.wz = coords[2]
+                    obj.wx = self.currentPoseX + coords[0]
+                    obj.wy = self.currentPoseY - coords[1]
+                    obj.wz = self.currentPoseZ - coords[2]
+                    obj.camx = coords[0]
+                    obj.camy = coords[1]
+                    obj.camz = coords[2]
                     cv2.putText(self.right_image, '#'+str(obj.object_id)+'|pos:'+str(coords[0])+','+str(coords[1]), (obj.cx,obj.cy), cv2.FONT_HERSHEY_PLAIN, 1.0, (255,0,0), thickness = 1)        
         
         if self.frame % interval_small:
@@ -471,7 +487,7 @@ class object_tracking:
         #print camera_info
         self.new_objects = Objects()
         self.new_objects_count = 0
-        self.img_proc = image_geometry.PinholeCameraModel()
+        self.img_proc = image_geometry.PinholeCameraModel() ##need calibration?
         self.img_proc.fromCameraInfo(camera_info)
         #n = self.img_proc.projectPixelTo3dRay((900,30))
         #print n
