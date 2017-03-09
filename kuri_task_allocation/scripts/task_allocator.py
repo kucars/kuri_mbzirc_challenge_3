@@ -58,6 +58,12 @@ def callbackLogic(data, uav1Pose, uav2Pose, uav3Pose):
 
             output = Task()
             output.object = objfortask
+            if(uav_name == "UAV1"):
+	      output.uav_id = 1
+	    elif (uav_name == "UAV2"):
+	      output.uav_id = 2
+	    elif (uav_name == "UAV3"):
+	      output.uav_id = 3
             output.uav_name = drone
             output.task_type = ""
 	    print(" task --> uav:%s, object location: %f,%f, weighted distance: %f" % (obj[1],obj[3].pose.pose.position.x, obj[3].pose.pose.position.y, obj[0]) )

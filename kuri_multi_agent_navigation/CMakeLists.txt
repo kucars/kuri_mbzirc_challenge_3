@@ -80,7 +80,7 @@ add_definitions(${PCL_DEFINITIONS})
 #    ${rviz_visual_tools_LIBRARIES}
 #    )
 
-add_library(geo SHARED src/geo.cpp)
+add_library(geo src/geo.cpp)
 
 
 add_executable(pathplanner_action_server src/pathplanner_action_server.cpp src/pathgenerator.cpp include/pathgenerator.h)

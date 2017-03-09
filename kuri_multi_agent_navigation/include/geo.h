@@ -1,3 +1,5 @@
+#ifndef GEO_H
+#define GEO_H
 /****************************************************************************
  *
  *   Copyright (C) 2012, 2014 PX4 Development Team. All rights reserved.
@@ -321,4 +323,4 @@ float _wrap_360(float bearing);
 float _wrap_pi(float bearing);
 float _wrap_2pi(float bearing);
 
-
+#endif

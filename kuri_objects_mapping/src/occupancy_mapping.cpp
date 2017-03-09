@@ -52,19 +52,21 @@ void Object_mapping::UpdateMap(const kuri_msgs::Objects objects,int objectsNum ,
 
     ros::Time time = ros::Time::now();
     for (int i=0;i<objectsNum;i++){
-    position [0] = objects.objects[i].pose.pose.position.x;
-    position [1] = objects.objects[i].pose.pose.position.y;
-    newObjects.objects.push_back(objects.objects[i]);
-    map.getIndex(position,index);
-    std::cout << objectsNum << std::endl;
-    std::cout << position << std::endl;
-    std::cout << index.transpose() << std::endl;
-            if (Add_Remove ==0)  map.at("static", index) = 1;
-            else if (Add_Remove ==1) map.at("static", index) = 0;
-
-        }
+        position [0] = objects.objects[i].pose.pose.position.x;
+        position [1] = objects.objects[i].pose.pose.position.y;
+        //TODO: conversion local (with respect to explorer uav home position) to local (with respect to the global ref ex Zurich or one of the corners)
+        newObjects.objects.push_back(objects.objects[i]);
+        map.getIndex(position,index);
+        std::cout << objectsNum << std::endl;
+        std::cout << position << std::endl;
+        std::cout << index.transpose() << std::endl;
+        if (Add_Remove ==0)
+            map.at("static", index) = 1;
+        else if (Add_Remove ==1)
+            map.at("static", index) = 0;
+    }
     map.setTimestamp(time.toNSec());
-    
+
 
 
 }
