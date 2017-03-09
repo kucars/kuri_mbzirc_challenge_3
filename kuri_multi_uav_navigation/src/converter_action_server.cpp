@@ -80,7 +80,7 @@ public:
         uav3Home.x = msg.x;
         uav3Home.y = msg.y;
     }
-    geometry_msgs::Pose convert2LocalRef(geometry_msgs::Pose uavLocalPose,int uav_id)
+    geometry_msgs::Pose convertLocal2LocalRef(geometry_msgs::Pose uavLocalPose,int uav_id)
     {
         if(uav_id == 1)
             map_projection_global_init(uav1Home.x, uav1Home.y,1);
@@ -108,6 +108,24 @@ public:
         return refUavPose;
     }
 
+    geometry_msgs::Pose convertGlobal2LocalRef(geometry_msgs::Pose uavGlobalPose)
+    {
+
+        double wpt_lat_ref,wpt_lon_ref;
+        ros::param::param("~ref_lat", wpt_lat_ref, 47.3977419);
+        ros::param::param("~ref_lon", wpt_lon_ref, 8.5455938);
+        map_projection_global_init(wpt_lat_ref, wpt_lon_ref,1);
+
+        float p_x,p_y,p_z;
+        globallocalconverter_tolocal(uavGlobalPose.position.x,uavGlobalPose.position.y,uavGlobalPose.position.z,&p_y,&p_x,&p_z);
+        geometry_msgs::Pose refUavPose;
+        refUavPose.position.x = p_x;
+        refUavPose.position.y = p_y;
+        refUavPose.position.z = p_z;
+
+        return refUavPose;
+    }
+
     void goalCB(const kuri_msgs::ConvertPoseGoalConstPtr &goal)
     {
         // accept the new goal
@@ -115,9 +133,23 @@ public:
 
 
         ROS_INFO("started converting");
-        geometry_msgs::Pose ref1LocalPose = convert2LocalRef(goal->uav1LocalPose,1);
-        geometry_msgs::Pose ref2LocalPose = convert2LocalRef(goal->uav2LocalPose,2);
-        geometry_msgs::Pose ref3LocalPose = convert2LocalRef(goal->uav3LocalPose,3);
+        //pose_type 1 for local and 2 for global
+        geometry_msgs::Pose ref1LocalPose;
+        geometry_msgs::Pose ref2LocalPose;
+        geometry_msgs::Pose ref3LocalPose;
+        if(goal->pose_type == 1)
+        {
+            ref1LocalPose = convertLocal2LocalRef(goal->uav1Pose,1);
+            ref2LocalPose = convertLocal2LocalRef(goal->uav2Pose,2);
+            ref3LocalPose = convertLocal2LocalRef(goal->uav3Pose,3);
+        }
+
+        if(goal->pose_type == 2)
+        {
+            ref1LocalPose = convertGlobal2LocalRef(goal->uav1Pose);
+            ref2LocalPose = convertGlobal2LocalRef(goal->uav2Pose);
+            ref3LocalPose = convertGlobal2LocalRef(goal->uav3Pose);
+        }
 
         printf(" uav 1: x %f, y %f, z %f \n\n",ref1LocalPose.position.x,ref1LocalPose.position.y,ref1LocalPose.position.z);
         printf(" uav 2: x %f, y %f, z %f \n\n",ref2LocalPose.position.x,ref2LocalPose.position.y,ref2LocalPose.position.z);

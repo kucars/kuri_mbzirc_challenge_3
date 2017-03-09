@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 
-
-
-#
-#
 import math
 import actionlib
 import rospy
@@ -17,6 +13,7 @@ import ast
 import geometry_msgs
 from kuri_msgs.msg import *
 from geometry_msgs.msg import Pose
+from sensor_msgs.msg import *
 from mavros import setpoint as SP
 import rospkg
 from task_allocator import callbackLogic
@@ -38,9 +35,9 @@ class actionAllocator(object):
         self._as = actionlib.SimpleActionServer(self._action_name, kuri_msgs.msg.AllocateTasksAction,
                                                 execute_cb=self.execute_cb, auto_start=False)
         self._as.start()
-        self.sub_uav1 = rospy.Subscriber("/uav_1/mavros/local_position/pose", SP.PoseStamped, self.updatePosition1)
-        self.sub_uav2 = rospy.Subscriber("/uav_2/mavros/local_position/pose", SP.PoseStamped, self.updatePosition2)
-        self.sub_uav3 = rospy.Subscriber("/uav_3/mavros/local_position/pose", SP.PoseStamped, self.updatePosition3)
+        self.sub_uav1 = rospy.Subscriber("/uav_1/mavros/global_position/global", NavSatFix, self.updatePosition1)
+        self.sub_uav2 = rospy.Subscriber("/uav_2/mavros/global_position/global", NavSatFix, self.updatePosition2)
+        self.sub_uav3 = rospy.Subscriber("/uav_3/mavros/global_position/global", NavSatFix, self.updatePosition3)
         
 	self.uav1CurrentPose = Pose()
 	self.uav2CurrentPose = Pose()
@@ -51,19 +48,19 @@ class actionAllocator(object):
 	self.ref3CurrentPose = Pose()	
 	
     def updatePosition1(self, topic):
-      self.uav1CurrentPose.position.x = topic.pose.position.x 
-      self.uav1CurrentPose.position.y = topic.pose.position.y
-      self.uav1CurrentPose.position.z = topic.pose.position.z
+      self.uav1CurrentPose.position.x = topic.latitude 
+      self.uav1CurrentPose.position.y = topic.longitude
+      self.uav1CurrentPose.position.z = topic.altitude
 
     def updatePosition2(self, topic):
-      self.uav2CurrentPose.position.x = topic.pose.position.x 
-      self.uav2CurrentPose.position.y = topic.pose.position.y
-      self.uav2CurrentPose.position.z = topic.pose.position.z	
+      self.uav2CurrentPose.position.x = topic.latitude 
+      self.uav2CurrentPose.position.y = topic.longitude
+      self.uav2CurrentPose.position.z = topic.altitude	
 
     def updatePosition3(self, topic):
-      self.uav3CurrentPose.position.x = topic.pose.position.x 
-      self.uav3CurrentPose.position.y = topic.pose.position.y
-      self.uav3CurrentPose.position.z = topic.pose.position.z
+      self.uav3CurrentPose.position.x = topic.latitude 
+      self.uav3CurrentPose.position.y = topic.longitude
+      self.uav3CurrentPose.position.z = topic.altitude
 
     def callbackloc(data2):
 
@@ -80,12 +77,13 @@ class actionAllocator(object):
 	client = actionlib.SimpleActionClient('Converter_action_server', ConvertPoseAction)
 	client.wait_for_server()
 	goal1 = ConvertPoseGoal()
-	goal1.uav1LocalPose.position = self.uav1CurrentPose.position
-	print(">>>>>>>>>>>>>>>> %f %f %f" % (goal1.uav1LocalPose.position.x,goal1.uav1LocalPose.position.y,goal1.uav1LocalPose.position.z))
-	goal1.uav2LocalPose.position = self.uav2CurrentPose.position
-	print(">>>>>>>>>>>>>>>> %f %f %f" % (goal1.uav2LocalPose.position.x,goal1.uav2LocalPose.position.y,goal1.uav2LocalPose.position.z))	
-	goal1.uav3LocalPose.position = self.uav3CurrentPose.position      
-	print(">>>>>>>>>>>>>>>> %f %f %f" % (goal1.uav3LocalPose.position.x,goal1.uav3LocalPose.position.y,goal1.uav3LocalPose.position.z))	
+	goal1.uav1Pose.position = self.uav1CurrentPose.position
+	print(">>>>>>>>>>>>>>>> %f %f %f" % (goal1.uav1Pose.position.x,goal1.uav1Pose.position.y,goal1.uav1Pose.position.z))
+	goal1.uav2Pose.position = self.uav2CurrentPose.position
+	print(">>>>>>>>>>>>>>>> %f %f %f" % (goal1.uav2Pose.position.x,goal1.uav2Pose.position.y,goal1.uav2Pose.position.z))	
+	goal1.uav3Pose.position = self.uav3CurrentPose.position      
+	print(">>>>>>>>>>>>>>>> %f %f %f" % (goal1.uav3Pose.position.x,goal1.uav3Pose.position.y,goal1.uav3Pose.position.z))
+	goal1.pose_type = 2
 	client.send_goal(goal1)
 	print "Waiting for result"
 	client.wait_for_result() 
