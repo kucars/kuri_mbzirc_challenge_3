@@ -105,6 +105,7 @@ target_link_libraries(navigation_action_server SSPathPlanner
     geo
     )
 
+
 add_executable(uavs_initiator src/uavs_initiator.cpp)
 target_link_libraries(uavs_initiator ${catkin_LIBRARIES})
 
@@ -114,6 +115,9 @@ target_link_libraries(gps_waypoints_local geo ${catkin_LIBRARIES})
 
 add_executable(gps_waypoints_srv src/gps_waypoints_srv.cpp)
 target_link_libraries(gps_waypoints_srv geo ${catkin_LIBRARIES})
+
+add_executable(converter_action_server src/converter_action_server.cpp)
+target_link_libraries(converter_action_server geo ${catkin_LIBRARIES} -lgmp -lmpfr ${CGAL_LIBRARY} ${CGAL_Core_LIBRARY} ${PCL_LIBRARIES})
 
 #add_executable(path_follower src/pathfollower.cpp)
 #target_link_libraries(path_follower SSPathPlanner

@@ -41,11 +41,15 @@ class actionAllocator(object):
         self.sub_uav1 = rospy.Subscriber("/uav_1/mavros/local_position/pose", SP.PoseStamped, self.updatePosition1)
         self.sub_uav2 = rospy.Subscriber("/uav_2/mavros/local_position/pose", SP.PoseStamped, self.updatePosition2)
         self.sub_uav3 = rospy.Subscriber("/uav_3/mavros/local_position/pose", SP.PoseStamped, self.updatePosition3)
-
+        
 	self.uav1CurrentPose = Pose()
 	self.uav2CurrentPose = Pose()
 	self.uav3CurrentPose = Pose()
 
+	self.ref1CurrentPose = Pose()
+	self.ref2CurrentPose = Pose()
+	self.ref3CurrentPose = Pose()	
+	
     def updatePosition1(self, topic):
       self.uav1CurrentPose.position.x = topic.pose.position.x 
       self.uav1CurrentPose.position.y = topic.pose.position.y
@@ -54,12 +58,12 @@ class actionAllocator(object):
     def updatePosition2(self, topic):
       self.uav2CurrentPose.position.x = topic.pose.position.x 
       self.uav2CurrentPose.position.y = topic.pose.position.y
-      self.uav2CurrentPose.position.z = topic.pose.position.z
+      self.uav2CurrentPose.position.z = topic.pose.position.z	
 
     def updatePosition3(self, topic):
       self.uav3CurrentPose.position.x = topic.pose.position.x 
       self.uav3CurrentPose.position.y = topic.pose.position.y
-      self.uav3CurrentPose.position.z = topic.pose.position.z      
+      self.uav3CurrentPose.position.z = topic.pose.position.z
 
     def callbackloc(data2):
 
@@ -71,7 +75,27 @@ class actionAllocator(object):
         data = goal.objects_map
 	print("[DEBUG] goal objects %f" % (len(goal.objects_map.objects)))
 	print("[DEBUG] data objects %f" % (len(data.objects)))	
-        callback5 = callbackLogic(data,self.uav1CurrentPose,self.uav2CurrentPose, self.uav3CurrentPose)
+	
+	#convert to local in terms of zurich or one of the corners
+	client = actionlib.SimpleActionClient('Converter_action_server', ConvertPoseAction)
+	client.wait_for_server()
+	goal1 = ConvertPoseGoal()
+	goal1.uav1LocalPose.position = self.uav1CurrentPose.position
+	print(">>>>>>>>>>>>>>>> %f %f %f" % (goal1.uav1LocalPose.position.x,goal1.uav1LocalPose.position.y,goal1.uav1LocalPose.position.z))
+	goal1.uav2LocalPose.position = self.uav2CurrentPose.position
+	print(">>>>>>>>>>>>>>>> %f %f %f" % (goal1.uav2LocalPose.position.x,goal1.uav2LocalPose.position.y,goal1.uav2LocalPose.position.z))	
+	goal1.uav3LocalPose.position = self.uav3CurrentPose.position      
+	print(">>>>>>>>>>>>>>>> %f %f %f" % (goal1.uav3LocalPose.position.x,goal1.uav3LocalPose.position.y,goal1.uav3LocalPose.position.z))	
+	client.send_goal(goal1)
+	print "Waiting for result"
+	client.wait_for_result() 
+	print "Result:",client.get_result() 
+	self.ref1CurrentPose.position = client.get_result().ref1LocalPose.position 
+	self.ref2CurrentPose.position = client.get_result().ref2LocalPose.position
+	self.ref3CurrentPose.position = client.get_result().ref3LocalPose.position	
+
+	#calling the task allocator functionality
+        callback5 = callbackLogic(data,self.ref1CurrentPose,self.ref2CurrentPose, self.ref3CurrentPose)
 
         callbackreturns = callback5
         success = True

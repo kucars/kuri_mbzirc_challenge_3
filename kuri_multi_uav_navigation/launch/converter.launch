@@ -1,0 +1,8 @@
+<?xml version="1.0"?>
+<launch>
+
+  <node pkg="kuri_multi_agent_navigation" type="converter_action_server" name="converter_action_server" output="screen" >
+    <rosparam file="$(find kuri_multi_agent_navigation)/config/waypoints_map_ref.yaml"/>
+  </node>
+  
+</launch>
