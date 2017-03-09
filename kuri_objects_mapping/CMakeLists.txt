@@ -164,6 +164,22 @@ add_dependencies(action_map_server  ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_gener
 target_link_libraries(action_map_server  ${catkin_LIBRARIES})
 
 
+#add_executable(action_map_client src/action_client_occupancy_mapping.cpp)
+#add_dependencies(action_map_client ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp${catkin_EXPORTED_TARGETS})
+#target_link_libraries(action_map_client ${catkin_LIBRARIES})
+
+
+#add_executable(testv src/test.cpp)
+#add_dependencies(testv ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp${catkin_EXPORTED_TARGETS})
+#target_link_libraries(testv ${catkin_LIBRARIES})
+
+
+#add_executable(testremove src/test_remove.cpp)
+#add_dependencies(testv ${PROJECT_NAME}_gencfg ${PROJECT_NAME}_generate_messages_cpp${catkin_EXPORTED_TARGETS})
+#target_link_libraries(testv ${catkin_LIBRARIES})
+
+
+
 ## target_link_libraries(camera ${catkin_LIBRARIES} )
 #############
 ## Install ##

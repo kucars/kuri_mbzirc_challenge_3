@@ -35,6 +35,8 @@ public:
     void UpdateMap(const kuri_msgs::Objects objects,int objectsNum , int Add_Remove);
     void StoreMap(actionlib::SimpleActionServer<kuri_msgs::MappingAction> *actionServer,kuri_msgs::MappingResult result);
     void publishMap (void );
+    void publishMapAfterRemoval(void);
+    void publishMapAfterAddition(void);
 
 private:
     ros::NodeHandle ph;
@@ -50,6 +52,9 @@ private:
     std::mutex m;
     bool flag_success;
     kuri_msgs::Objects newObjects;
+    kuri_msgs::Objects removedObjects;
+    kuri_msgs::Objects finalmapObjects;
+    bool start;
 
 };
 
