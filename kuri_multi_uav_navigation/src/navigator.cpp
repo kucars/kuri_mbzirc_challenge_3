@@ -56,6 +56,7 @@ Navigator::Navigator(int uav_id)
     currentPoseSub = nh.subscribe("/uav_"+boost::lexical_cast<std::string>(uav_id)+"/mavros/local_position/pose", 1000, &Navigator::localPoseCallback, this);
     currentGlobalPoseSub = nh.subscribe("/uav_"+boost::lexical_cast<std::string>(uav_id)+"/mavros/global_position/global", 1000, &Navigator::globalPoseCallback, this);
     flagPub = nh.advertise<geometry_msgs::Point> ("/uav_"+boost::lexical_cast<std::string>(uav_id)+"/flag", 10);
+    homeGlobalPub = nh.advertise<geometry_msgs::Point> ("/uav_"+boost::lexical_cast<std::string>(uav_id)+"/global_home_position", 10);
     // posePub        = nh.advertise<geometry_msgs::PoseStamped>("/uav_"+boost::lexical_cast<std::string>(uav_id)+"/waypoint", 10);
     stateSub = nh.subscribe<mavros_msgs::State> ("/uav_"+boost::lexical_cast<std::string>(uav_id)+"/mavros/state", 10, &Navigator::stateCallback, this);
     posePub = nh.advertise<geometry_msgs::PoseStamped> ("/uav_"+boost::lexical_cast<std::string>(uav_id)+"/mavros/setpoint_position/local", 10);
@@ -153,6 +154,14 @@ void Navigator::globalPoseCallback(const sensor_msgs::NavSatFix:: ConstPtr& msg)
             homePoseFlag=true;
         }
 
+    }
+
+    if(homePoseFlag)
+    {
+        geometry_msgs::Point pt;
+        pt.x = lat_ref;
+        pt.y = lon_ref;
+        homeGlobalPub.publish(pt);
     }
 
 }
