@@ -2,7 +2,7 @@
  *   Copyright (C) 2006 - 2016 by                                          *
  *      Tarek Taha, KURI  <tataha@tarektaha.com>                           *
  *      Randa Almadhoun   <randa.almadhoun@kustar.ac.ae>                   *
- *      Ahmed AlDhanhani  <ahmed.aldhanhani@kustar.ac.ae>                                                                   *
+ *      Ahmed AlDhanhani  <ahmed.aldhanhani@kustar.ac.ae>                  *
  *                                                                         *
  *   This program is free software; you can redistribute it and/or modify  *
  *   it under the terms of the GNU General Public License as published by  *
@@ -22,41 +22,165 @@
 
 #include <AerialManipulationControl.h>
 #include <string>
-bool firstFlag = true ;
-bool landing = false  ;  // true just for testing the landing step
 
-kuri_msgs::Object CurrentObj ;
-
-double u , v , X, Y ;
-namespace enc = sensor_msgs::image_encodings;
-double roll, pitch, yaw;
-
-int LowerHB = 110;
-int LowerSB = 150;
-int LowerVB = 150;
-int UpperHB = 130;
-int UpperSB = 255;
-int UpperVB = 255;
-
-int LowerHR = 0;
-int LowerSR = 100;
-int LowerVR = 100;
-int UpperHR = 20;
-int UpperSR = 255;
-int UpperVR = 255;
-
-int LowerHG = 60;
-int LowerSG = 100;
-int LowerVG = 100;
-int UpperHG = 60;
-int UpperSG = 255;
-int UpperVG = 255;
-
-std::string color_sent; 
-
-bool AerialManipulationControl::waitforResults (kuri_msgs::Object goal)
+ObjectPicker::ObjectPicker(const ros::NodeHandle &_nh, const ros::NodeHandle &_nhPrivate):
+  nh(_nh),
+  nhPrivate(_nhPrivate)
 {
-  color_sent = goal.color ;
+  velPub           = nh.advertise <geometry_msgs ::TwistStamped >("/mavros/setpoint_velocity/cmd_vel", 1);
+  goalSub          = nh.subscribe("/visptracker_pose_tunnel", 1000, &ObjectPicker::goalCallback,this);
+  compassSub       = nh.subscribe ("/mavros/global_position/compass_hdg", 1, &ObjectPicker::headingCallback,this);
+
+  nh.param("kpx", kpx, 0.05);
+  nh.param("kix", kix, 0.0);
+  nh.param("kdx", kdx, 0.05);
+  nh.param("kpy", kpy, 0.05);
+  nh.param("kiy", kiy, 0.0);
+  nh.param("kdy", kdy, 0.05);
+  nh.param("kpz", kpz, 0.05);
+  nh.param("kiz", kiz, 0.0);
+  nh.param("kdz", kdz, 0.05);
+  nh.param("kpw", kpw, 0.05);
+  nh.param("kiw", kiw, 0.0);
+  nh.param("kdw", kdw, 0.05);
+
+  nh.param("tolerance_2_goal", tolerance_2_goal, 0.2);
+
+  goalPose.pose.position.x = 0;
+  goalPose.pose.position.y = 0;
+  goalPose.pose.position.z = 0;
+  stopTwist.twist.linear.x  = 0;
+  stopTwist.twist.linear.y  = 0;
+  stopTwist.twist.linear.z  = 0;
+  stopTwist.twist.angular.z = 0;
+
+  ros::Rate loopRate(10);
+  while (ros::ok())
+  {
+    // Failsafe: if we don't get tracking info for more than 500ms, then stop in place
+    if(ros::Time::now() - goalLastReceived > ros::Duration(0.5))
+    {
+      stopTwist.header.stamp = ros::Time::now();
+      //velPub.publish(stopTwist);
+    }
+    else
+    {
+      velPub.publish(twist);
+    }
+    ros:: spinOnce ();
+    loopRate.sleep();
+  }
+}
+
+void ObjectPicker::mavrosStateCallback(const mavros_msgs::State::ConstPtr& msg)
+{
+  currentState = *msg;
+}
+
+void ObjectPicker::goalCallback(const geometry_msgs::PoseStamped::ConstPtr& msg)
+{
+  goalLastReceived = ros::Time::now();
+  ROS_INFO("TEST"); // this should be done before sending it to this component
+  goalPose = *msg;
+  real.x= 0 ; //msg ->latitude;
+  real.y= 0 ; //msg ->longitude;
+  real.z= 0 ; //msg ->altitude;
+  w = yaw ;
+
+  if (firstDataFlag == false )
+  {
+    errorX =  goalPose.pose.position.x - real.x;
+    errorY =  goalPose.pose.position.y - real.y;
+    errorZ =  goalPose.pose.position.z - real.z ;
+    errorW =  w;
+    prevErrorX = errorX;
+    prevErrorY = errorY;
+    prevErrorZ = errorZ;
+    prevErrorW = errorW;
+    firstDataFlag = true;
+  }
+  else
+  {
+
+    errorX =  goalPose.pose.position.x - real.x;
+    errorY =  goalPose.pose.position.y - real.y;
+    errorZ =  goalPose.pose.position.z - real.z ;
+    errorW =  0;
+    pX = kpx * errorX;
+    pY = kpy * errorY;
+    pZ = kpz * errorZ;
+    pW = kpw * errorW;
+
+    iX += kix * errorX;
+    iY += kiy * errorY;
+    iZ += kiz * errorZ;
+    iW += kiw * errorW;
+
+    dX = kdx * (errorX - prevErrorX);
+    dY = kdy * (errorY - prevErrorY);
+    dZ = kdz * (errorZ - prevErrorZ);
+    dW = kdw * (errorW - prevErrorW);
+
+    prevErrorX = errorX;
+    prevErrorY = errorY;
+    prevErrorZ = errorZ;
+    prevErrorW = errorW;
+
+    // PID conroller
+    aX = pX     + iX + dX  ;
+    aY = pY     + iY + dY  ;
+    aZ = pZ      +iZ + dZ  ;
+    aW = 10 * pW +iW + dW  ;
+
+    // filling velocity commands
+    twist.twist.linear.x = aX;
+    twist.twist.linear.y =  aY;
+    twist.twist.linear.z = aZ;
+    twist.twist.angular.z = aW;
+    twist.header.stamp = ros::Time::now();
+
+    ROS_INFO("Error X: %0.2f \n", errorX);
+    ROS_INFO("Error Y: %0.2f \n", errorY);
+    ROS_INFO("Error Z: %0.2f \n", errorZ);
+    ROS_INFO("derivative X: %0.2f \n", dX);
+    ROS_INFO("derivative Y: %0.2f \n", dY);
+    ROS_INFO("derivative Z: %0.2f \n", dZ);
+    ROS_INFO("derivative W: %0.2f \n", dZ);
+    ROS_INFO("W: %0.2f \n", w);
+    ROS_INFO("Action X: %0.2f \n", aX);
+    ROS_INFO("Action Y: %0.2f \n", aY);
+    ROS_INFO("Action Z: %0.2f \n", aZ);
+    ROS_INFO("Action W: %0.2f \n", aW);
+
+    // publishing this data to be recorded in a bag file
+    /*
+    pidMsg.dronePoseX = real.x;                       pidMsg.dronePoseY = real.y;                     pidMsg.dronePoseZ = real.z;
+    pidMsg.goalPoseX  = goalPose.pose.position.x ;    pidMsg.goalPoseY  = goalPose.pose.position.y;   pidMsg.goalPoseZ  = goalPose.pose.position.z;
+    pidMsg.positionErrorX = errorX;                   pidMsg.positionErrorY = errorY;                 pidMsg.positionErrorZ = errorZ;     pidMsg.positionErrorW = errorW;
+    pidMsg.PX = pX;                                   pidMsg.PY = pY;                                 pidMsg.PZ = pZ;                     pidMsg.PW = pW;
+    pidMsg.IX = iX;                                   pidMsg.IY = iY;                                 pidMsg.IZ = iZ;                     pidMsg.IW = iW;
+    pidMsg.DX = dX;                                   pidMsg.DY = dY;                                 pidMsg.DZ = dZ;                     pidMsg.DW = dW;
+    pidMsg.PIDX =aX;                                  pidMsg.PIDY = aY;                               pidMsg.PIDZ= aZ;                    pidMsg.PIDW= aW;
+    pidMsg.header.stamp = ros::Time::now();
+    pidMsg.header.seq = counter++;
+    */
+    if ((fabs(errorX) < tolerance_2_goal) && (fabs(errorY) < tolerance_2_goal) && (fabs(errorZ) < tolerance_2_goal))
+    {
+      twist.twist.linear.x = 0;
+      twist.twist.linear.y = 0;
+      twist.twist.linear.z = 0;
+      twist.twist.angular.z = 0;
+    }
+  }
+}
+
+void ObjectPicker::headingCallback(const std_msgs::Float64::ConstPtr& msg)
+{
+  yaw = msg->data * 3.14159265359 / 180.0 ;
+}
+
+bool AerialManipulationControl::waitforResults(kuri_msgs::Object goal)
+{
   std::cout << "goal.color   "<< goal.color << std::endl << std::flush ;
   std::cout << "Constructor of class 2 " << std::endl << std::flush ;
   //publish pointcloud msgs:
@@ -66,9 +190,6 @@ bool AerialManipulationControl::waitforResults (kuri_msgs::Object goal)
   img_sub_         = new message_filters::Subscriber<sensor_msgs::Image>(nh_, "/uav_1/downward_cam/camera/image", 10);
   camera_info_sub_ = new message_filters::Subscriber<sensor_msgs::CameraInfo>(nh_, "/uav_1/downward_cam/camera/camera_info", 10);
   uav_odom_sub_    = new message_filters::Subscriber<nav_msgs::Odometry>(nh_, "/uav_1/mavros/local_position/odom", 10);
-
-  sync = new message_filters::Synchronizer<MySyncPolicy>(MySyncPolicy(3), *img_sub_, *camera_info_sub_, *uav_odom_sub_);
-  sync->registerCallback(boost::bind(&AerialManipulationControl::imageCallback, this, _1, _2, _3));
 
   //initialize base_link to camera optical link
   BaseToCamera.setOrigin(tf::Vector3(0.0, 0.0, -0.2));
@@ -98,189 +219,6 @@ bool AerialManipulationControl::waitforResults (kuri_msgs::Object goal)
 
 AerialManipulationControl::AerialManipulationControl()
 {
-}
-
-//call back, for processing
-void AerialManipulationControl::imageCallback(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& cam_info, const nav_msgs::OdometryConstPtr& odom)
-{
-  // make sure that the action hasn't been canceled
-  // if (!actionServer.isActive())
-  //    return;
-
-  std::cout << "Server Active" << std::endl << std::flush ;
-  cv_bridge::CvImagePtr cv_ptr;
-  try
-  {
-    std::cout << "try" << std::endl << std::flush ;
-    cv_ptr = cv_bridge::toCvCopy(img, sensor_msgs::image_encodings::BGR8);
-  }
-  catch (cv_bridge::Exception& e)
-  {
-    ROS_ERROR("cv_bridge exception: %s", e.what());
-    return;
-  }
-  //cv::imshow("view", cv_ptr->image);
-  std::cout << "before mask " << std::endl << std::flush ;
-
-  cv::Mat img_mask, img_hsv;
-  cv::cvtColor(cv_ptr->image, img_hsv, CV_BGR2HSV);
-
-  if (color_sent  == "blue")
-    cv::inRange(img_hsv, cv::Scalar(LowerHB, LowerSB, LowerVB), cv::Scalar(UpperHB, UpperSB, UpperVB), img_mask);
-  else if (color_sent == "red")
-    cv::inRange(img_hsv, cv::Scalar(LowerHR, LowerSR, LowerVR), cv::Scalar(UpperHR, UpperSR, UpperVR), img_mask);
-  else if (color_sent == "green")
-    cv::inRange(img_hsv, cv::Scalar(LowerHG, LowerSG, LowerVG), cv::Scalar(UpperHG, UpperSG, UpperVG), img_mask);
-  else
-    return;
-
-  std::cout << "AfterMask " << std::endl << std::flush ;
-  ROS_INFO("Now here");
-  // cv::imshow("mask", img_hsv);
-  // cv::imshow("view", cv_ptr->image);
-  cv::Mat locations;   // output, locations of non-zero pixels
-  cv::findNonZero(img_mask, locations);
-
-  // access pixel coordinates
-  cv::Point pnt;
-  int sumx = 0.0 ;
-  int sumy = 0.0 ;
-  int i ;
-  for (i = 0 ; i < locations.total() ; i++)
-  {
-    pnt = locations.at<cv::Point>(i);
-    sumx = sumx + pnt.x ;
-    sumy = sumy + pnt.y ;
-  }
-  if (locations.total() > 0)
-  {
-    ROS_INFO("Found Object ");
-    u = sumx / locations.total();
-    v = sumy / locations.total() ;
-  }
-  else
-  {
-    ROS_INFO("No Object ");
-  }
-  p2p(img, cam_info, odom );
-}
-
-void AerialManipulationControl::p2p(const sensor_msgs::ImageConstPtr& img, const sensor_msgs::CameraInfoConstPtr& cam_info, const nav_msgs::OdometryConstPtr& odom)
-{
-  tf::Transform extrisic;
-  cv::Mat P(3, 4, CV_64FC1);
-  cv::Mat P_Mat_G(3, 4, CV_64FC1);
-  tf::Pose tfpose;
-  tfScalar extrisic_data[4 * 4];
-  pcl::PointCloud<pcl::PointXYZRGB> Pointcloud;
-  Pointcloud.header.frame_id = "/world";
-  Pointcloud.height = img->height;
-  Pointcloud.width  = img->width;
-  Pointcloud.resize(img->height * img->width);
-  Pointcloud.is_dense = true;
-  cv::Mat cvimg = cv_bridge::toCvShare(img, "bgr8")->image.clone();
-  tf::poseMsgToTF(odom->pose.pose, tfpose);
-  extrisic = BaseToCamera * tfpose.inverse();
-  //to test if the tf is correct, create testframe_to_camera
-  //br.sendTransform(tf::StampedTransform(extrisic, ros::Time::now(), "/testframe_to_camera", "/world"));
-  //pinv of projection matrix...
-  for (int i = 0; i < 3; i++)
-  {
-    for (int j = 0; j < 4; j++)
-    {
-      P.at<double>(i, j) = cam_info->P.at(i * 4 + j);
-      //  std::cout << "PP" << P  << std::endl ;
-    }
-  }
-  //however, this P is in camera coordinate..
-  extrisic.getOpenGLMatrix(extrisic_data);
-  cv::Mat E_MAT(4, 4, CV_64FC1, extrisic_data);
-  P_Mat_G = P * (E_MAT.t());
-  // now is the ground, namely, world coordinate
-  double a[4], b[4], c[4];
-  a[0] = P_Mat_G.at<double>(0, 0);
-  a[1] = P_Mat_G.at<double>(0, 1);
-  a[2] = P_Mat_G.at<double>(0, 2);
-  a[3] = P_Mat_G.at<double>(0, 3);
-  b[0] = P_Mat_G.at<double>(1, 0);
-  b[1] = P_Mat_G.at<double>(1, 1);
-  b[2] = P_Mat_G.at<double>(1, 2);
-  b[3] = P_Mat_G.at<double>(1, 3);
-  c[0] = P_Mat_G.at<double>(2, 0);
-  c[1] = P_Mat_G.at<double>(2, 1);
-  c[2] = P_Mat_G.at<double>(2, 2);
-  c[3] = P_Mat_G.at<double>(2, 3);
-  std::clock_t start;
-  double duration;
-  start = std::clock();
-  // ************************** find 3D point ******************** //
-  // just for the detected obstacle
-  float B[2][2], bvu[2];
-  B[0][0] = u * c[0] - a[0];
-  B[0][1] = u * c[1] - a[1];
-  B[1][0] = v * c[0] - b[0];
-  B[1][1] = v * c[1] - b[1];
-  bvu[0] = a[2] * Ground_Z + a[3] - u * c[2] * Ground_Z - u * c[3];
-  bvu[1] = b[2] * Ground_Z + b[3] - v * c[2] * Ground_Z - v * c[3];
-  float DomB = B[1][1] * B[0][0] - B[0][1] * B[1][0];
-  float objectPoseX = (B[1][1] * bvu[0] - B[0][1] * bvu[1]) / DomB ;
-  float objectPoseY = (B[0][0] * bvu[1] - B[1][0] * bvu[0]) / DomB ;
-
-  std::cout << "****new msg **** " << std::endl << std::flush ;
-  std::cout << "u      " << u  << "   v:  " << v  << std::endl << std::flush ;
-  std::cout << "Object "  << objectPoseX  << "\t" <<   objectPoseY << std::endl  << std::flush ;
-  std::cout << "uav_x  " << odom->pose.pose.position.x  << "  uavy: " << odom->pose.pose.position.y  << std::endl << std::flush ;
-  std::cout << "errorx " << odom->pose.pose.position.x - objectPoseX  << " errory " << odom->pose.pose.position.y - objectPoseY  << std::endl << std::flush ;
-
-  tf::Quaternion q(odom->pose.pose.orientation.x, odom->pose.pose.orientation.y, odom->pose.pose.orientation.z, odom->pose.pose.orientation.w);
-  tf::Matrix3x3(q).getRPY(roll, pitch, yaw);
-
-  // *************************** Controller ********************* //
-  float distance = sqrt(((odom->pose.pose.position.x - objectPoseX) * (odom->pose.pose.position.x - objectPoseX)) + ((odom->pose.pose.position.y - objectPoseY) * (odom->pose.pose.position.y - objectPoseY)));
-  float vector3x = objectPoseX - odom->pose.pose.position.x ;
-  float vector3y = objectPoseY - odom->pose.pose.position.y ;
-  float vector3z = odom->pose.pose.position.z ;
-
-  // Test 1
-  float vector3Mag1 = sqrt ((vector3x*vector3x) + (vector3y*vector3y) ) ;
-  float unitVector3x = vector3x/vector3Mag1 ;
-  float unitVector3y = vector3y/vector3Mag1 ;
-  // Test 2
-  float vector3Mag2 = sqrt ((vector3x*vector3x) + (vector3y*vector3y) + (vector3z*vector3z)) ;
-  float T_unitVector3x = vector3x/vector3Mag2 ;
-  float T_unitVector3y = vector3y/vector3Mag2 ;
-  float T_unitVector3z = vector3z/vector3Mag2 ;
-  geometry_msgs::TwistStamped new_cmd_vel ;
-  std::cout << "Pose in Z" << odom->pose.pose.position.z  << std::endl << std::flush ;
-  if ( distance < 0.2 && odom->pose.pose.position.z  < 0.4 )
-  {
-    std::cout << "Landed" << std::endl << std::flush ;
-    // landing = false ;
-    new_cmd_vel.twist.linear.x = 0 ;
-    new_cmd_vel.twist.linear.y = 0 ;
-    new_cmd_vel.twist.linear.z = 0.0 ;
-    velocity_pub_.publish(new_cmd_vel) ;
-    this->flag_2 = true ;
-  }
-  else
-  {
-    std::cout << "It shoud move" << std::endl << std::flush ;
-    new_cmd_vel.twist.linear.x = T_unitVector3x * (odom->pose.pose.position.x - objectPoseX)  * 0.1  ;
-    // new_cmd_vel.twist.linear.x = T_unitVector3x * 1 ;
-    std::cout << "1" << std::endl << std::flush ;
-    //        new_cmd_vel.twist.linear.y = T_unitVector3y * 1;
-    new_cmd_vel.twist.linear.y = T_unitVector3y * (odom->pose.pose.position.y - objectPoseY) * 0.1;
-    std::cout << "2" << std::endl << std::flush ;
-    //	new_cmd_vel.twist.linear.z = T_unitVector3z * - 0.4;
-    new_cmd_vel.twist.linear.z = T_unitVector3z * -1 * odom->pose.pose.position.z * 0.1;
-    std::cout << "3" << std::endl << std::flush ;
-    velocity_pub_.publish(new_cmd_vel) ;
-    std::cout << "4" << std::endl << std::flush ;
-  }
-  //get the duration....
-  duration = (std::clock() - start) / (double) CLOCKS_PER_SEC;
-  std::cout << "process_time is " << duration << " second" << '\n';
-  //publish pointcloud
 }
 
 AerialManipulationControl::~AerialManipulationControl()

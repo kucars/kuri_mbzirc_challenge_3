@@ -1,0 +1,29 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="paused" default="false"/>
+  <arg name="debug" default="false"/>
+  <arg name="gui" default="true" />
+  <arg name="headless" default="true"/>
+  <arg name="enable_logging" default="false"/>
+  <arg name="enable_ground_truth" default="true"/>
+  <arg name="ns" default="Change_Me"/>
+  <arg name="log_file" default="$(arg ns)"/>
+  
+  <arg name="run_demo" default="true" />
+   
+  <group ns="uav_1" >
+    <node pkg="kuri_system_coordinator" type="solo_player" name="solo_player" output="screen"/>
+         <rosparam file="$(find kuri_multi_agent_navigation)/config/waypoints_map_ref.yaml"/>
+  </group>
+   
+  <!-- launching the environment -->
+  <!--include file="$(find kuri_mbzirc_sim)/launch/mavros_posix_sitl_px4_ch3.launch">
+    <arg name="screen" value="log"/>
+  </include-->
+
+  <!-- launching the rviz if wanted -->
+  <group unless="$(arg headless)" >
+    <node pkg="rviz" type="rviz" name="rviz" args="-d $(find kuri_system_coordinator)/config/integration_test.rviz"/>
+  </group>
+  
+</launch>

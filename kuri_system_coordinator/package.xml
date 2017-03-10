@@ -2,20 +2,37 @@
 <package>
   <name>kuri_system_coordinator</name>
   <version>0.0.1</version>
-  <description>My package description</description>
-  <maintainer email="email@email.com">My Name</maintainer>
+  <description>Coordinating UAVs to perform Magic</description>
+  <maintainer email="tarek@tarektaha.com">My Name</maintainer>
   <license>LGPLv3</license>
   <url type="website">https://github.com/kuri-kustar/kuri_mbzirc_challenge_3/wiki</url>
 
-  <author email="email@email.com">My Name</author>
+  <author email="tarek@tarektaha.com">Tarek Taha</author>
 
   <buildtool_depend>catkin</buildtool_depend>
+  <build_depend>std_msgs</build_depend>
   <build_depend>roscpp</build_depend>
   <build_depend>rospy</build_depend>
-  <build_depend>std_msgs</build_depend>
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>nav_msgs</build_depend>
+  <build_depend>geometry_msgs</build_depend>
+  <build_depend>image_transport</build_depend>
+  <build_depend>cv_bridge</build_depend>
+  <build_depend>kuri_mbzirc_challenge_1_msgs</build_depend>
+  <build_depend>actionlib_msgs</build_depend>
+  <build_depend>message_generation</build_depend>
+
   <run_depend>roscpp</run_depend>
   <run_depend>rospy</run_depend>
+  <run_depend>message_runtime</run_depend>
+  <run_depend>kuri_mbzirc_challenge_1_msgs</run_depend>
+  <run_depend>rviz</run_depend>
+  <run_depend>image_transport</run_depend>
+  <run_depend>cv_bridge</run_depend>
+  <run_depend>actionlib_msgs</run_depend>
+  <run_depend>sensor_msgs</run_depend>
   <run_depend>std_msgs</run_depend>
+  <run_depend>nav_msgs</run_depend>
 
   <export>
   </export>
