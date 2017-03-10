@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<launch>
+
+  
+   <!-- launching the action servers -->
+  <group ns="uav_1" >
+    <node pkg="kuri_multi_agent_navigation" type="navigator_node" name="navigator_node" args="1" output="screen"/> 
+     <rosparam file="$(find kuri_multi_agent_navigation)/config/waypoints_map_ref.yaml"/>
+  </group>   
+  <group ns="uav_2" >
+    <node pkg="kuri_multi_agent_navigation" type="navigator_node" name="navigator_node" args="2" output="screen"/> 
+     <rosparam file="$(find kuri_multi_agent_navigation)/config/waypoints_map_ref.yaml"/>
+   </group> 
+  <group ns="uav_3" >
+    <node pkg="kuri_multi_agent_navigation" type="navigator_node" name="navigator_node" args="3" output="screen"/> 
+     <rosparam file="$(find kuri_multi_agent_navigation)/config/waypoints_map_ref.yaml"/>
+   </group>     
+
+  
+</launch>

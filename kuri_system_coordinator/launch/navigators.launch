@@ -1,0 +1,28 @@
+<?xml version="1.0"?>
+<launch>
+  <arg name="paused" default="false"/>
+  <arg name="debug" default="false"/>
+  <arg name="gui" default="true" />
+  <arg name="headless" default="true"/>
+  <arg name="enable_logging" default="false"/>
+  <arg name="enable_ground_truth" default="true"/>
+  <arg name="ns" default="Change_Me"/>
+  <arg name="log_file" default="$(arg ns)"/>
+  
+   <!-- launching the action servers -->
+  <arg name="run_demo" default="true" />
+  <group ns="uav_1" >
+    <node pkg="kuri_multi_agent_navigation" type="navigation_action_server" name="navigation_action_server" args="navigation_action_server1 1" output="screen"/> 
+     <rosparam file="$(find kuri_multi_agent_navigation)/config/waypoints_map_ref.yaml"/>
+  </group>   
+  <group ns="uav_2" >
+    <node pkg="kuri_multi_agent_navigation" type="navigation_action_server" name="navigation_action_server" args="navigation_action_server2 2" output="screen"/> 
+     <rosparam file="$(find kuri_multi_agent_navigation)/config/waypoints_map_ref.yaml"/>
+   </group> 
+  <group ns="uav_3" >
+    <node pkg="kuri_multi_agent_navigation" type="navigation_action_server" name="navigation_action_server" args="navigation_action_server3 3" output="screen"/> 
+     <rosparam file="$(find kuri_multi_agent_navigation)/config/waypoints_map_ref.yaml"/>
+   </group>     
+
+  
+</launch>

@@ -35,6 +35,8 @@ from geometry_msgs.msg import *
 from mavros import setpoint as SP
 from tf.transformations import quaternion_from_euler
 from kuri_msgs.msg import *
+from nav_msgs.msg import *
+from std_msgs.msg import *
 from kuri_msgs.msg import GenerateExplorationWaypointsAction, Task, NavTask,NavTasks, FollowPathAction,TrackingAction, GeneratePathsAction
 from smach_ros import SimpleActionState
 from actionlib_msgs.msg import GoalStatus
@@ -136,12 +138,61 @@ class Navigating2Object(smach_ros.SimpleActionState):
         #return nav	
       
     def result_callback(self, userdata, status, result):
+        rospy.loginfo('Executing state navigating to object (new navigator)\n\n')
 	if status == GoalStatus.SUCCEEDED:
           return 'succeeded'
 	elif status == GoalStatus.PREEMPTED:
 	  return 'preempted'
 	else:
 	  return 'aborted'	
+
+class Navigating2ObjectNew(smach.State):
+    """ navigating to the object location according to the given task (using new navigator) 
+    Outcomes
+    --------
+        succeeded : finished following the path 
+        preempted : a cancel request by the client occured (not action server)
+        aborted : an error occured in the navigation action server (not action server)      
+	
+    """  
+    def __init__(self,uav_id):
+        smach.State.__init__(self, 
+			     outcomes=['succeeded','preempted','aborted']
+			     )      
+	self.path_pub = rospy.Publisher("/uav_"+str(uav_id)+"/path",Path, queue_size=10,latch=True)
+	self.state_pub = rospy.Publisher("/uav_"+str(uav_id)+"/state_num",Int64, queue_size=10,latch=True)
+        self.finished_sub = rospy.Subscriber('/uav_'+str(uav_id)+'/finished_flag', Bool, self.flagCB)
+	self.sub = rospy.Subscriber("/path_planner_action_server/navtasks", NavTasks, self.nav_callback)
+        
+	self.finished = Bool()
+	self.finished.data = False
+	self.uav_id = uav_id
+	self.navTask= NavTask()
+	
+    def nav_callback(self,topic):
+      for navTask in topic.nav_tasks.nav_tasks:
+	  print("nav task: %i" % navTask.task.uav_id)
+	  if navTask.task.uav_id == self.uav_id:
+	      print("UAV --> %i " % (self.uav_id))
+	      self.navTask = navTask
+	      
+    def flagCB(self, topic):
+	self.finished.data = topic.data
+      
+    def execute(self, userdata):
+      rospy.loginfo('Executing state navigating to object (new navigator) uav %i \n\n',self.uav_id) 
+      #print("UAV id : %i" % (self.uav_id))
+      while(True):
+        if( len(self.navTask.path.poses) != 0):	
+	  self.state_pub.publish(1)
+	  navPath = Path()
+	  navPath = navTask.path
+	  self.path_pub.publish(navPath)
+	  while (True):
+	    if self.finished.data :
+	      break
+	    #rospy.loginfo('Exploring\n')
+	  return 'succeeded'
 
 #TODO: aerial manipulation code integrated [DONE]
 class PickingObject(smach_ros.SimpleActionState):
