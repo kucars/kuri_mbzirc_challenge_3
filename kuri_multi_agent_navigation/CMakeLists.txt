@@ -42,7 +42,7 @@ find_package(component_test QUIET)
 catkin_package(
    INCLUDE_DIRS include
    LIBRARIES
-   CATKIN_DEPENDS roscpp sspp
+   CATKIN_DEPENDS roscpp sspp kuri_msgs
 )
 
 ###########
@@ -108,19 +108,27 @@ target_link_libraries(navigation_action_server SSPathPlanner
 
 add_executable(uavs_initiator src/uavs_initiator.cpp)
 target_link_libraries(uavs_initiator ${catkin_LIBRARIES})
+add_dependencies(uavs_initiator kuri_msgs_gencfg kuri_msgs_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 
 
 add_executable(gps_waypoints_local src/gps_waypoints_local.cpp)
 target_link_libraries(gps_waypoints_local geo ${catkin_LIBRARIES})
+add_dependencies(gps_waypoints_local kuri_msgs_gencfg kuri_msgs_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
+
 
 add_executable(gps_waypoints_srv src/gps_waypoints_srv.cpp)
 target_link_libraries(gps_waypoints_srv geo ${catkin_LIBRARIES})
+add_dependencies(gps_waypoints_srv kuri_msgs_gencfg kuri_msgs_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
+
 
 add_executable(converter_action_server src/converter_action_server.cpp)
 target_link_libraries(converter_action_server geo ${catkin_LIBRARIES} -lgmp -lmpfr ${CGAL_LIBRARY} ${CGAL_Core_LIBRARY} ${PCL_LIBRARIES})
+add_dependencies(converter_action_server kuri_msgs_gencfg kuri_msgs_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
+
 
 add_executable(navigator_node src/navigator_node.cpp)
 target_link_libraries(navigator_node geo ${catkin_LIBRARIES})
+add_dependencies(navigator_node kuri_msgs_gencfg kuri_msgs_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 
 #add_executable(path_follower src/pathfollower.cpp)
 #target_link_libraries(path_follower SSPathPlanner

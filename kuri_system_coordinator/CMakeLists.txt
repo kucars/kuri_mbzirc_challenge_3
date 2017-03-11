@@ -36,5 +36,5 @@ add_library(geo2 src/geo.cpp)
 
 add_executable(solo_player src/soloplayer.cpp)
 target_link_libraries(solo_player ${catkin_LIBRARIES} geo2)
-add_dependencies(solo_player kuri_msgs_gencfg kuri_msgs_generate_messages_cpp)
+add_dependencies(solo_player kuri_msgs_gencfg kuri_msgs_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 
