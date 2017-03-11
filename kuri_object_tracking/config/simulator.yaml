@@ -11,3 +11,4 @@ threshold: 0.40
 tracking_timeout: 10
 image_rescale: 2.5
 VidOutput: 1
+uav_id: 2

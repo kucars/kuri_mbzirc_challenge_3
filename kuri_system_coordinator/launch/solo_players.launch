@@ -13,7 +13,8 @@
    
   <group ns="uav_1" >
     <node pkg="kuri_system_coordinator" type="solo_player" name="solo_player" output="screen"/>
-         <rosparam file="$(find kuri_multi_agent_navigation)/config/waypoints_map_ref.yaml"/>
+    <rosparam file="$(find kuri_multi_agent_navigation)/config/waypoints_map_ref.yaml"/>
+    <node pkg="kuri_object_tracking" type="object_tracking_solo.py" name="object_tracking_solo" output="screen"/>
   </group>
    
   <!-- launching the environment -->

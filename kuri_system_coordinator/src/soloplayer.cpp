@@ -42,6 +42,18 @@
 #include <sensor_msgs/NavSatFix.h>
 #include <nav_msgs/Odometry.h>
 #include "geo.h"
+#include <actionlib/client/simple_action_client.h>
+#include "kuri_msgs/TrackingAction.h"
+#include "kuri_msgs/TrackingActionFeedback.h"
+#include "kuri_msgs/TrackingActionGoal.h"
+#include "kuri_msgs/TrackingActionResult.h"
+#include "kuri_msgs/TrackingGoal.h"
+#include "kuri_msgs/TrackingResult.h"
+#include "kuri_object_tracking/Object2Track.h"
+#include "kuri_object_tracking/Object2TrackRequest.h"
+#include "kuri_object_tracking/Object2TrackResponse.h"
+
+
 
 enum SOLO_STATES
 {
@@ -159,13 +171,14 @@ void localPoseCb(const geometry_msgs::PoseStamped::ConstPtr& msg)
     errorY =  goalPose.pose.position.y - localPoseH.pose.position.y;
     errorZ =  goalPose.pose.position.z - localPoseH.pose.position.z;
     double dist = sqrt(errorX*errorX + errorY*errorY + errorZ*errorZ);
-    std::cout<<"WayPoint["<<count<<"] Dist:"<<dist<<" Goal Pose X:"<<goalPose.pose.position.x<<" y:"<<goalPose.pose.position.y<<" z:"<<goalPose.pose.position.z<< " uav local pose x: "<<localPoseH.pose.position.x<<" y: "<< localPoseH.pose.position.y<<" z: "<< localPoseH.pose.position.z<<std::endl;
+    //std::cout<<"WayPoint["<<count<<"] Dist:"<<dist<<" Goal Pose X:"<<goalPose.pose.position.x<<" y:"<<goalPose.pose.position.y<<" z:"<<goalPose.pose.position.z<< " uav local pose x: "<<localPoseH.pose.position.x<<" y: "<< localPoseH.pose.position.y<<" z: "<< localPoseH.pose.position.z<<std::endl;
     if(dist < tolerance)
     {
       count++;
       if(count<newLocalWaypoints.poses.size())
       {
-        std::cout<<"new waypoints x: "<<newLocalWaypoints.poses[count].position.x<<" y: "<< newLocalWaypoints.poses[count].position.y<<" z: "<< newLocalWaypoints.poses[count].position.z<<std::endl;
+        std::cout<<"New WayPoint["<<count<<"] Dist:"<<dist<<" Goal Pose X:"<<goalPose.pose.position.x<<" y:"<<goalPose.pose.position.y<<" z:"<<goalPose.pose.position.z<< " uav local pose x: "<<localPoseH.pose.position.x<<" y: "<< localPoseH.pose.position.y<<" z: "<< localPoseH.pose.position.z<<std::endl;
+        //std::cout<<"new waypoints x: "<<newLocalWaypoints.poses[count].position.x<<" y: "<< newLocalWaypoints.poses[count].position.y<<" z: "<< newLocalWaypoints.poses[count].position.z<<std::endl;
         // ROS_INFO("UAV %i : Sending a New uav local WayPoint(x,y,z):(%g,%g,%g)",uav_id,newLocalWaypoints.poses[count].position.x,newLocalWaypoints.poses[count].position.y,newLocalWaypoints.poses[count].position.z);
         // ROS_INFO("UAV %i : Sending a New uav global WayPoint(x,y,z):(%g,%g,%g)",uav_id,globalWaypoints[count].latitude,globalWaypoints[count].longitude,globalWaypoints[count].altitude);
         goalPose.pose.position.x = newLocalWaypoints.poses[count].position.x;
@@ -214,6 +227,25 @@ void globalPoseCb(const sensor_msgs::NavSatFix::ConstPtr& msg)
   }
 }
 
+// Called once when the goal completes
+void objectTrackingDoneCallBack(const actionlib::SimpleClientGoalState& state, const kuri_msgs::TrackingResultConstPtr& result)
+{
+  ROS_INFO("Finished in state [%s]", state.toString().c_str());
+  ROS_INFO("Answer: %lu", result->tracked_objects.objects.size());
+}
+
+// Called once when the goal becomes active
+void objectTrackingActiveCallback()
+{
+  ROS_INFO("Goal just went active");
+}
+
+// Called every time feedback is received for the goal
+void objectTrackingFeedbackCallback(const kuri_msgs::TrackingFeedbackConstPtr& feedback)
+{
+  ROS_INFO("Got Feedback of length %lu", feedback->new_objects.objects.size());
+}
+
 int main(int argc , char **argv)
 {
   ros::init(argc , argv , "playing_solo");
@@ -238,6 +270,18 @@ int main(int argc , char **argv)
   ros::Subscriber global_pose = nh.subscribe
       ("/uav_"+boost::lexical_cast<std::string>(UAVId)+"/mavros/global_position/global", 1000, globalPoseCb);
 
+
+  // Action Clients
+  ros::ServiceClient objectsTrackingServiceClient = nh.serviceClient<kuri_object_tracking::Object2Track>("trackObjectService");
+  /*
+  typedef actionlib::SimpleActionClient<kuri_msgs::TrackingAction> ObjectsTrackingClient;
+  ObjectsTrackingClient objectsTrackingClient("TrackingAction", true);
+  ROS_INFO("Waiting for Object Tracking Action Server to start.");
+  objectsTrackingClient.waitForServer();
+  ROS_INFO("Action server started, sending goal.");
+  kuri_msgs::TrackingGoal goal;
+  */
+  bool objectTrackingInitiated = false;
   // wait for FCU connection
   while(ros::ok() && UAVState.connected)
   {
@@ -321,6 +365,24 @@ int main(int argc , char **argv)
       //once the transform to local in terms of the home position is done
       if(transformDoneFlag)
       {
+        if(!objectTrackingInitiated)
+        {
+          /*
+          goal.uav_id = 2;
+          objectsTrackingClient.sendGoal(goal,&objectTrackingDoneCallBack, &objectTrackingActiveCallback, &objectTrackingFeedbackCallback);
+          */
+          kuri_object_tracking::Object2Track objSRV;
+          objSRV.request.color = "all";
+          if(objectsTrackingServiceClient.call(objSRV))
+          {
+            ROS_INFO("Call successfull");
+          }
+          else
+          {
+            ROS_ERROR("Failed to call service");
+          }
+          objectTrackingInitiated = true;
+        }
         local_pos_pub.publish(goalPose);
       }
       else
