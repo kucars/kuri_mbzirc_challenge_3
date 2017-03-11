@@ -64,8 +64,8 @@ import threading
 
 VERBOSE=False
 
-threshold = 0.40
-kernel5 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(20,20))
+threshold = 0.30
+kernel5 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(5,5))
 x_co = 0
 y_co = 0
 hsv = None
@@ -76,7 +76,7 @@ thr_V = 255*threshold
 
 tracking_timeout = 5 ##Seconds until tracking lost
 
-image_rescale = 2.5
+image_rescale = 1
 
 VidOutput = True
 TestDropZone = True
@@ -95,7 +95,7 @@ class object_tracking:
         '''Initialize ros publisher, ros subscriber'''
         rospack = rospkg.RosPack()
         packagePath = rospack.get_path('kuri_object_tracking')
-        with open(packagePath+'/config/simulator.yaml', 'r') as stream:
+        with open(packagePath+'/config/colors.yaml', 'r') as stream:
             try:
                 config_yaml = yaml.load(stream)
                 self.H_red = config_yaml.get('H_red')
@@ -115,6 +115,10 @@ class object_tracking:
         self.obstacles = Objects()
         self.image_sub = message_filters.Subscriber('/uav_'+str(goal.uav_id)+'/downward_cam/camera/image', Image)
         self.info_sub = message_filters.Subscriber('/uav_'+str(goal.uav_id)+'/downward_cam/camera/camera_info', CameraInfo)
+    
+        #self.image_sub = message_filters.Subscriber('/usb_cam/image_raw', Image)
+        #self.info_sub = message_filters.Subscriber('/usb_cam/camera_info', CameraInfo)
+    
         #self.outpub = rospy.Publisher('/uav_'+str(goal.uav_id)+'/downward_cam/camera/detection_image',Image, queue_size=100, latch=True)
         self.ts = message_filters.TimeSynchronizer([self.image_sub, self.info_sub], 10)
         self.ts.registerCallback(self.callback)
@@ -162,13 +166,16 @@ class object_tracking:
         #H = 0
         #S = 255
         #V = 135        
+        self.H_red = 2
+        self.S_red = 255
+        self.V_red = 228
         
         src = cv2.blur(img, (10,10))
         hsv = cv2.cvtColor(src, cv2.COLOR_BGR2HSV)
         min_color = np.array([self.H_red-thr_H,self.S_red-thr_S,self.V_red-thr_V])
         max_color = np.array([self.H_red+thr_H,self.S_red+thr_S,self.V_red+thr_V])
         mask = cv2.inRange(hsv, min_color, max_color)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel5)        
+        #mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel5)        
         return mask
 
     def blueFilter(self, img):
@@ -185,7 +192,7 @@ class object_tracking:
         min_color = np.array([self.H_blue-thr_H,self.S_blue-thr_S,self.V_blue-thr_V])
         max_color = np.array([self.H_blue+thr_H,self.S_blue+thr_S,self.V_blue+thr_V])
         mask = cv2.inRange(hsv, min_color, max_color)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel5)        
+        #mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel5)        
         return mask
         
     def greenFilter(self, img):
@@ -203,7 +210,7 @@ class object_tracking:
         min_color = np.array([self.H_green-thr_H,self.S_green-thr_S,self.V_green-thr_V])
         max_color = np.array([self.H_green+thr_H,self.S_green+thr_S,self.V_green+thr_V])
         mask = cv2.inRange(hsv, min_color, max_color)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel5)        
+        #mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel5)        
         return mask
         
     def whiteFilter(self, img):
@@ -240,7 +247,16 @@ class object_tracking:
         x = x / image_rescale
         y = y / image_rescale
         p = self.img_proc.projectPixelTo3dRay((x,y)) 
+        #p = self.img_proc.projectPixelTo3d((x,y)) 
+        #ray = self.img_proc
+        #tx_fx = self.img_proc.Tx()/self.img_proc.fx()
+        #z = self.currentPoseZ
+        #point(z*(ray.x+tx_fx)-tx_fx,z*ray.y,z*ray.z)
         p = np.array(p)
+        #print p
+        #p[0] = z*(ray.x+tx_fx)
+        #p[1] = tx_fx,z*ray.y
+        #p[2] = z*ray.z
         return p
        
 
@@ -369,7 +385,8 @@ class object_tracking:
                     obj.camx = coords[0]
                     obj.camy = coords[1]
                     obj.camz = coords[2]
-                    cv2.putText(self.right_image, '#'+str(obj.object_id)+'|pos:'+str(coords[0])+','+str(coords[1]), (obj.cx,obj.cy), cv2.FONT_HERSHEY_PLAIN, 1.0, (255,0,0), thickness = 1)        
+                    cv2.putText(self.right_image,obj.color, (obj.cx,obj.cy-obj.height/2), cv2.FONT_HERSHEY_PLAIN, 1.0, (255,255,255), thickness = 2)
+                    cv2.putText(self.right_image, '#'+str(obj.object_id)+'|pos:'+str(("%.2fm" %coords[0]))+','+str(("%.2fm" %coords[1]))+str(("%.2fm" %coords[2])), (obj.cx,obj.cy), cv2.FONT_HERSHEY_PLAIN, 1.0, (255,255,255), thickness = 1)        
         
         if self.frame % interval_small:
             return        
@@ -398,7 +415,7 @@ class object_tracking:
                		B = color[0]
                		G = color[1]
                		R = color[2]
-               		if G >= R and G >= B and R >= G and R >= B:
+               		if G >= R and G > B and R >= G and R > B:
                             c = 'YELLOW';
                             cv2.putText(self.right_image,c, (x+w,y), cv2.FONT_HERSHEY_PLAIN, 1.0, (0,255,255), thickness = 2)
                		elif B >= G and B >= R:
@@ -412,6 +429,20 @@ class object_tracking:
                        		cv2.putText(self.right_image,c, (x+w,y), cv2.FONT_HERSHEY_PLAIN, 1.0, (0,0,255), thickness = 2)
                		self.object_detected(cnt, c)
                		cv2.drawContours(self.right_image, [cnt], 0, (255,255,255), 2)
+                 
+#        circles = cv2.HoughCircles(gray, cv2.cv.CV_HOUGH_GRADIENT, 4.5, 100)
+# 
+#        # ensure at least some circles were found
+#        if circles is not None:
+#        	# convert the (x, y) coordinates and radius of the circles to integers
+#        	circles = np.round(circles[0, :]).astype("int")
+#         
+#        	# loop over the (x, y) coordinates and radius of the circles
+#        	for (x, y, r) in circles:
+#        		# draw the circle in the output image, then draw a rectangle
+#        		# corresponding to the center of the circle
+#        		cv2.circle(self.right_image, (x, y), r, (0, 255, 0), 4)
+#        		cv2.rectangle(self.right_image, (x - 5, y - 5), (x + 5, y + 5), (0, 128, 255), -1)
 
             
     def detect_big_objects(self, img):        
@@ -448,7 +479,7 @@ class object_tracking:
 	
     def detect_drop_zone(self, img):     
         for obj in ObjectList:##Already have drop zone
-            if obj.color == 'DROP_ZONE' and obj.islost(timeout) == False:
+            if obj.color == 'DROP_ZONE' and obj.islost(tracking_timeout) == False:
                 return
         #if self.frame % interval_big:
          #   return
@@ -489,8 +520,8 @@ class object_tracking:
         self.new_objects_count = 0
         self.img_proc = image_geometry.PinholeCameraModel() ##need calibration?
         self.img_proc.fromCameraInfo(camera_info)
-        #n = self.img_proc.projectPixelTo3dRay((900,30))
-        #print n
+        #n = self.img_proc.projectPixelTo3dRay((100,30))
+       # print camera_info
         #### direct conversion to CV2 ####
         #np_arr = np.fromstring(ros_data.data, np.uint8)
         #image_np = cv2.imdecode(np_arr, cv2.CV_LOAD_IMAGE_COLOR)
@@ -498,42 +529,60 @@ class object_tracking:
         image_np = cvImage.copy()
         #image_np = cv2.resize(image_np, (0,0), fx=0.5, fy=0.5) 
         #self.track_objects()
+#        red_mask = self.redFilter(image_np)
+#        blue_mask = self.blueFilter(image_np)
+#        black_mask = self.greenFilter(image_np)
+#        white_mask = self.whiteFilter(image_np)
+#        red = cv2.bitwise_and(image_np,image_np,mask = red_mask)
+#        blue = cv2.bitwise_and(image_np,image_np,mask = blue_mask)
+#        black = cv2.bitwise_and(image_np,image_np,mask = black_mask)
+#        white = cv2.bitwise_and(image_np,image_np,mask = white_mask)
+#        filtered = cv2.bitwise_or(red, blue)
+#        filtered = cv2.bitwise_or(filtered, black)
+#        filtered = cv2.bitwise_or(filtered, white)
+#        
+#        filtered = cv2.resize(filtered, (0,0), fx=image_rescale, fy=image_rescale) 
+#        red = cv2.resize(red, (0,0), fx=image_rescale, fy=image_rescale) 
+#        white = cv2.resize(white, (0,0), fx=image_rescale, fy=image_rescale) 
+#        image_np = cv2.resize(image_np, (0,0), fx=image_rescale, fy=image_rescale) 
+#        self.right_image = image_np;        
+#        
+#        #try:
+#        self.detect_objects(blue, 'all')
+#        #self.detect_objects(red, 'red')
+#        #self.detect_objects(blue, 'blue')
+#        #self.detect_objects(black, 'green')
+#        #self.detect_big_objects(red)
+#        #self.detect_drop_zone(white)
+#        #except:
+#         #   print('Error Detecting Objects')
+#        #self.process()
+        
+        ####TEST BLUE
         red_mask = self.redFilter(image_np)
         blue_mask = self.blueFilter(image_np)
-        black_mask = self.greenFilter(image_np)
-        white_mask = self.whiteFilter(image_np)
+        green_mask = self.greenFilter(image_np)
         red = cv2.bitwise_and(image_np,image_np,mask = red_mask)
         blue = cv2.bitwise_and(image_np,image_np,mask = blue_mask)
-        black = cv2.bitwise_and(image_np,image_np,mask = black_mask)
-        white = cv2.bitwise_and(image_np,image_np,mask = white_mask)
-        filtered = cv2.bitwise_or(red, blue)
-        filtered = cv2.bitwise_or(filtered, black)
-        filtered = cv2.bitwise_or(filtered, white)
-        
-        filtered = cv2.resize(filtered, (0,0), fx=image_rescale, fy=image_rescale) 
-        red = cv2.resize(red, (0,0), fx=image_rescale, fy=image_rescale) 
-        white = cv2.resize(white, (0,0), fx=image_rescale, fy=image_rescale) 
+        green = cv2.bitwise_and(image_np,image_np,mask = green_mask)
         image_np = cv2.resize(image_np, (0,0), fx=image_rescale, fy=image_rescale) 
         self.right_image = image_np;        
+        filtered = cv2.bitwise_or(red, blue)
+        filtered = cv2.bitwise_or(filtered, green)
+        #try:
+        #self.detect_objects(blue, 'all') 
+        self.detect_objects(filtered, 'all') 
         
-        try:
-            self.detect_objects(filtered, 'all')
-            #self.detect_objects(red, 'red')
-            #self.detect_objects(blue, 'blue')
-            #self.detect_objects(black, 'green')
-            self.detect_big_objects(red)
-            self.detect_drop_zone(white)
-        except:
-            print('Error Detecting Objects')
-        #self.process()
+        
         #cv2.imshow('filtered', filtered)
         self.frame = self.frame + 1
         
         if VidOutput == True:    
             cv2.waitKey(2)    
             #label = "POS" +  "(" + ("%.2fm" % self.currentPoseX) + "," + ("%.2fm" % self.currentPoseY) + "," + ("%.2fm" % self.currentPoseZ) + ")"
-            #cv2.putText(self.right_image,label, (50,50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-            disp = cv2.resize(self.right_image, (0,0), fx=1/image_rescale, fy=1/image_rescale) 
+            #cv2.putText(self.right_image,label, (50,50), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+            #disp = cv2.resize(self.right_image, (0,0), fx=1/1.5, fy=1/1.5) 
+            disp = cv2.resize(self.right_image, (0,0), fx=2, fy=2) 
             #disp = self.right_image 
             #self.outpub.publish(self.bridge.cv2_to_imgmsg(disp, "bgr8"))
             cv2.imshow('object_tracking', disp)
