@@ -34,6 +34,7 @@
   <run_depend>eigen_conversions</run_depend>
   <run_depend>geometry_msgs</run_depend>
   <run_depend>sspp</run_depend>
+  <run_depend>kuri_msgs</run_depend>
   <export>
   </export>
 </package>
