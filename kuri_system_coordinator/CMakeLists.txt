@@ -17,12 +17,12 @@ find_package(catkin REQUIRED COMPONENTS
 find_package(Eigen REQUIRED)
 find_package(PCL REQUIRED)
 find_package(OpenCV REQUIRED)
-# find_package(kuri_msgs REQUIRED) #cause compile error
+find_package(kuri_msgs REQUIRED)
 
 catkin_package(
 #  INCLUDE_DIRS include
 #  LIBRARIES beginner_tutorials
-  CATKIN_DEPENDS roscpp rospy actionlib_msgs sensor_msgs nav_msgs
+  CATKIN_DEPENDS roscpp rospy actionlib_msgs sensor_msgs nav_msgs kuri_msgs
 #  DEPENDS system_lib
 )
 
