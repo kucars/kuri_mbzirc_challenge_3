@@ -10,7 +10,6 @@ find_package(catkin REQUIRED COMPONENTS
   cmake_modules
   tf message_filters
   nav_msgs
-  kuri_mbzirc_challenge_1_msgs
   message_generation
   actionlib_msgs
   visp_bridge
