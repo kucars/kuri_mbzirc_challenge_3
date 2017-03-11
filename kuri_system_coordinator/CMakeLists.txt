@@ -12,7 +12,6 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   message_generation
   actionlib_msgs
-  visp_bridge
 )
 
 catkin_package(
