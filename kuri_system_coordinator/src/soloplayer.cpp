@@ -52,7 +52,7 @@
 #include "kuri_object_tracking/Object2Track.h"
 #include "kuri_object_tracking/Object2TrackRequest.h"
 #include "kuri_object_tracking/Object2TrackResponse.h"
-
+#include "kuri_msgs/Object.h"
 
 
 enum SOLO_STATES
@@ -67,22 +67,56 @@ enum SOLO_STATES
 geometry_msgs::PoseStamped localPoseH; //with respect to home position
 geometry_msgs::PoseStamped localPoseR; //with respect to a defined reference (ex: zurich, or one of the arena corners)
 sensor_msgs::NavSatFix globalPose;
-
-int count        = 0 ;
-double tolerance = 0.3;
-double errorX    = 0;
-double errorY    = 0;
-double errorZ    = 0;
-
-
+ros::Time objectLastTracked;
+bool firstDataFlag = true;
+int count          = 0 ;
+double tolerance   = 0.3;
+double errorX      = 0;
+double errorY      = 0;
+double errorZ      = 0;
+double errorW      = 0;
+double w           = 0;
+double yaw         = 0;
+float prevErrorX;
+float prevErrorY;
+float prevErrorZ;
+float prevErrorW;
+double tolerance2Goal = 0;
 bool homePoseFlag       = false;
 bool transformDoneFlag  = false;
 std_msgs::Bool finishedFlag;
-
+float pX;
+float pY;
+float pZ;
+float pW;
+float iX;
+float iY;
+float iZ;
+float iW;
+float dX;
+float dY;
+float dZ;
+float dW;
+float aX;
+float aY;
+float aZ;
+float aW;
 int stateNum;
-
+double kp;
+double ki;
+double kd;
+double kpx;
+double kix;
+double kdx;
+double kpy;
+double kiy;
+double kdy;
+double kpz;
+double kiz;
+double kdz;
 double home_lat;
 double home_lon;
+geometry_msgs ::TwistStamped twist;
 
 std::vector<sensor_msgs::NavSatFix>     globalWaypoints;
 geometry_msgs::PoseArray                newLocalWaypoints;
@@ -91,6 +125,7 @@ geometry_msgs::PoseStamped              idlePose;
 nav_msgs::Path                          path;
 mavros_msgs::State UAVState;
 int currentState = INITIATION;
+geometry_msgs ::Point real;
 
 void mavrosStateCallback(const mavros_msgs::State::ConstPtr& msg)
 {
@@ -202,6 +237,95 @@ void localPoseCb(const geometry_msgs::PoseStamped::ConstPtr& msg)
   }
 }
 
+void trackedObjectCb(const kuri_msgs::ObjectConstPtr &msg)
+{
+    objectLastTracked = ros::Time::now();
+    ROS_INFO("Got an object in sight");
+    if(currentState == EXPLORING)
+    {
+      currentState = PICKING;
+      ROS_INFO("TRANSITIONING FROM INITIATION EXPLORING:>> EXPLORING STATE");
+    }
+    real.x= 0 ; //msg ->latitude;
+    real.y= 0 ; //msg ->longitude;
+    real.z= 0 ; //msg ->altitude;
+    w = yaw ;
+
+    errorX =  msg->pose.pose.position.x - real.x;
+    errorY =  msg->pose.pose.position.y - real.y;
+    errorZ =  msg->pose.pose.position.z - real.z ;
+    errorW =  w;
+
+    if (firstDataFlag )
+    {
+      prevErrorX = errorX;
+      prevErrorY = errorY;
+      prevErrorZ = errorZ;
+      prevErrorW = errorW;
+      firstDataFlag = false;
+    }
+    else
+    {
+      errorX =  goalPose.pose.position.x - real.x;
+      errorY =  goalPose.pose.position.y - real.y;
+      errorZ =  goalPose.pose.position.z - real.z ;
+      errorW =  0;
+      pX = kpx * errorX;
+      pY = kpy * errorY;
+      pZ = kpz * errorZ;
+      pW = kp * errorW;
+
+      iX += kix * errorX;
+      iY += kiy * errorY;
+      iZ += kiz * errorZ;
+      iW += ki * errorW;
+
+      dX = kdx * (errorX - prevErrorX);
+      dY = kdy * (errorY - prevErrorY);
+      dZ = kdz * (errorZ - prevErrorZ);
+      dW = kd * (errorW - prevErrorW);
+
+      prevErrorX = errorX;
+      prevErrorY = errorY;
+      prevErrorZ = errorZ;
+      prevErrorW = errorW;
+
+      // PID conroller
+      aX = pX     + iX + dX  ;
+      aY = pY     + iY + dY  ;
+      aZ = pZ      +iZ + dZ  ;
+      aW = 10 * pW +iW + dW  ;
+
+      // filling velocity commands
+      twist.twist.linear.x = aX;
+      twist.twist.linear.y =  aY;
+      twist.twist.linear.z = aZ;
+      twist.twist.angular.z = aW;
+      twist.header.stamp = ros::Time::now();
+
+      ROS_INFO("Error X: %0.2f \n", errorX);
+      ROS_INFO("Error Y: %0.2f \n", errorY);
+      ROS_INFO("Error Z: %0.2f \n", errorZ);
+      ROS_INFO("derivative X: %0.2f \n", dX);
+      ROS_INFO("derivative Y: %0.2f \n", dY);
+      ROS_INFO("derivative Z: %0.2f \n", dZ);
+      ROS_INFO("derivative W: %0.2f \n", dZ);
+      ROS_INFO("W: %0.2f \n", w);
+      ROS_INFO("Action X: %0.2f \n", aX);
+      ROS_INFO("Action Y: %0.2f \n", aY);
+      ROS_INFO("Action Z: %0.2f \n", aZ);
+      ROS_INFO("Action W: %0.2f \n", aW);
+      double dist = sqrt(errorX*errorX+ errorY*errorY + errorZ*errorZ);
+      if (dist <  tolerance2Goal)
+      {
+        twist.twist.linear.x = 0;
+        twist.twist.linear.y = 0;
+        twist.twist.linear.z = 0;
+        twist.twist.angular.z = 0;
+      }
+    }
+}
+
 void globalPoseCb(const sensor_msgs::NavSatFix::ConstPtr& msg)
 {
   double lat,lon,alt;
@@ -227,23 +351,9 @@ void globalPoseCb(const sensor_msgs::NavSatFix::ConstPtr& msg)
   }
 }
 
-// Called once when the goal completes
-void objectTrackingDoneCallBack(const actionlib::SimpleClientGoalState& state, const kuri_msgs::TrackingResultConstPtr& result)
+void headingCallback(const std_msgs::Float64::ConstPtr& msg)
 {
-  ROS_INFO("Finished in state [%s]", state.toString().c_str());
-  ROS_INFO("Answer: %lu", result->tracked_objects.objects.size());
-}
-
-// Called once when the goal becomes active
-void objectTrackingActiveCallback()
-{
-  ROS_INFO("Goal just went active");
-}
-
-// Called every time feedback is received for the goal
-void objectTrackingFeedbackCallback(const kuri_msgs::TrackingFeedbackConstPtr& feedback)
-{
-  ROS_INFO("Got Feedback of length %lu", feedback->new_objects.objects.size());
+  yaw = msg->data * 3.14159265359 / 180.0 ;
 }
 
 int main(int argc , char **argv)
@@ -257,30 +367,52 @@ int main(int argc , char **argv)
   std::cout<<"UAVId: "<<UAVId<<std::endl;
 
   //publishers and subscribers
-  ros::Subscriber state_sub = nh.subscribe<mavros_msgs::State>
+  ros::Subscriber statePub = nh.subscribe<mavros_msgs::State>
       ("/uav_"+boost::lexical_cast<std::string>(UAVId)+"/mavros/state", 10, mavrosStateCallback);
-  ros::Publisher local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>
+  ros::Publisher localPosePub = nh.advertise<geometry_msgs::PoseStamped>
       ("/uav_"+boost::lexical_cast<std::string>(UAVId)+"/mavros/setpoint_position/local", 10);
-  ros::ServiceClient arming_client = nh.serviceClient<mavros_msgs::CommandBool>
+  ros::ServiceClient armingClient = nh.serviceClient<mavros_msgs::CommandBool>
       ("/uav_"+boost::lexical_cast<std::string>(UAVId)+"/mavros/cmd/arming");
-  ros::ServiceClient set_mode_client = nh.serviceClient<mavros_msgs::SetMode>
+  ros::ServiceClient setModeClient = nh.serviceClient<mavros_msgs::SetMode>
       ("/uav_"+boost::lexical_cast<std::string>(UAVId)+"/mavros/set_mode");
-  ros::Subscriber current_pose = nh.subscribe
-      ("/uav_"+boost::lexical_cast<std::string>(UAVId)+"/mavros/local_position/pose", 1000, localPoseCb);
-  ros::Subscriber global_pose = nh.subscribe
-      ("/uav_"+boost::lexical_cast<std::string>(UAVId)+"/mavros/global_position/global", 1000, globalPoseCb);
+  ros::Subscriber currentPose = nh.subscribe
+      ("/uav_"+boost::lexical_cast<std::string>(UAVId)+"/mavros/local_position/pose", 10, localPoseCb);
+  ros::Subscriber globalPoseSub = nh.subscribe
+      ("/uav_"+boost::lexical_cast<std::string>(UAVId)+"/mavros/global_position/global", 10, globalPoseCb);
+  ros::Subscriber trackedObjSub = nh.subscribe
+      ("/uav_"+boost::lexical_cast<std::string>(UAVId)+"/tracked_object/object", 10, trackedObjectCb);
+  //ros::Subscriber globalPoseSub;
+  ros::Publisher velPub = nh.advertise<geometry_msgs ::TwistStamped>
+      ("/uav_"+boost::lexical_cast<std::string>(UAVId)+"/mavros/setpoint_velocity/cmd_vel", 10);
+  ros::Subscriber compassSub = nh.subscribe
+      ("/uav_"+boost::lexical_cast<std::string>(UAVId)+"/mavros/global_position/compass_hdg", 10, headingCallback);
 
+  nh.param("kp", kp, 0.05);
+  nh.param("ki", ki, 0.0);
+  nh.param("kd", kd, 0.05);
+  nh.param("kpx", kpx, 0.05);
+  nh.param("kix", kix, 0.0);
+  nh.param("kdx", kdx, 0.05);
+  nh.param("kpy", kpy, 0.05);
+  nh.param("kiy", kiy, 0.0);
+  nh.param("kdy", kdy, 0.05);
+  nh.param("kp", kpz, 0.05);
+  nh.param("ki", kiz, 0.0);
+  nh.param("kd", kdz, 0.05);
+  nh.param("tolerance_2_goal", tolerance2Goal, 0.2);
 
-  // Action Clients
+  goalPose.pose.position.x = 0;
+  goalPose.pose.position.y = 0;
+  goalPose.pose.position.z = 0;
+  geometry_msgs ::TwistStamped stopTwist;
+  stopTwist.twist.linear.x  = 0;
+  stopTwist.twist.linear.y  = 0;
+  stopTwist.twist.linear.z  = 0;
+  stopTwist.twist.angular.z = 0;
+
   ros::ServiceClient objectsTrackingServiceClient = nh.serviceClient<kuri_object_tracking::Object2Track>("trackObjectService");
-  /*
-  typedef actionlib::SimpleActionClient<kuri_msgs::TrackingAction> ObjectsTrackingClient;
-  ObjectsTrackingClient objectsTrackingClient("TrackingAction", true);
-  ROS_INFO("Waiting for Object Tracking Action Server to start.");
-  objectsTrackingClient.waitForServer();
-  ROS_INFO("Action server started, sending goal.");
-  kuri_msgs::TrackingGoal goal;
-  */
+  kuri_object_tracking::Object2Track objSRV;
+
   bool objectTrackingInitiated = false;
   // wait for FCU connection
   while(ros::ok() && UAVState.connected)
@@ -321,9 +453,9 @@ int main(int argc , char **argv)
     {
     case INITIATION:
       /* This code overrides the RC mode and is dangerous when performing tests: re-use in real flight tests*/
-      if( UAVState.mode != "OFFBOARD" && (ros::Time::now() - lastRequest > ros::Duration(5.0)))
+      if( UAVState.mode != "OFFBOARD" && (ros::Time::now() - lastRequest > ros::Duration(1.0)))
       {
-        if( set_mode_client.call(offb_set_mode) && offb_set_mode.response.success)
+        if( setModeClient.call(offb_set_mode) && offb_set_mode.response.success)
         {
           ROS_INFO("Offboard enabled");
         }
@@ -343,9 +475,9 @@ int main(int argc , char **argv)
       }
       else
       {
-        if( !UAVState.armed && (ros::Time::now() - lastRequest > ros::Duration(5.0)))
+        if( !UAVState.armed && (ros::Time::now() - lastRequest > ros::Duration(1.0)))
         {
-          if( arming_client.call(arm_cmd) && arm_cmd.response.success)
+          if( armingClient.call(arm_cmd) && arm_cmd.response.success)
           {
             ROS_INFO("ARMING Command send through mavros, check messages related to safety switch");
             currentState = EXPLORING;
@@ -359,7 +491,7 @@ int main(int argc , char **argv)
           lastRequest = ros::Time::now();
         }
       }
-      local_pos_pub.publish(idlePose);
+      localPosePub.publish(idlePose);
       break;
     case EXPLORING:
       //once the transform to local in terms of the home position is done
@@ -371,23 +503,33 @@ int main(int argc , char **argv)
           goal.uav_id = 2;
           objectsTrackingClient.sendGoal(goal,&objectTrackingDoneCallBack, &objectTrackingActiveCallback, &objectTrackingFeedbackCallback);
           */
-          kuri_object_tracking::Object2Track objSRV;
           objSRV.request.color = "all";
           if(objectsTrackingServiceClient.call(objSRV))
           {
-            ROS_INFO("Call successfull");
+            ROS_INFO("Object Tracking: Call successfull");
           }
           else
           {
-            ROS_ERROR("Failed to call service");
+            ROS_ERROR("Object Tracking: Failed to call service");
           }
           objectTrackingInitiated = true;
         }
-        local_pos_pub.publish(goalPose);
+        localPosePub.publish(goalPose);
       }
       else
       {
-        local_pos_pub.publish(idlePose);
+        localPosePub.publish(idlePose);
+      }
+    case PICKING:
+      // Failsafe: if we don't get tracking info for more than 500ms, then stop in place
+      if(ros::Time::now() - objectLastTracked > ros::Duration(0.5))
+      {
+        stopTwist.header.stamp = ros::Time::now();
+        velPub.publish(stopTwist);
+      }
+      else
+      {
+        velPub.publish(twist);
       }
       break;
     default:

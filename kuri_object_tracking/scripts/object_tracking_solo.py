@@ -32,6 +32,7 @@
 import sys
 import os
 import time
+import math
 # numpy and scipy
 import numpy as np
 # OpenCV
@@ -76,7 +77,7 @@ thr_V = 255*threshold
 
 tracking_timeout = 5 ##Seconds until tracking lost
 
-image_rescale = 2.5
+image_rescale = 1
 
 VidOutput = True
 TestDropZone = True
@@ -179,7 +180,7 @@ class object_tracking:
         min_color = np.array([self.H_red-thr_H,self.S_red-thr_S,self.V_red-thr_V])
         max_color = np.array([self.H_red+thr_H,self.S_red+thr_S,self.V_red+thr_V])
         mask = cv2.inRange(hsv, min_color, max_color)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel5)        
+        #mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel5)
         return mask
 
     def blueFilter(self, img):
@@ -196,7 +197,7 @@ class object_tracking:
         min_color = np.array([self.H_blue-thr_H,self.S_blue-thr_S,self.V_blue-thr_V])
         max_color = np.array([self.H_blue+thr_H,self.S_blue+thr_S,self.V_blue+thr_V])
         mask = cv2.inRange(hsv, min_color, max_color)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel5)        
+        #mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel5)
         return mask
         
     def greenFilter(self, img):
@@ -214,7 +215,7 @@ class object_tracking:
         min_color = np.array([self.H_green-thr_H,self.S_green-thr_S,self.V_green-thr_V])
         max_color = np.array([self.H_green+thr_H,self.S_green+thr_S,self.V_green+thr_V])
         mask = cv2.inRange(hsv, min_color, max_color)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel5)        
+        #mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel5)
         return mask
         
     def whiteFilter(self, img):
@@ -232,7 +233,7 @@ class object_tracking:
         min_color = np.array([self.H_white-thr_H,self.S_white-thr_S,self.V_white-thr_V])
         max_color = np.array([self.H_white+thr_H,self.S_white+thr_S,self.V_white+thr_V])
         mask = cv2.inRange(hsv, min_color, max_color)
-        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel5)        
+        #mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel5)
         return mask        
         
     def overlap(self, a, b):  # returns None if rectangles don't intersect
@@ -278,19 +279,6 @@ class object_tracking:
             obstacle = Obstacle(self.objects_count, contour, color, pixel)
             ObjectList.append(obstacle)
             self.objects_count = self.objects_count + 1
-            #TODO: not sure what this is for
-            if self.actionServer.hasGoal:
-                coords = self.imageToWorld(obstacle.cx,obstacle.cy)
-                ##Not sure about this
-                obstacle.wx = self.currentPoseX + coords[0]
-                obstacle.wy = self.currentPoseY - coords[1]
-                obstacle.wz = self.currentPoseZ - coords[2]
-                obstacle.camx = coords[0]
-                obstacle.camy = coords[1]
-                obstacle.camz = coords[2]
-                self.new_objects.objects.append(obstacle.getAsObject())
-                self.new_objects_count = self.new_objects_count + 1
-        
 #    def object_detected(self, x, y, w, h):
         #if self.objects_count > 1:
         #    return        
@@ -557,7 +545,7 @@ class object_tracking:
         height, width, channels = filtered.shape
         imgCenterX = width/2.0
         imgCenterY = height/2.0
-        closestDist = 100
+        closestDist = 10000
         obj2Send = None
         for obj in ObjectList:
             self.obstacles.objects.append(obj.getAsObject())
@@ -568,6 +556,7 @@ class object_tracking:
               closestDist = dist
               obj2Send = obj.getAsObject()
         if obj2Send:
+          print obj2Send.pose.pose.position.x,  obj2Send.pose.pose.position.y
           self.objectPub.publish(obj2Send)
 def main(args):
     '''Initializes and cleanup ros node'''

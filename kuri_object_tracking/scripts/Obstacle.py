@@ -87,7 +87,6 @@ class Obstacle:
       
   def getAsObject(self):
       o = Object()
-      print o
       o.pose.pose.position.x = self.wx
       o.pose.pose.position.y = self.wy
       o.pose.pose.position.z = self.wz
