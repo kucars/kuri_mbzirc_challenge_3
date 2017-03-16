@@ -122,6 +122,7 @@ std::vector<sensor_msgs::NavSatFix>     globalWaypoints;
 geometry_msgs::PoseArray                newLocalWaypoints;
 geometry_msgs::PoseStamped              goalPose;
 geometry_msgs::PoseStamped              idlePose;
+geometry_msgs::PoseStamped              dropZonePose;
 nav_msgs::Path                          path;
 mavros_msgs::State UAVState;
 int currentState = INITIATION;
@@ -228,7 +229,8 @@ void localPoseCb(const geometry_msgs::PoseStamped::ConstPtr& msg)
         idlePose.pose.position.y = newLocalWaypoints.poses[count-1].position.y;
         idlePose.pose.position.z = newLocalWaypoints.poses[count-1].position.z;
         currentState = PICKING;
-        std::cout<<"uav_state: PICKING "<<currentState<<std::endl;
+        //std::cout<<"uav_state: PICKING "<<currentState<<std::endl;
+        ROS_INFO("uav_state: PICKING ");
         count=0;
         newLocalWaypoints.poses.erase(newLocalWaypoints.poses.begin(),newLocalWaypoints.poses.end());
         globalWaypoints.erase(globalWaypoints.begin(), globalWaypoints.end());
@@ -240,12 +242,31 @@ void localPoseCb(const geometry_msgs::PoseStamped::ConstPtr& msg)
 void trackedObjectCb(const kuri_msgs::ObjectConstPtr &msg)
 {
     objectLastTracked = ros::Time::now();
-    ROS_INFO("Got an object in sight");
+    //ROS_INFO("Got object %d in sight", msg->object_id);
     if(currentState == EXPLORING)
     {
       currentState = PICKING;
-      ROS_INFO("TRANSITIONING FROM INITIATION EXPLORING:>> EXPLORING STATE");
+      ROS_INFO("TRANSITIONING FROM EXPLORING:>> PICKING STATE");
+      twist.twist.linear.x = 0;
+      twist.twist.linear.y = 0;
+      twist.twist.linear.z = 0;
+      twist.twist.angular.z = 0;
     }
+
+    //ROS_INFO("Got object %d in sight", msg->object_id);
+
+    if(currentState == WAITING_FOR_DROP)
+    {
+        if(localPoseH.pose.position.z < 4){
+            twist.twist.linear.x = 0;
+            twist.twist.linear.y = 0;
+            twist.twist.linear.z = 1;
+        }
+    }
+
+    if(currentState == PICKING)
+    {
+        ROS_INFO("PICKING object %d", msg->object_id);
     real.x= 0 ; //msg ->latitude;
     real.y= 0 ; //msg ->longitude;
     real.z= 0 ; //msg ->altitude;
@@ -263,12 +284,24 @@ void trackedObjectCb(const kuri_msgs::ObjectConstPtr &msg)
       prevErrorZ = errorZ;
       prevErrorW = errorW;
       firstDataFlag = false;
+      twist.twist.linear.x = 0;
+      twist.twist.linear.y = 0;
+      twist.twist.linear.z = 0;
+      twist.twist.angular.z = 0;
     }
     else
     {
-      errorX =  goalPose.pose.position.x - real.x;
-      errorY =  goalPose.pose.position.y - real.y;
-      errorZ =  goalPose.pose.position.z - real.z ;
+      errorX =  msg->pose.pose.position.x;
+      errorY =  msg->pose.pose.position.y;
+      errorZ =  msg->pose.pose.position.z;
+
+      float mul = 10.0, error = 0.05;//will be different for camera if calibrated
+
+/*
+      errorX *= mul;
+      errorY *= mul;
+      errorZ *= mul;
+*/
       errorW =  0;
       pX = kpx * errorX;
       pY = kpy * errorY;
@@ -296,21 +329,40 @@ void trackedObjectCb(const kuri_msgs::ObjectConstPtr &msg)
       aZ = pZ      +iZ + dZ  ;
       aW = 10 * pW +iW + dW  ;
 
+      if(fabs(errorX) > error || fabs(errorY) > error)
+      {
+            mul = 20;
+                   aZ = 0;
+      }
+
+      if(localPoseH.pose.position.z > 4.0 && fabs(errorX) < error || fabs(errorY) < error){
+            aZ = 0.2;
+      }
+
+      aX *= -mul;
+      aY *= -mul;
+
+
       // filling velocity commands
-      twist.twist.linear.x = aX;
-      twist.twist.linear.y =  aY;
-      twist.twist.linear.z = aZ;
+      twist.twist.linear.x = aY;
+      twist.twist.linear.y =  aX; //X and Y are flipped in the simulator, or camera rotated
+      twist.twist.linear.z = aZ*-20;
       twist.twist.angular.z = aW;
       twist.header.stamp = ros::Time::now();
 
+
+
+
+
+/*
       ROS_INFO("Error X: %0.2f \n", errorX);
       ROS_INFO("Error Y: %0.2f \n", errorY);
       ROS_INFO("Error Z: %0.2f \n", errorZ);
-      ROS_INFO("derivative X: %0.2f \n", dX);
-      ROS_INFO("derivative Y: %0.2f \n", dY);
-      ROS_INFO("derivative Z: %0.2f \n", dZ);
-      ROS_INFO("derivative W: %0.2f \n", dZ);
-      ROS_INFO("W: %0.2f \n", w);
+      //ROS_INFO("derivative X: %0.2f \n", dX);
+      //ROS_INFO("derivative Y: %0.2f \n", dY);
+      //ROS_INFO("derivative Z: %0.2f \n", dZ);
+      //ROS_INFO("derivative W: %0.2f \n", dZ);
+      //ROS_INFO("W: %0.2f \n", w);*/
       ROS_INFO("Action X: %0.2f \n", aX);
       ROS_INFO("Action Y: %0.2f \n", aY);
       ROS_INFO("Action Z: %0.2f \n", aZ);
@@ -323,6 +375,12 @@ void trackedObjectCb(const kuri_msgs::ObjectConstPtr &msg)
         twist.twist.linear.z = 0;
         twist.twist.angular.z = 0;
       }
+      //ROS_INFO("localPoseH.pose.position.z W: %0.2f \n", localPoseH.pose.position.z);
+      if(localPoseH.pose.position.z < 1.0)//assume object picked?
+      {
+          currentState = WAITING_FOR_DROP;
+      }
+    }
     }
 }
 
@@ -423,7 +481,7 @@ int main(int argc , char **argv)
 
   idlePose.pose.position.x = 0;
   idlePose.pose.position.y = 0;
-  idlePose.pose.position.z = 10;
+  idlePose.pose.position.z = 7;
 
   mavros_msgs::SetMode offb_set_mode;
   offb_set_mode.request.custom_mode = "OFFBOARD";
@@ -521,17 +579,26 @@ int main(int argc , char **argv)
         localPosePub.publish(idlePose);
       }
     case PICKING:
-      // Failsafe: if we don't get tracking info for more than 500ms, then stop in place
+      // Failsafe: if we don't get tracking info for more than 500ms, then stop in place, or go back to exploring?
       if(ros::Time::now() - objectLastTracked > ros::Duration(0.5))
       {
         stopTwist.header.stamp = ros::Time::now();
         velPub.publish(stopTwist);
+        ROS_INFO("TRANSITIONING FROM INITIATION PICKING:>> EXPLORING STATE");
+        currentState = EXPLORING;
       }
       else
       {
         velPub.publish(twist);
       }
       break;
+    case WAITING_FOR_DROP:
+        //hold position?
+    case DROPPING://Insert dropzone GPS location, or nearby, and can use camera to detect drop zone.
+        dropZonePose.pose.position.x = -19.0;
+        dropZonePose.pose.position.y = 0.0;
+        dropZonePose.pose.position.z = 7;
+        localPosePub.publish(dropZonePose);
     default:
       ROS_ERROR("Unknown State");
     }
