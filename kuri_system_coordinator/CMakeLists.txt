@@ -12,6 +12,7 @@ find_package(catkin REQUIRED COMPONENTS
   nav_msgs
   message_generation
   actionlib_msgs
+  kuri_msgs
 )
 
 find_package(Eigen REQUIRED)
