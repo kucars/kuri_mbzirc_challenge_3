@@ -52,7 +52,7 @@ install:
   - sudo apt-get install -qq -y ros-$ROS_DISTRO-costmap-2d ros-$ROS_DISTRO-cv-bridge 
   - sudo apt-get install -qq -y ros-$ROS_DISTRO-octomap ros-$ROS_DISTRO-octomap-msgs ros-$ROS_DISTRO-octomap-server
   - sudo apt-get install -qq -y ros-$ROS_DISTRO-gazebo-ros ros-$ROS_DISTRO-mavros ros-$ROS_DISTRO-mavros-msgs ros-$ROS_DISTRO-filters 
-  - sudo apt-get install -qq -y ros-$ROS_DISTRO-image-transport
+  - sudo apt-get install -qq -y ros-$ROS_DISTRO-image-transport ros-$ROS_DISTRO-cmake-modules 
 # Use this to prepare your build for testing e.g. copy database configurations, environment variables, etc.
 before_script: 
 - source /opt/ros/$ROS_DISTRO/setup.bash
