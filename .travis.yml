@@ -55,6 +55,7 @@ install:
   - sudo apt-get install -qq -y ros-$ROS_DISTRO-gazebo-ros ros-$ROS_DISTRO-mavros ros-$ROS_DISTRO-mavros-msgs ros-$ROS_DISTRO-filters 
   - sudo apt-get install -qq -y ros-$ROS_DISTRO-image-transport ros-$ROS_DISTRO-cmake-modules ros-$ROS_DISTRO-roslint ros-$ROS_DISTRO-rviz
   - sudo apt-get install -qq -y ros-$ROS_DISTRO-rviz-visual-tools
+  - sudo apt-get install python-jinja2 protobuf-compiler	 
   - cd ~
   - git clone https://github.com/PX4/Firmware.git
   - cd ~/Firmware
