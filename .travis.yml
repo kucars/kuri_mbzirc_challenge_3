@@ -49,7 +49,9 @@ install:
   - wstool merge -t src https://raw.githubusercontent.com/kuri-kustar/kuri_mbzirc_challenge_3/master/mbzirc_challenge3.rosinstall
   - wstool update -t src
   - rosdep install -y -r --from-paths src --ignore-src --rosdistro $ROS_DISTRO
-  - sudo apt-get install -qq -y ros-$ROS_DISTRO-costmap-2d ros-$ROS_DISTRO-cv-bridge ros-$ROS_DISTRO-octomap ros-$ROS_DISTRO-octomap-msgs ros-$ROS_DISTRO-octomap-server
+  - sudo apt-get install -qq -y ros-$ROS_DISTRO-costmap-2d ros-$ROS_DISTRO-cv-bridge 
+  - sudo apt-get install -qq -y ros-$ROS_DISTRO-octomap ros-$ROS_DISTRO-octomap-msgs ros-$ROS_DISTRO-octomap-server
+  - sudo apt-get install -qq -y ros-$ROS_DISTRO-gazebo-ros
 # Use this to prepare your build for testing e.g. copy database configurations, environment variables, etc.
 before_script: 
 - source /opt/ros/$ROS_DISTRO/setup.bash
