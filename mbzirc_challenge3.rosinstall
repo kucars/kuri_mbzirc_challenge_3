@@ -1,8 +1,4 @@
 - git:
-    local-name: Firmware
-    uri: https://github.com/PX4/Firmware.git
-    version: 40aa785
-- git:
     local-name: kuri_mbzirc_sim
     uri: https://github.com/kuri-kustar/kuri_mbzirc_sim.git
 - git:
