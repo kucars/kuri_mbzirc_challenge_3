@@ -20,3 +20,24 @@
 - git:
     local-name: volumetric_mapping
     uri: https://github.com/ethz-asl/volumetric_mapping
+- git:
+    local-name: catkin_simple
+    uri: https://github.com/ethz-asl/catkin_simple
+- git:
+    local-name: eigen_catkin
+    uri: https://github.com/ethz-asl/eigen_catkin
+- git:
+    local-name: eigen_checks
+    uri: https://github.com/ethz-asl/eigen_checks
+- git:
+    local-name: gflags_catkin
+    uri: https://github.com/ethz-asl/gflags_catkin
+- git:
+    local-name: glog_catkin
+    uri: https://github.com/ethz-asl/glog_catkin
+- git:
+    local-name: minkindr
+    uri: https://github.com/ethz-asl/minkindr
+- git:
+    local-name: minkindr_ros
+    uri: https://github.com/ethz-asl/minkindr_ros
