@@ -44,8 +44,8 @@ before_install:
 # Use this to install any prerequisites or dependencies necessary to run your build
 install: 
   # Create workspace
-  - mkdir -p ~/ros/kuri_catkin_ws/
-  - cd ~/ros/kuri_catkin_ws/
+  - mkdir -p ~/catkin_ws/src/
+  - cd ~/catkin_ws
   - wstool init src
   - wstool merge -t src https://raw.githubusercontent.com/kuri-kustar/kuri_mbzirc_challenge_3/master/mbzirc_challenge3.rosinstall
   - wstool update -t src
@@ -75,7 +75,7 @@ script:
 - rospack profile
 - catkin_make --cmake-args -DCONFIG=posix_sitl_default
 - rospack profile
-- cd ~/ros/kuri_catkin_ws/src/Firmware
+- cd ~/catkin_ws/src/Firmware
 - source Tools/setup_gazebo.bash $(pwd) $(pwd)/build_posix_sitl_default
 - export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:$(pwd)
 - export ROS_PACKAGE_PATH=$ROS_PACKAGE_PATH:$(pwd)/Tools/sitl_gazebo
