@@ -55,6 +55,16 @@ install:
   - sudo apt-get install -qq -y ros-$ROS_DISTRO-gazebo-ros ros-$ROS_DISTRO-mavros ros-$ROS_DISTRO-mavros-msgs ros-$ROS_DISTRO-filters 
   - sudo apt-get install -qq -y ros-$ROS_DISTRO-image-transport ros-$ROS_DISTRO-cmake-modules ros-$ROS_DISTRO-roslint ros-$ROS_DISTRO-rviz
   - sudo apt-get install -qq -y ros-$ROS_DISTRO-rviz-visual-tools
+  - cd ~/catkin_ws/src/
+  - wstool set catkin_simple       --git https://github.com/catkin/catkin_simple.git
+  - wstool set eigen_catkin        --git https://github.com/ethz-asl/eigen_catkin.git
+  - wstool set eigen_checks        --git https://github.com/ethz-asl/eigen_checks.git
+  - wstool set gflags_catkin       --git https://github.com/ethz-asl/gflags_catkin.git
+  - wstool set glog_catkin         --git https://github.com/ethz-asl/glog_catkin.git
+  - wstool set minkindr            --git https://github.com/ethz-asl/minkindr.git
+  - wstool set minkindr_ros        --git https://github.com/ethz-asl/minkindr_ros.git
+  - wstool set volumetric_mapping  --git https://github.com/ethz-asl/volumetric_mapping.git
+  - wstool update
 # Use this to prepare your build for testing e.g. copy database configurations, environment variables, etc.
 before_script: 
 - source /opt/ros/$ROS_DISTRO/setup.bash
