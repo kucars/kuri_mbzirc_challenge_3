@@ -1,6 +1,6 @@
 # KURI - MBZIRC Challenge 3
 
-[![Build Status](https://travis-ci.org/kuri-kustar/kuri_mbzirc_challenge_3.svg?branch=master)](https://travis-ci.org/kuri-kustar/kuri_mbzirc_challenge_3) [![Join the chat at https://gitter.im/kuri-kustar/kuri_mbzirc_challenge_3](https://badges.gitter.im/kuri-kustar/kuri_mbzirc_challenge_3.svg)](https://gitter.im/kuri-kustar/kuri_mbzirc_challenge_3?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Build Status](https://travis-ci.org/kucars/kuri_mbzirc_challenge_3.svg?branch=master)](https://travis-ci.org/kucars/kuri_mbzirc_challenge_3) [![Join the chat at https://gitter.im/kucars/kuri_mbzirc_challenge_3](https://badges.gitter.im/kucars/kuri_mbzirc_challenge_3.svg)](https://gitter.im/kucars/kuri_mbzirc_challenge_3?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 
 Challenge 3 related tasks implementation
 
@@ -18,8 +18,8 @@ In order run the simulation environment the following Packages are needed:
 ```
 cd <catkin_ws>
 $ wstool init src
-$ wstool set -t src kuri_mbzirc_challenge_3 https://github.com/kuri-kustar/kuri_mbzirc_challenge_3.git --git
-$ wstool merge -t src https://raw.githubusercontent.com/kuri-kustar/kuri_mbzirc_challenge_3/master/mbzirc_challenge3.rosinstall
+$ wstool set -t src kuri_mbzirc_challenge_3 https://github.com/kucars/kuri_mbzirc_challenge_3.git --git
+$ wstool merge -t src https://raw.githubusercontent.com/kucars/kuri_mbzirc_challenge_3/master/mbzirc_challenge3.rosinstall
 $ wstool update -t src
 $ rosdep install -y -r --from-paths src --ignore-src --rosdistro $ROS_DISTRO
 $ catkin_make --cmake-args -DCONFIG=posix_sitl_default
